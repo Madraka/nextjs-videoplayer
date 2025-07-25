@@ -1,4 +1,15 @@
-## [1.0.2] - 2025-07-25
+## [1.0.3] - 2025-07-25
+
+### Added
+- Version bump to 1.0.3
+
+### Changed
+- Updated package version
+
+### Fixed
+- Bug fixes and improvements
+
+
 
 ### Added
 - Version bump to 1.0.2
