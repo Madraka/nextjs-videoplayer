@@ -1,4 +1,15 @@
-## [1.0.3] - 2025-07-25
+## [1.0.4] - 2025-07-25
+
+### Added
+- Version bump to 1.0.4
+
+### Changed
+- Updated package version
+
+### Fixed
+- Bug fixes and improvements
+
+
 
 ### Changed
 - Changed package name to @madraka/nextjs-videoplayer for personalized NPM scope
