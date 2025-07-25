@@ -210,6 +210,39 @@ pnpm dev
 pnpm build:package
 ```
 
+### 🚀 Release Process
+
+```bash
+# Patch version (1.0.0 → 1.0.1)
+pnpm version:patch
+
+# Minor version (1.0.0 → 1.1.0)  
+pnpm version:minor
+
+# Major version (1.0.0 → 2.0.0)
+pnpm version:major
+
+# Push changes and trigger CI/CD
+git push --follow-tags
+```
+
+### 📦 GitHub Installation
+
+```bash
+# Latest from main branch
+npm install github:Madraka/nextjs-videoplayer
+
+# Specific version/tag
+npm install github:Madraka/nextjs-videoplayer#v1.0.0
+
+# In package.json
+{
+  "dependencies": {
+    "@nextjs-videoplayer/core": "github:Madraka/nextjs-videoplayer#v1.0.0"
+  }
+}
+```
+
 ## 📦 Package Structure
 
 ```

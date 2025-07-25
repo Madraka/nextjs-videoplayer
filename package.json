@@ -53,7 +53,13 @@
     "start": "next start",
     "lint": "next lint",
     "prepublishOnly": "npm run build:package",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "version:patch": "./scripts/version.sh patch",
+    "version:minor": "./scripts/version.sh minor",
+    "version:major": "./scripts/version.sh major",
+    "release": "npm run build:package && npm run version:patch",
+    "release:minor": "npm run build:package && npm run version:minor",
+    "release:major": "npm run build:package && npm run version:major"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.14",
