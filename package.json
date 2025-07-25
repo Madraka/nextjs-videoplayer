@@ -1,6 +1,6 @@
 {
   "name": "@nextjs-videoplayer/core",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Modern, customizable video player for Next.js with HLS/DASH support, mobile optimization, and advanced features",
   "private": false,
   "main": "./dist/index.js",

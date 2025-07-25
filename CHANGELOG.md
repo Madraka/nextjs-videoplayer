@@ -1,4 +1,15 @@
-# Changelog
+## [1.0.1] - 2025-07-25
+
+### Added
+- Version bump to 1.0.1
+
+### Changed
+- Updated package version
+
+### Fixed
+- Bug fixes and improvements
+
+
 
 All notable changes to this project will be documented in this file.
 
