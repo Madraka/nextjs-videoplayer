@@ -133,10 +133,11 @@ jobs:
     - name: Publish to NPM
       if: steps.check-tag.outputs.exists == 'false'
       run: |
-        if [ "${{ secrets.NPM_TOKEN }}" != "" ]; then
+        if [ -n "${{ secrets.NPM_TOKEN }}" ]; then
+          echo "Publishing to NPM..."
           npm publish --access public
         else
-          echo "NPM_TOKEN not set, skipping NPM publish"
+          echo "NPM_TOKEN not found, skipping NPM publish"
         fi
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -167,10 +168,11 @@ jobs:
     
     - name: Publish to NPM
       run: |
-        if [ "${{ secrets.NPM_TOKEN }}" != "" ]; then
+        if [ -n "${{ secrets.NPM_TOKEN }}" ]; then
+          echo "Publishing to NPM..."
           npm publish --access public
         else
-          echo "NPM_TOKEN not set, skipping NPM publish"
+          echo "NPM_TOKEN not found, skipping NPM publish"
         fi
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
