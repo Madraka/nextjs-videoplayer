@@ -89,6 +89,15 @@ jobs:
           echo "exists=false" >> $GITHUB_OUTPUT
         fi
     
+    - name: Commit built files
+      if: steps.check-tag.outputs.exists == 'false'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add dist/
+        git diff --staged --quiet || git commit -m "build: Update dist files for v${{ steps.package-version.outputs.version }}"
+        git push
+    
     - name: Create Release
       if: steps.check-tag.outputs.exists == 'false'
       uses: softprops/action-gh-release@v2
@@ -121,6 +130,12 @@ jobs:
             aspectRatio="16/9"
           />
           ```
+          
+          ### 📦 Package Contents
+          - Built JavaScript files (CJS + ESM)
+          - TypeScript declarations
+          - Source maps for debugging
+          - Complete documentation
         draft: false
         prerelease: false
         files: |

@@ -1,7 +1,7 @@
 # 🎬 NextJS Video Player
 
-[![NPM Version](https://img.shields.io/npm/v/@nextjs-videoplayer/core.svg)](https://www.npmjs.com/package/@nextjs-videoplayer/core)
-[![License](https://img.shields.io/npm/l/@nextjs-videoplayer/core.svg)](https://github.com/madraka/nextjs-videoplayer/blob/main/LICENSE)
+[![NPM Version](https://img.shields.io/npm/v/@madraka/nextjs-videoplayer.svg)](https://www.npmjs.com/package/@madraka/nextjs-videoplayer)
+[![License](https://img.shields.io/npm/l/@madraka/nextjs-videoplayer.svg)](https://github.com/madraka/nextjs-videoplayer/blob/main/LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
 
 Modern, customizable video player for Next.js applications with adaptive streaming, mobile optimization, and advanced features.
@@ -25,9 +25,16 @@ Modern, customizable video player for Next.js applications with adaptive streami
 
 ```bash
 # Using npm
-npm install @nextjs-videoplayer/core
+npm install @madraka/nextjs-videoplayer
 
 # Using pnpm  
+pnpm add @madraka/nextjs-videoplayer
+
+# Using yarn
+yarn add @madraka/nextjs-videoplayer
+
+# Install directly from GitHub
+npm install github:Madraka/nextjs-videoplayer
 pnpm add @nextjs-videoplayer/core
 
 # Using yarn
@@ -39,7 +46,7 @@ yarn add @nextjs-videoplayer/core
 ```tsx
 'use client';
 
-import { ConfigurableVideoPlayer } from '@nextjs-videoplayer/core';
+import { ConfigurableVideoPlayer } from '@madraka/nextjs-videoplayer';
 
 export default function MyVideoPage() {
   return (
@@ -63,7 +70,7 @@ import {
   ConfigurableVideoPlayer,
   PlayerConfigProvider,
   PlayerPresets 
-} from '@nextjs-videoplayer/core';
+} from '@madraka/nextjs-videoplayer';
 
 export default function AdvancedVideoPage() {
   return (
@@ -117,7 +124,7 @@ export default function AdvancedVideoPage() {
 Choose from pre-configured player styles:
 
 ```tsx
-import { PlayerPresets } from '@nextjs-videoplayer/core';
+import { PlayerPresets } from '@madraka/nextjs-videoplayer';
 
 // YouTube-style player
 <PlayerConfigProvider config={PlayerPresets.youtube}>
@@ -238,7 +245,7 @@ npm install github:Madraka/nextjs-videoplayer#v1.0.0
 # In package.json
 {
   "dependencies": {
-    "@nextjs-videoplayer/core": "github:Madraka/nextjs-videoplayer#v1.0.0"
+    "@madraka/nextjs-videoplayer": "github:Madraka/nextjs-videoplayer#v1.0.0"
   }
 }
 ```
@@ -246,7 +253,7 @@ npm install github:Madraka/nextjs-videoplayer#v1.0.0
 ## 📦 Package Structure
 
 ```
-@nextjs-videoplayer/core/
+@madraka/nextjs-videoplayer/
 ├── dist/                 # Built package
 ├── src/
 │   ├── components/       # React components
