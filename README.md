@@ -1,48 +1,85 @@
 # 🎬 NextJS Video Player
 
 [![NPM Version](https://img.shields.io/npm/v/@madraka/nextjs-videoplayer.svg)](https://www.npmjs.com/package/@madraka/nextjs-videoplayer)
-[![License](https://img.shields.io/npm/l/@madraka/nextjs-videoplayer.svg)](https://github.com/madraka/n## 🚀 Deploy to Vercel
+[![License](https://img.shields.io/npm/l/@madraka/nextjs-videoplayer.svg)](https://github.com/madraka/n## � Configuration Options
 
-### Quick Deployment
+### Player Configuration
 
-1. **Fork this repository** to your GitHub account
+Create custom configurations for different use cases:
 
-2. **Connect to Vercel**:
-   - Go to [vercel.com](https://vercel.com)
-   - Click "New Project"
-   - Import your forked repository
+```tsx
+import { PlayerConfig } from '@madraka/nextjs-videoplayer';
 
-3. **Configure Environment Variables** (optional):
-   ```
-   NEXT_PUBLIC_STREAM_URL=https://your-stream-url.m3u8
-   ```
+const customConfig: PlayerConfig = {
+  theme: {
+    primaryColor: '#3b82f6',
+    backgroundColor: '#000000',
+    controlsOpacity: 0.8,
+  },
+  controls: {
+    showPlayButton: true,
+    showVolumeControl: true,
+    showProgressBar: true,
+    showFullscreenButton: true,
+    showSettingsButton: true,
+    autoHide: true,
+    autoHideDelay: 3000,
+  },
+  playback: {
+    autoPlay: false,
+    muted: false,
+    loop: false,
+    playsInline: true,
+    preload: 'metadata',
+  },
+  gestures: {
+    enabled: true,
+    doubleTapToSeek: true,
+    swipeToSeek: true,
+    pinchToZoom: false,
+  },
+  analytics: {
+    enabled: true,
+    trackPlay: true,
+    trackPause: true,
+    trackSeek: true,
+    trackQualityChange: true,
+  }
+};
 
-4. **Deploy**: Click "Deploy" and your video player will be live!
-
-### Manual Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/madraka/nextjs-videoplayer.git
-cd nextjs-videoplayer
-
-# Install dependencies
-pnpm install
-
-# Build for production
-pnpm build
-
-# Deploy to Vercel
-npx vercel --prod
+<PlayerConfigProvider config={customConfig}>
+  <ConfigurableVideoPlayer src="video.m3u8" />
+</PlayerConfigProvider>
 ```
 
-### Vercel Configuration
+### Video Formats Support
 
-The project includes optimized Vercel configuration:
-- ✅ Pre-configured `vercel.json`
-- ✅ Next.js 15 optimizations
-- ✅ Automatic dependency optimization
-- ✅ Responsive video streaming
+The player automatically detects and handles multiple video formats:
+
+- **HLS (.m3u8)** - HTTP Live Streaming for adaptive bitrate
+- **DASH (.mpd)** - Dynamic Adaptive Streaming over HTTP  
+- **MP4** - Standard progressive download
+- **WebM** - Modern web video format
+- **MOV** - QuickTime format
+
+```tsx
+// HLS Stream
+<ConfigurableVideoPlayer src="https://example.com/stream.m3u8" />
+
+// DASH Stream  
+<ConfigurableVideoPlayer src="https://example.com/stream.mpd" />
+
+// Progressive MP4
+<ConfigurableVideoPlayer src="https://example.com/video.mp4" />
+
+// Multiple sources with fallback
+<ConfigurableVideoPlayer 
+  src={[
+    { src: "video.m3u8", type: "application/x-mpegURL" },
+    { src: "video.mp4", type: "video/mp4" }
+  ]} 
+/>
+```
 
 ## 🤝 Contributing
 
