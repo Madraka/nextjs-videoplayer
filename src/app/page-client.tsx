@@ -133,10 +133,16 @@ function HomePageClient() {
 
   const [isAnalysisWorking, setIsAnalysisWorking] = useState(false);
 
-  // Enhanced video color analysis with aggressive CORS handling
+  // Enhanced video color analysis with performance optimization
   const analyzeVideoColors = React.useCallback((videoElement: HTMLVideoElement) => {
     if (!videoElement || videoElement.readyState < 2) {
       console.debug('Video not ready for analysis:', videoElement?.readyState);
+      return;
+    }
+
+    // Performance optimization: Skip analysis if video is buffering or seeking
+    if (videoElement.seeking || videoElement.networkState === HTMLMediaElement.NETWORK_LOADING) {
+      console.debug('Skipping analysis: video is buffering or seeking');
       return;
     }
 
@@ -151,123 +157,121 @@ function HomePageClient() {
       return; // Wait for reload
     }
 
-    try {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      if (!ctx) {
-        console.debug('Canvas context not available');
-        return;
-      }
-
-      // Small canvas for performance - only analyze edges
-      canvas.width = 64;
-      canvas.height = 36;
-
-      // Draw current video frame - this might fail due to CORS
+    // Use requestAnimationFrame for better performance
+    requestAnimationFrame(() => {
       try {
-        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-        console.debug('Successfully drew video frame to canvas');
-      } catch (corsError) {
-        console.debug('CORS error when drawing video frame:', corsError);
-        setIsAnalysisWorking(false);
-        
-        // Enhanced fallback dynamic colors based on video time and source
-        const time = videoElement.currentTime || 0;
-        const videoId = selectedVideo.id;
-        
-        // Different color palettes for different videos
-        let baseHue = 200; // Default blue
-        if (videoId === 'bigbuck') baseHue = 45; // Orange/yellow theme
-        else if (videoId === 'elephant') baseHue = 280; // Purple theme  
-        else if (videoId === 'sintel') baseHue = 15; // Red/orange theme
-        else if (videoId === 'tears') baseHue = 200; // Blue theme
-        
-        const dynamicPrimary = `hsla(${baseHue + Math.sin(time * 0.1) * 30}, ${60 + Math.cos(time * 0.15) * 20}%, ${50 + Math.sin(time * 0.08) * 20}%, 0.7)`;
-        const dynamicSecondary = `hsla(${baseHue + 60 + Math.cos(time * 0.12) * 40}, ${55 + Math.sin(time * 0.18) * 25}%, ${45 + Math.cos(time * 0.09) * 25}%, 0.5)`;
-        const dynamicAccent = `hsla(${baseHue + 120 + Math.sin(time * 0.14) * 50}, ${50 + Math.cos(time * 0.11) * 30}%, ${40 + Math.sin(time * 0.07) * 30}%, 0.3)`;
-        
-        setAmbientColors({
-          primary: dynamicPrimary,
-          secondary: dynamicSecondary,
-          accent: dynamicAccent
-        });
-        return;
-      }
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) {
+          console.debug('Canvas context not available');
+          return;
+        }
 
-      // Analyze edge pixels for ambient colors
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
+        // Even smaller canvas for better performance
+        canvas.width = 32;
+        canvas.height = 18;
 
-      let totalR = 0, totalG = 0, totalB = 0;
-      let edgeR = 0, edgeG = 0, edgeB = 0;
-      let centerR = 0, centerG = 0, centerB = 0;
-      let edgeCount = 0, centerCount = 0;
-
-      // Analyze different regions
-      for (let y = 0; y < canvas.height; y++) {
-        for (let x = 0; x < canvas.width; x++) {
-          const index = (y * canvas.width + x) * 4;
-          const r = data[index];
-          const g = data[index + 1];
-          const b = data[index + 2];
-
-          // Skip very dark or very bright pixels
-          const brightness = (r + g + b) / 3;
-          if (brightness < 20 || brightness > 235) continue;
-
-          totalR += r;
-          totalG += g;
-          totalB += b;
-
-          // Edge detection for ambient lighting
-          const isEdge = x < 8 || x > canvas.width - 8 || y < 4 || y > canvas.height - 4;
+        // Draw current video frame - this might fail due to CORS
+        try {
+          ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+          console.debug('Successfully drew video frame to canvas');
+        } catch (corsError) {
+          console.debug('CORS error when drawing video frame:', corsError);
+          setIsAnalysisWorking(false);
           
-          if (isEdge) {
-            edgeR += r;
-            edgeG += g;
-            edgeB += b;
-            edgeCount++;
-          } else {
-            centerR += r;
-            centerG += g;
-            centerB += b;
-            centerCount++;
+          // Enhanced fallback dynamic colors based on video time and source
+          const time = videoElement.currentTime || 0;
+          const videoId = selectedVideo.id;
+          
+          // Different color palettes for different videos
+          let baseHue = 200; // Default blue
+          if (videoId === 'bigbuck') baseHue = 45; // Orange/yellow theme
+          else if (videoId === 'elephant') baseHue = 280; // Purple theme  
+          else if (videoId === 'sintel') baseHue = 15; // Red/orange theme
+          else if (videoId === 'tears') baseHue = 200; // Blue theme
+          
+          const dynamicPrimary = `hsla(${baseHue + Math.sin(time * 0.05) * 20}, ${55 + Math.cos(time * 0.08) * 15}%, ${45 + Math.sin(time * 0.04) * 15}%, 0.6)`;
+          const dynamicSecondary = `hsla(${baseHue + 60 + Math.cos(time * 0.06) * 30}, ${50 + Math.sin(time * 0.09) * 20}%, ${40 + Math.cos(time * 0.05) * 20}%, 0.4)`;
+          const dynamicAccent = `hsla(${baseHue + 120 + Math.sin(time * 0.07) * 40}, ${45 + Math.cos(time * 0.06) * 25}%, ${35 + Math.sin(time * 0.03) * 25}%, 0.3)`;
+          
+          setAmbientColors({
+            primary: dynamicPrimary,
+            secondary: dynamicSecondary,
+            accent: dynamicAccent
+          });
+          return;
+        }
+
+        // Analyze edge pixels for ambient colors - optimized
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+
+        let edgeR = 0, edgeG = 0, edgeB = 0;
+        let centerR = 0, centerG = 0, centerB = 0;
+        let edgeCount = 0, centerCount = 0;
+
+        // Simplified analysis for better performance
+        for (let y = 0; y < canvas.height; y += 2) { // Skip every other row for performance
+          for (let x = 0; x < canvas.width; x += 2) { // Skip every other column for performance
+            const index = (y * canvas.width + x) * 4;
+            const r = data[index];
+            const g = data[index + 1];
+            const b = data[index + 2];
+
+            // Skip very dark or very bright pixels
+            const brightness = (r + g + b) / 3;
+            if (brightness < 20 || brightness > 235) continue;
+
+            // Edge detection for ambient lighting
+            const isEdge = x < 4 || x > canvas.width - 4 || y < 2 || y > canvas.height - 2;
+            
+            if (isEdge) {
+              edgeR += r;
+              edgeG += g;
+              edgeB += b;
+              edgeCount++;
+            } else {
+              centerR += r;
+              centerG += g;
+              centerB += b;
+              centerCount++;
+            }
           }
         }
-      }
 
-      if (edgeCount > 0 && centerCount > 0) {
-        // Calculate average colors for different regions
-        const avgEdgeR = Math.round(edgeR / edgeCount);
-        const avgEdgeG = Math.round(edgeG / edgeCount);
-        const avgEdgeB = Math.round(edgeB / edgeCount);
+        if (edgeCount > 0 && centerCount > 0) {
+          // Calculate average colors for different regions
+          const avgEdgeR = Math.round(edgeR / edgeCount);
+          const avgEdgeG = Math.round(edgeG / edgeCount);
+          const avgEdgeB = Math.round(edgeB / edgeCount);
 
-        const avgCenterR = Math.round(centerR / centerCount);
-        const avgCenterG = Math.round(centerG / centerCount);
-        const avgCenterB = Math.round(centerB / centerCount);
+          const avgCenterR = Math.round(centerR / centerCount);
+          const avgCenterG = Math.round(centerG / centerCount);
+          const avgCenterB = Math.round(centerB / centerCount);
 
-        // Create enhanced ambient color palette with higher intensity
-        const primaryColor = `rgba(${avgEdgeR}, ${avgEdgeG}, ${avgEdgeB}, 0.7)`;
-        const secondaryColor = `rgba(${Math.round((avgEdgeR + avgCenterR) / 2)}, ${Math.round((avgEdgeG + avgCenterG) / 2)}, ${Math.round((avgEdgeB + avgCenterB) / 2)}, 0.5)`;
-        const accentColor = `rgba(${avgCenterR}, ${avgCenterG}, ${avgCenterB}, 0.3)`;
+          // Create enhanced ambient color palette with optimized intensity
+          const primaryColor = `rgba(${avgEdgeR}, ${avgEdgeG}, ${avgEdgeB}, 0.6)`;
+          const secondaryColor = `rgba(${Math.round((avgEdgeR + avgCenterR) / 2)}, ${Math.round((avgEdgeG + avgCenterG) / 2)}, ${Math.round((avgEdgeB + avgCenterB) / 2)}, 0.4)`;
+          const accentColor = `rgba(${avgCenterR}, ${avgCenterG}, ${avgCenterB}, 0.3)`;
 
-        setAmbientColors({
-          primary: primaryColor,
-          secondary: secondaryColor,
-          accent: accentColor
-        });
-        
-        setIsAnalysisWorking(true);
-        console.debug('Video color analysis successful:', { avgEdgeR, avgEdgeG, avgEdgeB });
-      } else {
-        console.debug('No valid pixels found for analysis');
+          setAmbientColors({
+            primary: primaryColor,
+            secondary: secondaryColor,
+            accent: accentColor
+          });
+          
+          setIsAnalysisWorking(true);
+          console.debug('Video color analysis successful:', { avgEdgeR, avgEdgeG, avgEdgeB });
+        } else {
+          console.debug('No valid pixels found for analysis');
+          setIsAnalysisWorking(false);
+        }
+      } catch (error) {
+        console.debug('Video color analysis failed:', error);
         setIsAnalysisWorking(false);
+        // Keep default colors on error
       }
-    } catch (error) {
-      console.debug('Video color analysis failed:', error);
-      setIsAnalysisWorking(false);
-      // Keep default colors on error
-    }
+    });
   }, [selectedVideo.id]);
 
   // Enhanced video player state management with complete reset
@@ -385,28 +389,30 @@ function HomePageClient() {
     }
   }, [analyzeVideoColors]);
 
-  // Auto-update ambient lighting during video playback - smoother transitions
+  // Auto-update ambient lighting during video playback - optimized for performance
   React.useEffect(() => {
     if (!playerState.isPlaying) return;
 
     const interval = setInterval(() => {
       const videoElement = document.querySelector('video') as HTMLVideoElement;
-      if (videoElement) {
+      if (videoElement && isAnalysisWorking) {
+        // Only update occasionally when video is actually playing to prevent freezing
         analyzeVideoColors(videoElement);
       }
-    }, 3000); // Update every 3 seconds for smoother transitions
+    }, 8000); // Reduced frequency: Update every 8 seconds to improve performance
 
     return () => clearInterval(interval);
-  }, [playerState.isPlaying, analyzeVideoColors]);
+  }, [playerState.isPlaying, analyzeVideoColors, isAnalysisWorking]);
 
-  // Initial color analysis when video loads - simplified approach
+  // Initial color analysis when video loads - performance optimized
   React.useEffect(() => {
     // Reset analysis state when video changes
     setIsAnalysisWorking(false);
 
+    // Debounce the initialization to avoid rapid successive calls
     const timeout = setTimeout(() => {
       initializeVideoAnalysis();
-    }, 500);
+    }, 800); // Increased delay for better performance
 
     return () => {
       clearTimeout(timeout);
@@ -438,20 +444,25 @@ function HomePageClient() {
                 Advanced video streaming with cinematic features, adaptive quality, and complete customization for modern web applications
               </p>
               
-              {/* Action Buttons - Neutral Design */}
+              {/* Action Buttons - With Real Links */}
               <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
-                <Button size="lg" className="gap-2 bg-gray-900 hover:bg-gray-800 text-white shadow-xl dark:bg-white dark:text-black dark:hover:bg-gray-100">
+                <Button size="lg" className="gap-2 bg-gray-900 hover:bg-gray-800 text-white shadow-xl dark:bg-white dark:text-black dark:hover:bg-gray-100" 
+                        onClick={() => document.querySelector('video')?.scrollIntoView({ behavior: 'smooth' })}>
                   <Play className="h-5 w-5" />
                   Try Live Demo
                 </Button>
-                <Button variant="outline" size="lg" className="gap-2 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 shadow-lg">
-                  <Github className="h-5 w-5" />
-                  View on GitHub
-                </Button>
-                <Button variant="outline" size="lg" className="gap-2 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 shadow-lg">
-                  <ExternalLink className="h-5 w-5" />
-                  Documentation
-                </Button>
+                <Link href="https://github.com/Madraka/nextjs-videoplayer" target="_blank" rel="noopener noreferrer">
+                  <Button variant="outline" size="lg" className="gap-2 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 shadow-lg w-full">
+                    <Github className="h-5 w-5" />
+                    View on GitHub
+                  </Button>
+                </Link>
+                <Link href="/config-examples">
+                  <Button variant="outline" size="lg" className="gap-2 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 shadow-lg w-full">
+                    <ExternalLink className="h-5 w-5" />
+                    Documentation
+                  </Button>
+                </Link>
               </div>
             </div>
 
@@ -478,59 +489,38 @@ function HomePageClient() {
                     ? 'max-w-lg mx-auto'
                     : 'w-full'
                 )}>
-                  {/* Smooth Dynamic Ambient Lighting Layers - Gentle transitions */}
+                  {/* Optimized Dynamic Ambient Lighting Layers - Reduced for performance */}
                   <div 
-                    className="absolute -inset-16 rounded-[5rem] blur-3xl opacity-80 group-hover:opacity-95 transition-all duration-[4000ms] ease-out animate-pulse"
+                    className="absolute -inset-12 rounded-[4rem] blur-2xl opacity-60 group-hover:opacity-80 transition-all duration-[2000ms] ease-out"
                     style={{ 
-                      background: `radial-gradient(ellipse at center, ${ambientColors.primary} 0%, ${ambientColors.secondary} 50%, ${ambientColors.accent} 100%)` 
+                      background: `radial-gradient(ellipse at center, ${ambientColors.primary} 0%, ${ambientColors.secondary} 60%, transparent 100%)` 
                     }}
                   ></div>
                   
                   <div 
-                    className="absolute -inset-12 rounded-[4rem] blur-2xl opacity-70 group-hover:opacity-85 transition-all duration-[3500ms] ease-out"
-                    style={{ 
-                      background: `conic-gradient(from 0deg, ${ambientColors.primary}, ${ambientColors.secondary}, ${ambientColors.accent}, ${ambientColors.primary})` 
-                    }}
-                  ></div>
-                  
-                  <div 
-                    className="absolute -inset-8 rounded-[3rem] blur-xl opacity-60 group-hover:opacity-75 transition-all duration-[3000ms] ease-out"
+                    className="absolute -inset-8 rounded-[3rem] blur-xl opacity-50 group-hover:opacity-70 transition-all duration-[1500ms] ease-out"
                     style={{ 
                       background: `linear-gradient(45deg, ${ambientColors.secondary}, ${ambientColors.primary})` 
                     }}
                   ></div>
                   
-                  {/* Main border glow - smooth color transitions */}
+                  {/* Main border glow - optimized */}
                   <div 
-                    className="absolute -inset-3 rounded-3xl blur-md opacity-70 group-hover:opacity-90 transition-all duration-[2500ms] ease-out"
+                    className="absolute -inset-3 rounded-3xl blur-md opacity-50 group-hover:opacity-70 transition-all duration-[1000ms] ease-out"
                     style={{ 
-                      background: `linear-gradient(90deg, ${ambientColors.primary}, ${ambientColors.secondary}, ${ambientColors.accent})` 
+                      background: `linear-gradient(90deg, ${ambientColors.primary}, ${ambientColors.secondary})` 
                     }}
                   ></div>
                   
-                  {/* Video container with smooth dynamic shadows */}
+                  {/* Video container with optimized dynamic shadows */}
                   <div 
-                    className="relative bg-black rounded-2xl overflow-hidden shadow-2xl transition-all duration-[2000ms] ease-out"
+                    className="relative bg-black rounded-2xl overflow-hidden shadow-2xl transition-all duration-[1000ms] ease-out"
                     style={{ 
-                      boxShadow: `0 30px 60px -15px ${ambientColors.primary}, 0 0 0 1px rgba(255,255,255,0.1)` 
+                      boxShadow: `0 20px 40px -10px ${ambientColors.primary}, 0 0 0 1px rgba(255,255,255,0.1)` 
                     }}
                   >
-                    {/* Smooth dynamic inner overlays */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40 pointer-events-none z-10"></div>
-                    <div 
-                      className="absolute inset-0 pointer-events-none z-10 opacity-40 transition-all duration-[3000ms] ease-out"
-                      style={{ 
-                        background: `linear-gradient(90deg, ${ambientColors.accent} 0%, transparent 15%, transparent 85%, ${ambientColors.accent} 100%)` 
-                      }}
-                    ></div>
-                    
-                    {/* Smoother edge lighting */}
-                    <div 
-                      className="absolute inset-0 pointer-events-none z-10 opacity-30 transition-all duration-[3500ms] ease-out"
-                      style={{ 
-                        background: `linear-gradient(180deg, ${ambientColors.secondary} 0%, transparent 25%, transparent 75%, ${ambientColors.primary} 100%)` 
-                      }}
-                    ></div>
+                    {/* Simplified overlays for better performance */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/30 pointer-events-none z-10"></div>
                     
                     <ConfigurableVideoPlayer
                       src={selectedVideo.url}
@@ -542,34 +532,6 @@ function HomePageClient() {
                       onStateChange={setPlayerState}
                       className="w-full relative z-20"
                     />
-                    
-                    {/* Smooth corner highlights */}
-                    <div 
-                      className="absolute top-0 left-0 w-48 h-48 rounded-br-full opacity-40 pointer-events-none transition-all duration-[4000ms] ease-out"
-                      style={{ 
-                        background: `radial-gradient(circle at top left, ${ambientColors.primary}60 0%, transparent 60%)` 
-                      }}
-                    ></div>
-                    <div 
-                      className="absolute bottom-0 right-0 w-48 h-48 rounded-tl-full opacity-30 pointer-events-none transition-all duration-[4000ms] ease-out"
-                      style={{ 
-                        background: `radial-gradient(circle at bottom right, ${ambientColors.secondary}50 0%, transparent 60%)` 
-                      }}
-                    ></div>
-                    
-                    {/* Smooth side glows */}
-                    <div 
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-40 opacity-60 pointer-events-none transition-all duration-[3000ms] ease-out"
-                      style={{ 
-                        background: `linear-gradient(to right, ${ambientColors.primary}80, transparent)` 
-                      }}
-                    ></div>
-                    <div 
-                      className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-40 opacity-60 pointer-events-none transition-all duration-[3000ms] ease-out"
-                      style={{ 
-                        background: `linear-gradient(to left, ${ambientColors.secondary}80, transparent)` 
-                      }}
-                    ></div>
                   </div>
                   
                   {/* Video Info - Clean styling with debug info */}
@@ -579,9 +541,9 @@ function HomePageClient() {
                         <div>
                           <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1">{selectedVideo.name}</h3>
                           <p className="text-sm text-gray-600 dark:text-gray-400">{selectedVideo.description}</p>
-                          {/* Debug info */}
+                          {/* Performance debug info */}
                           <div className="mt-2 text-xs text-gray-500 dark:text-gray-500">
-                            Ambient Lighting: {isAnalysisWorking ? '🟢 Video-based colors' : '🟡 Fallback mode'}
+                            Ambient Lighting: {isAnalysisWorking ? '🟢 Optimized video-based colors' : '🟡 Performance mode (fallback colors)'}
                           </div>
                         </div>
                         <div className="flex gap-3">
@@ -999,7 +961,7 @@ function HomePageClient() {
                 </CardContent>
               </Card>
 
-              {/* Documentation - Neutral colors */}
+              {/* Documentation - Real Link */}
               <Card className="group hover:shadow-2xl transition-all duration-300 border-0 bg-white dark:bg-gray-800 shadow-lg hover:-translate-y-2">
                 <CardContent className="p-8 text-center">
                   <div className="w-16 h-16 bg-gradient-to-r from-gray-700 to-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
@@ -1007,14 +969,16 @@ function HomePageClient() {
                   </div>
                   <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Documentation</h3>
                   <p className="text-gray-600 dark:text-gray-300 mb-6">Complete API reference and integration guides</p>
-                  <Button variant="outline" className="w-full gap-2 border-gray-300 dark:border-gray-600">
-                    <ExternalLink className="h-4 w-4" />
-                    Read Docs
-                  </Button>
+                  <Link href="/config-examples">
+                    <Button variant="outline" className="w-full gap-2 border-gray-300 dark:border-gray-600">
+                      <ExternalLink className="h-4 w-4" />
+                      Read Docs
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
 
-              {/* Download */}
+              {/* Download - Real Link */}
               <Card className="group hover:shadow-2xl transition-all duration-300 border-0 bg-white dark:bg-gray-800 shadow-lg hover:-translate-y-2">
                 <CardContent className="p-8 text-center">
                   <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
@@ -1022,10 +986,12 @@ function HomePageClient() {
                   </div>
                   <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Download</h3>
                   <p className="text-gray-600 dark:text-gray-300 mb-6">Get the latest version and start building amazing video experiences</p>
-                  <Button variant="outline" className="w-full gap-2 border-gray-300 dark:border-gray-600">
-                    <Download className="h-4 w-4" />
-                    Download Now
-                  </Button>
+                  <Link href="https://github.com/Madraka/nextjs-videoplayer/releases" target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline" className="w-full gap-2 border-gray-300 dark:border-gray-600">
+                      <Download className="h-4 w-4" />
+                      Download Now
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             </div>
