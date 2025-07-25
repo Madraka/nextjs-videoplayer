@@ -1,7 +1,67 @@
 # 🎬 NextJS Video Player
 
 [![NPM Version](https://img.shields.io/npm/v/@madraka/nextjs-videoplayer.svg)](https://www.npmjs.com/package/@madraka/nextjs-videoplayer)
-[![License](https://img.shields.io/npm/l/@madraka/nextjs-videoplayer.svg)](https://github.com/madraka/nextjs-videoplayer/blob/main/LICENSE)
+[![License](https://img.shields.io/npm/l/@madraka/nextjs-videoplayer.svg)](https://github.com/madraka/n## 🚀 Deploy to Vercel
+
+### Quick Deployment
+
+1. **Fork this repository** to your GitHub account
+
+2. **Connect to Vercel**:
+   - Go to [vercel.com](https://vercel.com)
+   - Click "New Project"
+   - Import your forked repository
+
+3. **Configure Environment Variables** (optional):
+   ```
+   NEXT_PUBLIC_STREAM_URL=https://your-stream-url.m3u8
+   ```
+
+4. **Deploy**: Click "Deploy" and your video player will be live!
+
+### Manual Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/madraka/nextjs-videoplayer.git
+cd nextjs-videoplayer
+
+# Install dependencies
+pnpm install
+
+# Build for production
+pnpm build
+
+# Deploy to Vercel
+npx vercel --prod
+```
+
+### Vercel Configuration
+
+The project includes optimized Vercel configuration:
+- ✅ Pre-configured `vercel.json`
+- ✅ Next.js 15 optimizations
+- ✅ Automatic dependency optimization
+- ✅ Responsive video streaming
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Inspired by VK Player for mobile UX
+- Built with [HLS.js](https://github.com/video-dev/hls.js/) and [Dash.js](https://github.com/Dash-Industry-Forum/dash.js/)
+- UI components by [Radix UI](https://www.radix-ui.com/)
+- Styled with [Tailwind CSS](https://tailwindcss.com/)
+
+---
+
+Made with ❤️ for the Next.js communityblob/main/LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
 
 Modern, customizable video player for Next.js applications with adaptive streaming, mobile optimization, and advanced features.

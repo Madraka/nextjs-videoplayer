@@ -116,6 +116,9 @@ export default function Home() {
               bufferingTime: 0,
               averageBitrate: 0,
               qualityChanges: 0,
+              playbackRate: 1,
+              isPictureInPicture: false,
+              isTheaterMode: false,
             }}
           />
         </section>
