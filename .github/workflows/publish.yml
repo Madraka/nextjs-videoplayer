@@ -7,6 +7,11 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: write
+  packages: write
+  pull-requests: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -86,12 +91,10 @@ jobs:
     
     - name: Create Release
       if: steps.check-tag.outputs.exists == 'false'
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: v${{ steps.package-version.outputs.version }}
-        release_name: Release v${{ steps.package-version.outputs.version }}
+        name: Release v${{ steps.package-version.outputs.version }}
         body: |
           ## 🎬 NextJS Video Player v${{ steps.package-version.outputs.version }}
           
@@ -120,10 +123,21 @@ jobs:
           ```
         draft: false
         prerelease: false
+        files: |
+          dist/**/*
+          README.md
+          CHANGELOG.md
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Publish to NPM
       if: steps.check-tag.outputs.exists == 'false'
-      run: npm publish --access public
+      run: |
+        if [ "${{ secrets.NPM_TOKEN }}" != "" ]; then
+          npm publish --access public
+        else
+          echo "NPM_TOKEN not set, skipping NPM publish"
+        fi
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -152,6 +166,11 @@ jobs:
       run: pnpm run build:package
     
     - name: Publish to NPM
-      run: npm publish --access public
+      run: |
+        if [ "${{ secrets.NPM_TOKEN }}" != "" ]; then
+          npm publish --access public
+        else
+          echo "NPM_TOKEN not set, skipping NPM publish"
+        fi
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
