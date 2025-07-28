@@ -23,6 +23,20 @@
 # misc
 .DS_Store
 *.pem
+*.md
+**/*.md
+*.log
+*.tgz
+*.swp
+*.swo
+*.bak
+*.orig
+*.tmp
+*.pid
+*.seed
+*.pid.lock
+!README.md
+
 
 # debug
 npm-debug.log*
