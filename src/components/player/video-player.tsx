@@ -12,7 +12,7 @@ import { useVideoGestures } from '@/hooks/use-video-gestures';
 import { VideoControls } from '@/components/controls/video-controls';
 import { LoadingSpinner } from '@/components/player/loading-spinner';
 import { ErrorDisplay } from '@/components/player/error-display';
-import type { VideoEngineConfig } from '@/core/video-engine';
+import type { VideoEngineConfig } from '@/core/engine';
 
 export interface VideoPlayerProps {
   src: string;
@@ -32,6 +32,19 @@ export interface VideoPlayerProps {
     playbackRate?: boolean;
     pictureInPicture?: boolean;
     theaterMode?: boolean;
+    settings?: boolean;
+    thumbnailPreview?: boolean;
+  };
+  thumbnails?: {
+    enabled?: boolean;
+    spriteSheet?: {
+      url: string;
+      columns: number;
+      rows: number;
+      thumbnailWidth: number;
+      thumbnailHeight: number;
+      interval: number;
+    };
   };
   gestures?: {
     enabled?: boolean;
@@ -66,6 +79,11 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(({
     playbackRate: true,
     pictureInPicture: true,
     theaterMode: true,
+    settings: true,
+    thumbnailPreview: true,
+  },
+  thumbnails = {
+    enabled: true,
   },
   gestures = {
     enabled: true,
@@ -321,6 +339,8 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(({
           controls={playerControls}
           qualityLevels={qualityLevels}
           controlsConfig={controls}
+          videoUrl={src}
+          thumbnailSpriteSheet={thumbnails.spriteSheet}
           onShow={() => setShowControls(true)}
           onHide={() => setShowControls(false)}
         />

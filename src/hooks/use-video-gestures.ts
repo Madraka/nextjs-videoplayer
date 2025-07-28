@@ -3,6 +3,8 @@
  * Supports tap to play/pause, double tap to seek, swipe gestures
  */
 
+"use client";
+
 import { useCallback, useRef, useState, useEffect } from 'react';
 
 export interface GestureConfig {

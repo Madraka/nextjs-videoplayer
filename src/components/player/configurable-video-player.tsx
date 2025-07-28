@@ -8,14 +8,25 @@ import { LoadingSpinner } from '@/components/player/loading-spinner';
 import { ErrorDisplay } from '@/components/player/error-display';
 import { useVideoPlayer } from '@/hooks/use-video-player';
 import { useVideoGestures } from '@/hooks/use-video-gestures';
-import { usePlayerConfig } from '@/contexts/player-config-context';
-import type { VideoEngineConfig } from '@/core/video-engine';
+import { usePlayer } from '@/contexts/player-context';
+import type { VideoEngineConfig } from '@/core';
 import type { PlayerConfiguration } from '@/types/player-config';
 
 interface ConfigurableVideoPlayerProps {
   src?: string;
   poster?: string;
   thumbnailUrl?: string;
+  thumbnails?: {
+    enabled?: boolean;
+    spriteSheet?: {
+      url: string;
+      columns: number;
+      rows: number;
+      thumbnailWidth: number;
+      thumbnailHeight: number;
+      interval: number;
+    };
+  };
   autoPlay?: boolean;
   muted?: boolean;
   loop?: boolean;
@@ -36,6 +47,7 @@ export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, Configurable
   src,
   poster,
   thumbnailUrl,
+  thumbnails,
   autoPlay,
   muted = false,
   loop = false,
@@ -74,18 +86,38 @@ export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, Configurable
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Get configuration from context and merge with override
-  const { config: contextConfig } = usePlayerConfig();
-  const config = configOverride 
-    ? { ...contextConfig, ...configOverride } 
-    : contextConfig;
+  // Get player state
+  const { state: playerState } = usePlayer();
+  
+  // Simple config for now - in production this would come from props or context
+  const config = configOverride || {
+    auto: { autoPlay: false },
+    controls: { show: true },
+    analytics: { enabled: true }
+  };
 
-  // Video player hook
+  // Video player hook with modern debugging
   const { state, controls: playerControls, qualityLevels, engine } = useVideoPlayer(videoRef, {
     autoPlay: autoPlay ?? config.auto?.autoPlay ?? false,
     muted,
     volume: 1,
+    src: src, // Add src parameter
   });
+
+  // Modern state monitoring
+  useEffect(() => {
+    console.log('🎭 Player State Changed:', {
+      isLoading: state.isLoading,
+      isPlaying: state.isPlaying,
+      isPaused: state.isPaused,
+      currentTime: state.currentTime.toFixed(2),
+      duration: state.duration.toFixed(2),
+      volume: (state.volume * 100).toFixed(0) + '%',
+      buffered: (state.buffered * 100).toFixed(0) + '%',
+      quality: state.quality,
+      error: state.error
+    });
+  }, [state]);
 
   // Apply gesture configuration - Mobile optimized
   const gesturesConfig = config.gestures || {};
@@ -298,11 +330,16 @@ export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, Configurable
       {/* Video Element */}
       <video
         ref={videoRef}
-        className="w-full h-full object-contain"
+        className="w-full h-full object-contain focus:outline-none"
         playsInline={playsInline}
+        tabIndex={0} // Enable keyboard focus
         {...(playsInline && { 'webkit-playsinline': '' })}
         poster={poster}
         preload="metadata"
+        onClick={() => {
+          // Ensure video element has focus for keyboard controls
+          videoRef.current?.focus();
+        }}
       />
 
       {/* Loading Spinner */}
@@ -354,6 +391,8 @@ export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, Configurable
               state={state}
               controls={playerControls}
               qualityLevels={qualityLevels}
+              videoUrl={src || ''}
+              thumbnailSpriteSheet={thumbnails?.spriteSheet}
               controlsConfig={{
                 fullscreen: controlsVisibility.fullscreen !== false,
                 volume: controlsVisibility.volume !== false,
@@ -365,6 +404,8 @@ export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, Configurable
                 theaterMode: controlsVisibility.theaterMode !== false,
                 settings: controlsVisibility.settings !== false,
                 time: controlsVisibility.time !== false,
+                thumbnailPreview: true,
+                timelineThumbnails: false,
               }}
               className={cn(
                 'transition-opacity duration-300',

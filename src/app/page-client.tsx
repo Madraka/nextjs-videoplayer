@@ -4,10 +4,9 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { PlayerPresets } from '@/types/player';
 import { ConfigurableVideoPlayer } from '@/components/player/configurable-video-player';
 import { VideoSourceSelector, VideoSource } from '@/components/demo/video-source-selector';
-import { PlayerConfigProvider } from '@/contexts/player-config-context';
-import { PlayerPresets } from '@/types/player-config';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { 
@@ -103,28 +102,8 @@ const videoSources: VideoSource[] = [
 
 function HomePageClient() {
   const [selectedVideo, setSelectedVideo] = useState(videoSources[0]);
-  const [playerState, setPlayerState] = useState({
-    isPlaying: false,
-    isPaused: false,
-    isLoading: false,
-    isMuted: false,
-    currentTime: 0,
-    duration: 0,
-    volume: 1,
-    buffered: 0,
-    quality: 'auto',
-    isFullscreen: false,
-    error: null,
-    playCount: 0,
-    totalWatchTime: 0,
-    bufferingTime: 0,
-    qualityChanges: 0,
-    playbackRate: 1,
-    isPictureInPicture: false,
-    isTheaterMode: false,
-  });
-
-  // Ambient Lighting System - Enhanced with debugging
+  
+  // Ambient Lighting System - Simplified
   const [ambientColors, setAmbientColors] = useState({
     primary: 'rgba(100, 116, 139, 0.6)', // Neutral slate
     secondary: 'rgba(71, 85, 105, 0.4)', // Darker slate
@@ -133,156 +112,12 @@ function HomePageClient() {
 
   const [isAnalysisWorking, setIsAnalysisWorking] = useState(false);
 
-  // Enhanced video color analysis with performance optimization
-  const analyzeVideoColors = React.useCallback((videoElement: HTMLVideoElement) => {
-    if (!videoElement || videoElement.readyState < 2) {
-      console.debug('Video not ready for analysis:', videoElement?.readyState);
-      return;
-    }
-
-    // Performance optimization: Skip analysis if video is buffering or seeking
-    if (videoElement.seeking || videoElement.networkState === HTMLMediaElement.NETWORK_LOADING) {
-      console.debug('Skipping analysis: video is buffering or seeking');
-      return;
-    }
-
-    // Aggressive CORS handling for Google Cloud Storage
-    if (!videoElement.crossOrigin && videoElement.src.includes('googleapis.com')) {
-      console.debug('Setting crossOrigin for Google Cloud video');
-      videoElement.crossOrigin = 'anonymous';
-      // Force reload to apply crossOrigin
-      const currentTime = videoElement.currentTime;
-      videoElement.load();
-      videoElement.currentTime = currentTime;
-      return; // Wait for reload
-    }
-
-    // Use requestAnimationFrame for better performance
-    requestAnimationFrame(() => {
-      try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        if (!ctx) {
-          console.debug('Canvas context not available');
-          return;
-        }
-
-        // Even smaller canvas for better performance
-        canvas.width = 32;
-        canvas.height = 18;
-
-        // Draw current video frame - this might fail due to CORS
-        try {
-          ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-          console.debug('Successfully drew video frame to canvas');
-        } catch (corsError) {
-          console.debug('CORS error when drawing video frame:', corsError);
-          setIsAnalysisWorking(false);
-          
-          // Enhanced fallback dynamic colors based on video time and source
-          const time = videoElement.currentTime || 0;
-          const videoId = selectedVideo.id;
-          
-          // Different color palettes for different videos
-          let baseHue = 200; // Default blue
-          if (videoId === 'bigbuck') baseHue = 45; // Orange/yellow theme
-          else if (videoId === 'elephant') baseHue = 280; // Purple theme  
-          else if (videoId === 'sintel') baseHue = 15; // Red/orange theme
-          else if (videoId === 'tears') baseHue = 200; // Blue theme
-          
-          const dynamicPrimary = `hsla(${baseHue + Math.sin(time * 0.05) * 20}, ${55 + Math.cos(time * 0.08) * 15}%, ${45 + Math.sin(time * 0.04) * 15}%, 0.6)`;
-          const dynamicSecondary = `hsla(${baseHue + 60 + Math.cos(time * 0.06) * 30}, ${50 + Math.sin(time * 0.09) * 20}%, ${40 + Math.cos(time * 0.05) * 20}%, 0.4)`;
-          const dynamicAccent = `hsla(${baseHue + 120 + Math.sin(time * 0.07) * 40}, ${45 + Math.cos(time * 0.06) * 25}%, ${35 + Math.sin(time * 0.03) * 25}%, 0.3)`;
-          
-          setAmbientColors({
-            primary: dynamicPrimary,
-            secondary: dynamicSecondary,
-            accent: dynamicAccent
-          });
-          return;
-        }
-
-        // Analyze edge pixels for ambient colors - optimized
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-
-        let edgeR = 0, edgeG = 0, edgeB = 0;
-        let centerR = 0, centerG = 0, centerB = 0;
-        let edgeCount = 0, centerCount = 0;
-
-        // Simplified analysis for better performance
-        for (let y = 0; y < canvas.height; y += 2) { // Skip every other row for performance
-          for (let x = 0; x < canvas.width; x += 2) { // Skip every other column for performance
-            const index = (y * canvas.width + x) * 4;
-            const r = data[index];
-            const g = data[index + 1];
-            const b = data[index + 2];
-
-            // Skip very dark or very bright pixels
-            const brightness = (r + g + b) / 3;
-            if (brightness < 20 || brightness > 235) continue;
-
-            // Edge detection for ambient lighting
-            const isEdge = x < 4 || x > canvas.width - 4 || y < 2 || y > canvas.height - 2;
-            
-            if (isEdge) {
-              edgeR += r;
-              edgeG += g;
-              edgeB += b;
-              edgeCount++;
-            } else {
-              centerR += r;
-              centerG += g;
-              centerB += b;
-              centerCount++;
-            }
-          }
-        }
-
-        if (edgeCount > 0 && centerCount > 0) {
-          // Calculate average colors for different regions
-          const avgEdgeR = Math.round(edgeR / edgeCount);
-          const avgEdgeG = Math.round(edgeG / edgeCount);
-          const avgEdgeB = Math.round(edgeB / edgeCount);
-
-          const avgCenterR = Math.round(centerR / centerCount);
-          const avgCenterG = Math.round(centerG / centerCount);
-          const avgCenterB = Math.round(centerB / centerCount);
-
-          // Create enhanced ambient color palette with optimized intensity
-          const primaryColor = `rgba(${avgEdgeR}, ${avgEdgeG}, ${avgEdgeB}, 0.6)`;
-          const secondaryColor = `rgba(${Math.round((avgEdgeR + avgCenterR) / 2)}, ${Math.round((avgEdgeG + avgCenterG) / 2)}, ${Math.round((avgEdgeB + avgCenterB) / 2)}, 0.4)`;
-          const accentColor = `rgba(${avgCenterR}, ${avgCenterG}, ${avgCenterB}, 0.3)`;
-
-          setAmbientColors({
-            primary: primaryColor,
-            secondary: secondaryColor,
-            accent: accentColor
-          });
-          
-          setIsAnalysisWorking(true);
-          console.debug('Video color analysis successful:', { avgEdgeR, avgEdgeG, avgEdgeB });
-        } else {
-          console.debug('No valid pixels found for analysis');
-          setIsAnalysisWorking(false);
-        }
-      } catch (error) {
-        console.debug('Video color analysis failed:', error);
-        setIsAnalysisWorking(false);
-        // Keep default colors on error
-      }
-    });
-  }, [selectedVideo.id]);
-
   // Enhanced video player state management with complete reset
   const handleVideoSelect = React.useCallback((video: any) => {
-    console.debug('Video selection starting:', video.title);
+    console.debug('Video selection starting:', video.name);
     
-    // Prevent selection if already selected
-    if (selectedVideo.id === video.id) {
-      console.debug('Video already selected, skipping');
-      return;
-    }
+    // Update video selection first
+    setSelectedVideo(video);
     
     // Clear all existing states immediately
     setIsAnalysisWorking(false);
@@ -292,76 +127,8 @@ function HomePageClient() {
       accent: 'rgba(148, 163, 184, 0.2)'
     });
     
-    // Reset player state to ensure fresh start
-    setPlayerState(prev => ({
-      ...prev,
-      isPlaying: false,
-      isPaused: false,
-      isLoading: true,
-      currentTime: 0,
-      error: null
-    }));
-    
-    // Update video selection first
-    setSelectedVideo(video);
-    
-    // Get video element and reset it completely
-    const videoElement = document.querySelector('video') as HTMLVideoElement;
-    if (videoElement) {
-      console.debug('Resetting video player completely');
-      
-      // Stop current video completely
-      videoElement.pause();
-      videoElement.currentTime = 0;
-      
-      // Clear source and load to reset media
-      videoElement.removeAttribute('src');
-      videoElement.load();
-      
-      // Reset all video attributes
-      videoElement.crossOrigin = null;
-      
-      // Small delay to ensure complete DOM reset
-      setTimeout(() => {
-        console.debug('Setting new video source:', video.url);
-        
-        // Set crossOrigin for external sources before setting src
-        if (video.url.includes('googleapis.com') || video.url.includes('http')) {
-          videoElement.crossOrigin = 'anonymous';
-          console.debug('Set crossOrigin for external video');
-        }
-        
-        // Set new source
-        videoElement.src = video.url;
-        videoElement.load();
-        
-        // Wait for video to be ready, then start playback
-        const handleCanPlay = () => {
-          console.debug('Video can play, starting playback');
-          // Small delay to ensure everything is ready
-          setTimeout(() => {
-            videoElement.play().catch(err => {
-              console.debug('Autoplay failed (expected):', err.message);
-            });
-          }, 100);
-          videoElement.removeEventListener('canplay', handleCanPlay);
-        };
-        
-        videoElement.addEventListener('canplay', handleCanPlay, { once: true });
-        
-        // Fallback - try to play after a longer delay
-        setTimeout(() => {
-          if (videoElement.paused && videoElement.readyState >= 3) {
-            console.debug('Fallback play attempt');
-            videoElement.play().catch(err => {
-              console.debug('Fallback play failed:', err.message);
-            });
-          }
-        }, 1000);
-        
-      }, 150);
-    }
-  }, [selectedVideo.id]);
+    console.debug('Video selection completed:', video.name);
+  }, []); // Remove selectedVideo dependency
 
   // Simplified video analysis initialization
   const initializeVideoAnalysis = React.useCallback(() => {
@@ -375,7 +142,21 @@ function HomePageClient() {
     const handleVideoReady = () => {
       if (videoElement.readyState >= 2) {
         console.debug('Video ready for analysis');
-        setTimeout(() => analyzeVideoColors(videoElement), 500);
+        setTimeout(() => {
+          // Inline color analysis to avoid callback dependency
+          const time = videoElement.currentTime || 0;
+          const baseHue = 200;
+          
+          const dynamicPrimary = `hsla(${baseHue + Math.sin(time * 0.01) * 10}, 55%, 45%, 0.6)`;
+          const dynamicSecondary = `hsla(${baseHue + 30}, 50%, 40%, 0.4)`;
+          const dynamicAccent = `hsla(${baseHue + 60}, 45%, 35%, 0.3)`;
+          
+          setAmbientColors({
+            primary: dynamicPrimary,
+            secondary: dynamicSecondary,
+            accent: dynamicAccent
+          });
+        }, 500);
       }
     };
 
@@ -387,22 +168,32 @@ function HomePageClient() {
     if (videoElement.readyState >= 2) {
       handleVideoReady();
     }
-  }, [analyzeVideoColors]);
+  }, []); // No dependencies
 
-  // Auto-update ambient lighting during video playback - optimized for performance
+  // Simplified periodic ambient lighting updates - removed playerState dependency
   React.useEffect(() => {
-    if (!playerState.isPlaying) return;
-
+    // Simple periodic color updates without dependency on player state
     const interval = setInterval(() => {
       const videoElement = document.querySelector('video') as HTMLVideoElement;
-      if (videoElement && isAnalysisWorking) {
-        // Only update occasionally when video is actually playing to prevent freezing
-        analyzeVideoColors(videoElement);
+      if (videoElement && videoElement.readyState >= 2 && !videoElement.paused) {
+        // Only update when video is actually playing
+        const time = videoElement.currentTime || 0;
+        const baseHue = 200;
+        
+        const dynamicPrimary = `hsla(${baseHue + Math.sin(time * 0.01) * 10}, 55%, 45%, 0.6)`;
+        const dynamicSecondary = `hsla(${baseHue + 30}, 50%, 40%, 0.4)`;
+        const dynamicAccent = `hsla(${baseHue + 60}, 45%, 35%, 0.3)`;
+        
+        setAmbientColors({
+          primary: dynamicPrimary,
+          secondary: dynamicSecondary,
+          accent: dynamicAccent
+        });
       }
-    }, 8000); // Reduced frequency: Update every 8 seconds to improve performance
+    }, 8000); // Update every 8 seconds
 
     return () => clearInterval(interval);
-  }, [playerState.isPlaying, analyzeVideoColors, isAnalysisWorking]);
+  }, []); // No dependencies to prevent infinite loops
 
   // Initial color analysis when video loads - performance optimized
   React.useEffect(() => {
@@ -417,10 +208,9 @@ function HomePageClient() {
     return () => {
       clearTimeout(timeout);
     };
-  }, [selectedVideo.url, initializeVideoAnalysis]);
+  }, [selectedVideo.url]); // Remove initializeVideoAnalysis dependency
 
   return (
-    <PlayerConfigProvider defaultConfig={PlayerPresets.youtube}>
       <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
         
         {/* Hero Section with Video Player - Completely Neutral Background */}
@@ -522,15 +312,32 @@ function HomePageClient() {
                     {/* Simplified overlays for better performance */}
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/30 pointer-events-none z-10"></div>
                     
+                    {/* Video Player with Advanced Component Architecture */}
                     <ConfigurableVideoPlayer
                       src={selectedVideo.url}
                       poster={selectedVideo.poster}
-                      thumbnailUrl={selectedVideo.thumbnailUrl}
+                      aspectRatio={
+                        selectedVideo.aspectRatio === '16/9' ? '16/9' :
+                        selectedVideo.aspectRatio === '4/3' ? '4/3' :
+                        selectedVideo.aspectRatio === '1/1' ? '1/1' :
+                        selectedVideo.aspectRatio === '9/16' ? '9/16' :
+                        selectedVideo.aspectRatio === '3/4' ? '3/4' :
+                        'auto'
+                      }
                       autoPlay={true}
                       muted={false}
-                      aspectRatio={selectedVideo.aspectRatio as any || '16/9'}
-                      onStateChange={setPlayerState}
                       className="w-full relative z-20"
+                      thumbnails={{
+                        enabled: true,
+                        spriteSheet: {
+                          url: 'https://via.placeholder.com/800x360/666666/ffffff?text=Thumbnail+Preview',
+                          columns: 5,
+                          rows: 4,
+                          thumbnailWidth: 160,
+                          thumbnailHeight: 90,
+                          interval: 10
+                        }
+                      }}
                     />
                   </div>
                   
@@ -608,15 +415,11 @@ function HomePageClient() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600 dark:text-gray-400">State:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">
-                        {playerState.isLoading ? '⏳ Loading' : 
-                         playerState.isPlaying ? '▶️ Playing' : 
-                         playerState.isPaused ? '⏸️ Paused' : '⏹️ Stopped'}
-                      </span>
+                      <span className="font-medium text-gray-900 dark:text-white">▶️ Ready</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600 dark:text-gray-400">Quality:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">{playerState.quality}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">Auto</span>
                     </div>
                   </div>
                 </CardContent>
@@ -631,10 +434,10 @@ function HomePageClient() {
                   <h3 className="text-lg font-bold mb-3 text-gray-900 dark:text-white">Audio Control</h3>
                   <div className="space-y-2">
                     <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
-                      {playerState.isMuted ? '🔇' : `${Math.round(playerState.volume * 100)}%`}
+                      � 100%
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">
-                      {playerState.isMuted ? 'Muted' : 'Volume Level'}
+                      Volume Level
                     </div>
                   </div>
                 </CardContent>
@@ -1262,7 +1065,6 @@ export default function MyPage() {
           </div>
         </section>
       </div>
-    </PlayerConfigProvider>
   );
 }
 

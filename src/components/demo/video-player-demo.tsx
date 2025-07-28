@@ -87,6 +87,17 @@ export const VideoPlayerDemo: React.FC = () => {
             poster={selectedVideo.poster}
             autoPlay={false}
             muted={false}
+            thumbnails={{
+              enabled: true,
+              spriteSheet: {
+                url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg',
+                columns: 4,
+                rows: 4,
+                thumbnailWidth: 160,
+                thumbnailHeight: 90,
+                interval: 10
+              }
+            }}
             onReady={() => setIsPlayerReady(true)}
             onStateChange={setPlayerState}
             className="w-full shadow-2xl"

@@ -1,10 +1,16 @@
 /**
- * Video player state management hook
- * Handles playback state, progress, volume, and player controls
+ * Modern Consolidated Video Player Hook
+ * Integrates all video player functionality without code duplication
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { VideoEngine, type VideoEngineConfig, type VideoEngineEvents } from '@/core/video-engine';
+"use client";
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { VideoEngine, type VideoEngineConfig, type VideoError } from '@/core/engine';
+import { useFullscreen } from './use-fullscreen';
+import { usePictureInPicture } from './use-picture-in-picture';
+import { useKeyboardShortcuts } from './use-keyboard-shortcuts';
+import { useVideoGestures } from './use-video-gestures';
 
 export interface VideoPlayerState {
   isPlaying: boolean;
@@ -15,6 +21,7 @@ export interface VideoPlayerState {
   duration: number;
   volume: number;
   buffered: number;
+  bufferedRanges: TimeRanges;
   quality: string;
   playbackRate: number;
   isFullscreen: boolean;
@@ -47,21 +54,32 @@ interface UseVideoPlayerOptions {
   autoPlay?: boolean;
   muted?: boolean;
   volume?: number;
+  src?: string;
 }
 
 export const useVideoPlayer = (
   videoRef: React.RefObject<HTMLVideoElement | null>,
   options: UseVideoPlayerOptions = {}
 ) => {
+  const { autoPlay, muted, volume, src } = options;
+  
+  // Create empty buffered ranges for initial state
+  const createEmptyTimeRanges = (): TimeRanges => ({
+    length: 0,
+    start: () => 0,
+    end: () => 0
+  });
+  
   const [state, setState] = useState<VideoPlayerState>({
     isPlaying: false,
     isPaused: true,
     isLoading: false,
-    isMuted: options.muted ?? false,
+    isMuted: muted ?? false,
     currentTime: 0,
     duration: 0,
-    volume: options.volume ?? 1,
+    volume: volume ?? 1,
     buffered: 0,
+    bufferedRanges: createEmptyTimeRanges(),
     quality: 'auto',
     playbackRate: 1,
     isFullscreen: false,
@@ -78,364 +96,245 @@ export const useVideoPlayer = (
 
   const [engine, setEngine] = useState<VideoEngine | null>(null);
   const [isEngineReady, setIsEngineReady] = useState(false);
-  const [pendingConfig, setPendingConfig] = useState<VideoEngineConfig | null>(null);
-  const [isPlayPending, setIsPlayPending] = useState(false);
-  const [qualityLevels, setQualityLevels] = useState<Array<{ id: string; label: string; height?: number }>>([]);
+  const videoEngineRef = useRef<VideoEngine | null>(null);
+  const [qualityLevels, setQualityLevels] = useState<Array<{ id: string; label: string; height?: number }>>([
+    { id: 'auto', label: 'Auto' },
+    { id: '1080p', label: '1080p HD', height: 1080 },
+    { id: '720p', label: '720p HD', height: 720 },
+    { id: '480p', label: '480p', height: 480 },
+    { id: '360p', label: '360p', height: 360 },
+    { id: '240p', label: '240p', height: 240 }
+  ]);
   
   // Analytics tracking
   const [lastPlayTime, setLastPlayTime] = useState<number>(0);
   const [bufferingStartTime, setBufferingStartTime] = useState<number>(0);
 
-  // Initialize video engine
-  useEffect(() => {
-    if (!videoRef.current) return;
+  // 🚀 Modern Specialized Hooks Integration
+  const fullscreenHook = useFullscreen({
+    element: videoRef.current,
+    onEnter: () => setState(prev => ({ ...prev, isFullscreen: true })),
+    onExit: () => setState(prev => ({ ...prev, isFullscreen: false })),
+    onError: (error) => console.error('Fullscreen error:', error)
+  });
 
+  const pipHook = usePictureInPicture({
+    videoElement: videoRef.current,
+    onEnter: () => setState(prev => ({ ...prev, isPictureInPicture: true })),
+    onExit: () => setState(prev => ({ ...prev, isPictureInPicture: false })),
+    onError: (error) => console.error('PiP error:', error)
+  });
+
+  // Initialize VideoEngine with proper event handlers
+  useEffect(() => {
     const videoElement = videoRef.current;
-    
-    const events: VideoEngineEvents = {
+    if (!videoElement) {
+      console.log('🔴 No video element');
+      return;
+    }
+
+    if (!src) {
+      console.log('🔴 No source provided');
+      setState(prev => ({ ...prev, isLoading: false }));
+      return;
+    }
+
+    console.log('📍 Source:', src);
+    setState(prev => ({ ...prev, isLoading: true }));
+
+    // Modern VideoEngine with event handlers
+    const engineInstance = new VideoEngine(videoElement, {
       onReady: () => {
-        console.log('VideoEngine: onReady event fired');
+        console.log('✅ Engine ready');
         setState(prev => ({ ...prev, isLoading: false }));
         setIsEngineReady(true);
       },
       onPlay: () => {
-        setState(prev => ({ 
-          ...prev, 
-          isPlaying: true, 
-          isPaused: false,
-          playCount: prev.playCount + 1
-        }));
-        setLastPlayTime(Date.now());
+        console.log('▶️ Video playing');
+        setState(prev => ({ ...prev, isPlaying: true, isPaused: false }));
       },
       onPause: () => {
-        setState(prev => {
-          const watchTime = lastPlayTime > 0 ? (Date.now() - lastPlayTime) / 1000 : 0;
-          return {
-            ...prev, 
-            isPlaying: false, 
-            isPaused: true,
-            totalWatchTime: prev.totalWatchTime + watchTime
-          };
-        });
+        console.log('⏸️ Video paused');
+        setState(prev => ({ ...prev, isPlaying: false, isPaused: true }));
       },
-      onTimeUpdate: (currentTime, duration) => {
+      onTimeUpdate: (currentTime: number, duration: number) => {
         setState(prev => ({ ...prev, currentTime, duration }));
       },
-      onProgress: (buffered) => {
+      onProgress: (buffered: number) => {
         setState(prev => ({ ...prev, buffered }));
       },
-      onVolumeChange: (volume, muted) => {
+      onVolumeChange: (volume: number, muted: boolean) => {
         setState(prev => ({ ...prev, volume, isMuted: muted }));
       },
-      onQualityChange: (quality) => {
-        setState(prev => ({ 
-          ...prev, 
-          quality,
-          qualityChanges: prev.qualityChanges + 1
-        }));
+      onError: (error: VideoError) => {
+        console.error('❌ Video engine error:', error);
+        setState(prev => ({ ...prev, error: error.message || 'Unknown error', isLoading: false }));
       },
-      onError: (error) => {
-        setState(prev => ({ ...prev, error: error.message, isLoading: false }));
-      },
-      onLoadStart: () => {
-        setState(prev => ({ ...prev, isLoading: true, error: null }));
-        setBufferingStartTime(Date.now());
-      },
-      onLoadEnd: () => {
-        setState(prev => {
-          const bufferingTime = bufferingStartTime > 0 ? (Date.now() - bufferingStartTime) / 1000 : 0;
-          return {
-            ...prev, 
-            isLoading: false,
-            bufferingTime: prev.bufferingTime + bufferingTime
-          };
-        });
-      },
-    };
-
-    const videoEngine = new VideoEngine(videoElement, events);
-    setEngine(videoEngine);
-
-    // Initialize engine
-    console.log('Initializing video engine...');
-    videoEngine.initialize()
-      .then(() => {
-        console.log('Video engine initialized successfully');
-      })
-      .catch(error => {
-        console.error('Video engine initialization failed:', error);
-        setState(prev => ({ ...prev, error: error.message }));
-      });
-
-    return () => {
-      videoEngine.cleanup();
-    };
-  }, [videoRef]);
-
-  // Load pending config when engine becomes ready
-  useEffect(() => {
-    if (isEngineReady && engine && pendingConfig) {
-      console.log('Engine is ready, loading pending config:', pendingConfig.src);
-      engine.loadSource(pendingConfig)
-        .then(() => {
-          console.log('Pending video loaded successfully');
-          const levels = engine.getQualityLevels();
-          setQualityLevels(levels);
-          setPendingConfig(null);
-        })
-        .catch(error => {
-          console.error('Pending video load error:', error);
-          setState(prev => ({ 
-            ...prev, 
-            error: `Failed to load video: ${error.message}` 
-          }));
-          setPendingConfig(null);
-        });
-    }
-  }, [isEngineReady, engine, pendingConfig]);
-
-  // Event listeners for fullscreen and PiP changes
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-
-    const handleFullscreenChange = () => {
-      setState(prev => ({ 
-        ...prev, 
-        isFullscreen: Boolean(document.fullscreenElement) 
-      }));
-    };
-
-    const handleEnterPiP = () => {
-      setState(prev => ({ ...prev, isPictureInPicture: true }));
-    };
-
-    const handleLeavePiP = () => {
-      setState(prev => ({ ...prev, isPictureInPicture: false }));
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    
-    if (videoRef.current) {
-      videoRef.current.addEventListener('enterpictureinpicture', handleEnterPiP);
-      videoRef.current.addEventListener('leavepictureinpicture', handleLeavePiP);
-    }
-
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      if (videoRef.current) {
-        videoRef.current.removeEventListener('enterpictureinpicture', handleEnterPiP);
-        videoRef.current.removeEventListener('leavepictureinpicture', handleLeavePiP);
+      onBuffering: (isBuffering: boolean) => {
+        console.log('🔄 Buffering:', isBuffering);
+        setState(prev => ({ ...prev, isLoading: isBuffering }));
       }
-    };
-  }, [videoRef]);
+    });
 
-  // Controls
+    videoEngineRef.current = engineInstance;
+    setEngine(engineInstance);
+
+    // Initialize and load source
+    engineInstance.initialize().then(() => {
+      return engineInstance.loadSource({ 
+        src, 
+        autoplay: autoPlay || false, 
+        muted: muted || false 
+      });
+    }).catch((error) => {
+      console.error('Failed to initialize engine:', error);
+      setState(prev => ({ ...prev, error: error.message || 'Initialization failed', isLoading: false }));
+    });
+
+    return () => {
+      engineInstance.destroy?.();
+      videoEngineRef.current = null;
+    };
+  }, [src, autoPlay, muted]);
+
+  // 🎮 Modern Controls using specialized hooks
   const controls: VideoPlayerControls = {
     play: useCallback(async () => {
-      if (!videoRef.current || isPlayPending) return;
+      console.log('🎮 Play button clicked');
+      const currentEngine = videoEngineRef.current;
+      if (!currentEngine) {
+        console.log('🔴 No engine available for play');
+        return;
+      }
       
       try {
-        setIsPlayPending(true);
-        
-        // Check if video is already playing
-        if (!videoRef.current.paused) {
-          setIsPlayPending(false);
-          return;
-        }
-        
-        await videoRef.current.play();
-        setIsPlayPending(false);
+        await currentEngine.play();
+        console.log('✅ Play command executed');
       } catch (error) {
-        setIsPlayPending(false);
-        console.error('Play failed:', error);
-        
-        // Don't show error for common autoplay restrictions
-        const errorMessage = (error as Error).message;
-        if (!errorMessage.includes('user didn\'t interact') && 
-            !errorMessage.includes('autoplay') &&
-            !errorMessage.includes('gesture')) {
-          setState(prev => ({ 
-            ...prev, 
-            error: `Playback failed: ${errorMessage}` 
-          }));
-        }
+        console.error('❌ Play failed:', error);
       }
-    }, [videoRef, isPlayPending]),
+    }, []),
 
     pause: useCallback(() => {
-      if (!videoRef.current || isPlayPending) return;
-      
-      // Only pause if video is actually playing
-      if (!videoRef.current.paused) {
-        videoRef.current.pause();
+      console.log('🎮 Pause button clicked');
+      const currentEngine = videoEngineRef.current;
+      if (!currentEngine) {
+        console.log('🔴 No engine available for pause');
+        return;
       }
-    }, [videoRef, isPlayPending]),
+      
+      currentEngine.pause();
+      console.log('✅ Pause command executed');
+    }, []),
 
     seek: useCallback((time: number) => {
-      if (!videoRef.current) return;
-      videoRef.current.currentTime = time;
-    }, [videoRef]),
+      console.log('🎮 Seek to:', time);
+      const currentEngine = videoEngineRef.current;
+      if (!currentEngine) {
+        console.log('🔴 No engine available for seek');
+        return;
+      }
+      
+      currentEngine.seek?.(time);
+      console.log('✅ Seek command executed');
+    }, []),
 
     setVolume: useCallback((volume: number) => {
-      if (!videoRef.current) return;
-      videoRef.current.volume = Math.max(0, Math.min(1, volume));
-    }, [videoRef]),
+      console.log('🎮 Set volume to:', volume);
+      const currentEngine = videoEngineRef.current;
+      if (!currentEngine) {
+        console.log('🔴 No engine available for volume');
+        return;
+      }
+      
+      currentEngine.setVolume?.(volume);
+      setState(prev => ({ ...prev, volume }));
+      console.log('✅ Volume command executed');
+    }, []),
 
     toggleMute: useCallback(() => {
-      if (!videoRef.current) return;
-      videoRef.current.muted = !videoRef.current.muted;
-    }, [videoRef]),
-
-    toggleFullscreen: useCallback(async () => {
-      if (!videoRef.current) return;
-      
-      try {
-        if (document.fullscreenElement) {
-          await document.exitFullscreen();
-        } else {
-          await videoRef.current.requestFullscreen();
-        }
-      } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          error: `Fullscreen failed: ${(error as Error).message}` 
-        }));
+      console.log('🎮 Toggle mute');
+      const currentEngine = videoEngineRef.current;
+      if (!currentEngine) {
+        console.log('🔴 No engine available for mute');
+        return;
       }
-    }, [videoRef]),
+      
+      const newMuted = !state.isMuted;
+      currentEngine.setMuted?.(newMuted);
+      setState(prev => ({ ...prev, isMuted: newMuted }));
+      console.log('✅ Mute toggle executed:', newMuted);
+    }, [state.isMuted]),
 
-    setQuality: useCallback((qualityId: string) => {
-      if (!engine) return;
-      engine.setQuality(qualityId);
-    }, [engine]),
-
-    setPlaybackRate: useCallback((rate: number) => {
-      if (!videoRef.current) return;
-      videoRef.current.playbackRate = rate;
-      setState(prev => ({ ...prev, playbackRate: rate }));
-    }, [videoRef]),
+    // Use specialized hooks for advanced features
+    toggleFullscreen: useCallback(() => {
+      console.log('🎮 Toggle fullscreen');
+      fullscreenHook.toggle();
+    }, [fullscreenHook]),
 
     togglePictureInPicture: useCallback(async () => {
-      if (!videoRef.current) return;
-      
-      try {
-        if (state.isPictureInPicture) {
-          await document.exitPictureInPicture();
-        } else {
-          await videoRef.current.requestPictureInPicture();
-        }
-      } catch (error) {
-        console.error('Picture-in-Picture error:', error);
-      }
-    }, [videoRef, state.isPictureInPicture]),
+      console.log('🎮 Toggle Picture-in-Picture');
+      await pipHook.toggle();
+    }, [pipHook]),
 
     toggleTheaterMode: useCallback(() => {
-      setState(prev => ({ 
-        ...prev, 
-        isTheaterMode: !prev.isTheaterMode 
-      }));
+      console.log('🎮 Toggle theater mode');
+      setState(prev => ({ ...prev, isTheaterMode: !prev.isTheaterMode }));
+    }, []),
+
+    setPlaybackRate: useCallback((rate: number) => {
+      console.log('🎮 Set playback rate to:', rate);
+      const currentEngine = videoEngineRef.current;
+      if (!currentEngine) {
+        console.log('🔴 No engine available for playback rate');
+        return;
+      }
+      
+      currentEngine.setPlaybackRate?.(rate);
+      setState(prev => ({ ...prev, playbackRate: rate }));
+      console.log('✅ Playback rate command executed');
+    }, []),
+
+    setQuality: useCallback((qualityId: string) => {
+      console.log('🎮 Set quality to:', qualityId);
+      const currentEngine = videoEngineRef.current;
+      if (!currentEngine) {
+        console.log('🔴 No engine available for quality');
+        return;
+      }
+      
+      currentEngine.setQuality?.(qualityId);
+      setState(prev => ({ ...prev, quality: qualityId, qualityChanges: prev.qualityChanges + 1 }));
+      console.log('✅ Quality command executed');
     }, []),
 
     load: useCallback(async (config: VideoEngineConfig) => {
-      if (!engine) {
-        console.log('Engine not available yet, storing config as pending');
-        setPendingConfig(config);
-        return;
-      }
-      
-      if (!isEngineReady) {
-        console.log('Engine not ready yet, storing config as pending');
-        setPendingConfig(config);
+      console.log('🎮 Load new source:', config);
+      const currentEngine = videoEngineRef.current;
+      if (!currentEngine) {
+        console.log('🔴 No engine available for load');
         return;
       }
       
       try {
-        console.log('Loading video source:', config.src);
-        await engine.loadSource(config);
-        // Update quality levels after loading
-        const levels = engine.getQualityLevels();
-        setQualityLevels(levels);
-        console.log('Video loaded successfully');
+        setState(prev => ({ ...prev, isLoading: true }));
+        await currentEngine.loadSource(config);
+        console.log('✅ Load command executed');
       } catch (error) {
-        console.error('Video load error:', error);
-        setState(prev => ({ 
-          ...prev, 
-          error: `Failed to load video: ${(error as Error).message}` 
-        }));
+        console.error('❌ Load failed:', error);
+        setState(prev => ({ ...prev, error: 'Load failed', isLoading: false }));
       }
-    }, [engine, isEngineReady])
+    }, [])
   };
-
-  // Keyboard controls - must be after controls definition
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const handleKeyPress = (e: KeyboardEvent) => {
-      // Only handle keys when video is in focus or no input is focused
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-
-      switch (e.key) {
-        case ' ':
-        case 'k':
-          e.preventDefault();
-          if (state.isPlaying && !state.isPaused) {
-            controls.pause();
-          } else {
-            controls.play();
-          }
-          break;
-        case 'ArrowLeft':
-          e.preventDefault();
-          controls.seek(Math.max(0, state.currentTime - 10));
-          break;
-        case 'ArrowRight':
-          e.preventDefault();
-          controls.seek(Math.min(state.duration, state.currentTime + 10));
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          controls.setVolume(Math.min(1, state.volume + 0.1));
-          break;
-        case 'ArrowDown':
-          e.preventDefault();
-          controls.setVolume(Math.max(0, state.volume - 0.1));
-          break;
-        case 'm':
-          e.preventDefault();
-          controls.toggleMute();
-          break;
-        case 'f':
-          e.preventDefault();
-          controls.toggleFullscreen();
-          break;
-        case '0':
-        case '1':
-        case '2':
-        case '3':
-        case '4':
-        case '5':
-        case '6':
-        case '7':
-        case '8':
-        case '9':
-          e.preventDefault();
-          const percentage = parseInt(e.key) / 10;
-          controls.seek(state.duration * percentage);
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => {
-      window.removeEventListener('keydown', handleKeyPress);
-    };
-  }, [state.isPlaying, state.currentTime, state.duration, state.volume, controls]);
 
   return {
     state,
     controls,
-    qualityLevels,
     engine,
+    isEngineReady,
+    qualityLevels,
+    // Additional specialized hook features
+    fullscreen: fullscreenHook,
+    pictureInPicture: pipHook
   };
 };

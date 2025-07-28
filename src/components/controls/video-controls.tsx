@@ -3,6 +3,8 @@
  * Includes play/pause, progress bar, volume, quality, and fullscreen controls
  */
 
+"use client";
+
 import React, { useState, useEffect } from 'react';
 import { 
   Play, 
@@ -21,7 +23,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Progress } from '@/components/ui/progress';
+import { ProgressBar } from './progress-bar';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -31,6 +33,8 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { KeyboardShortcuts } from './keyboard-shortcuts';
+import { SettingsMenu } from './settings-menu';
+import { usePlayer } from '@/contexts/player-context';
 import type { VideoPlayerState, VideoPlayerControls } from '@/hooks/use-video-player';
 
 interface VideoControlsProps {
@@ -48,7 +52,19 @@ interface VideoControlsProps {
     theaterMode?: boolean;
     settings?: boolean;
     time?: boolean;
+    thumbnailPreview?: boolean;
+    timelineThumbnails?: boolean;
   };
+  videoUrl?: string;
+  thumbnailSpriteSheet?: {
+    url: string;
+    columns: number;
+    rows: number;
+    thumbnailWidth: number;
+    thumbnailHeight: number;
+    interval: number;
+  };
+  thumbnailUrls?: string[];
   onShow?: () => void;
   onHide?: () => void;
   className?: string;
@@ -85,6 +101,9 @@ export const VideoControls: React.FC<VideoControlsProps> = ({
   controls,
   qualityLevels,
   controlsConfig,
+  videoUrl = '',
+  thumbnailSpriteSheet,
+  thumbnailUrls,
   onShow,
   onHide,
   className,
@@ -93,27 +112,88 @@ export const VideoControls: React.FC<VideoControlsProps> = ({
   const [hoverTime, setHoverTime] = useState<number | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   
+  // Get player context for thumbnail preview setting
+  const { state: playerContextState } = usePlayer();
+  
   // Client-side mount check for SSR compatibility
   useEffect(() => {
     setIsMounted(true);
   }, []);
   
+  // Modern Play/Pause handler with comprehensive state management
   const handlePlayPause = () => {
-    if (state.isLoading) return;
+    console.log('� Modern Play/Pause clicked!');
+    console.log('📊 Current Player State:', {
+      isLoading: state.isLoading,
+      isPlaying: state.isPlaying,
+      isPaused: state.isPaused,
+      currentTime: state.currentTime,
+      duration: state.duration,
+      error: state.error
+    });
+    console.log('🎮 Available Controls:', controls);
     
+    if (state.isLoading) {
+      console.log('❌ Cannot play/pause - video is loading');
+      return;
+    }
+    
+    if (state.error) {
+      console.log('❌ Cannot play/pause - video has error:', state.error);
+      return;
+    }
+
+    // Modern state-based play/pause logic
     if (state.isPlaying && !state.isPaused) {
-      controls.pause();
-    } else if (state.isPaused && !state.isPlaying) {
-      controls.play();
+      console.log('⏸️ Calling modern controls.pause()...');
+      try {
+        controls.pause();
+        console.log('✅ Pause command sent successfully');
+      } catch (error) {
+        console.error('❌ Pause command failed:', error);
+      }
+    } else {
+      console.log('▶️ Calling modern controls.play()...');
+      try {
+        controls.play().then(() => {
+          console.log('✅ Play command completed successfully');
+        }).catch((error) => {
+          console.error('❌ Play command failed:', error);
+        });
+      } catch (error) {
+        console.error('❌ Play command failed:', error);
+      }
     }
   };
 
+  // Modern progress bar click handler
   const handleProgressClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    console.log('🎯 Progress bar clicked');
+    
+    if (!state.duration || state.duration === 0) {
+      console.log('❌ Cannot seek - no duration available');
+      return;
+    }
+
     const rect = event.currentTarget.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
     const percentage = clickX / rect.width;
     const newTime = percentage * state.duration;
-    controls.seek(newTime);
+    
+    console.log('📊 Seek calculation:', {
+      clickX,
+      totalWidth: rect.width,
+      percentage: percentage.toFixed(3),
+      newTime: newTime.toFixed(2),
+      duration: state.duration
+    });
+    
+    try {
+      controls.seek(newTime);
+      console.log('✅ Seek command sent successfully');
+    } catch (error) {
+      console.error('❌ Seek command failed:', error);
+    }
   };
 
   const handleProgressHover = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -124,12 +204,38 @@ export const VideoControls: React.FC<VideoControlsProps> = ({
     setHoverTime(time);
   };
 
+  // Modern volume change handler
   const handleVolumeChange = (value: number[]) => {
-    controls.setVolume(value[0] / 100);
+    const volumeValue = value[0] / 100;
+    console.log('🔊 Volume change requested:', {
+      sliderValue: value[0],
+      volumeValue: volumeValue,
+      currentVolume: state.volume
+    });
+    
+    try {
+      controls.setVolume(volumeValue);
+      console.log('✅ Volume change command sent successfully');
+    } catch (error) {
+      console.error('❌ Volume change command failed:', error);
+    }
   };
 
+  // Modern progress calculations with debugging
   const progressPercentage = state.duration > 0 ? (state.currentTime / state.duration) * 100 : 0;
   const bufferedPercentage = state.buffered;
+
+  // Debug progress values
+  React.useEffect(() => {
+    if (state.duration > 0) {
+      console.log('📊 Progress Update:', {
+        currentTime: state.currentTime.toFixed(2),
+        duration: state.duration.toFixed(2),
+        progressPercentage: progressPercentage.toFixed(1) + '%',
+        bufferedPercentage: bufferedPercentage.toFixed(1) + '%'
+      });
+    }
+  }, [state.currentTime, state.duration, progressPercentage, bufferedPercentage]);
 
   return (
     <TooltipProvider>
@@ -141,40 +247,21 @@ export const VideoControls: React.FC<VideoControlsProps> = ({
         {/* Progress Bar */}
         {controlsConfig.progress && (
           <div className="mb-4">
-            <div 
-              className="relative w-full h-1 bg-white/20 rounded-full cursor-pointer group"
-              onClick={handleProgressClick}
-              onMouseMove={handleProgressHover}
-              onMouseLeave={() => setHoverTime(null)}
-            >
-              {/* Buffered Progress */}
-              <div 
-                className="absolute left-0 top-0 h-full bg-white/30 rounded-full"
-                style={{ width: `${bufferedPercentage}%` }}
-              />
-              
-              {/* Play Progress */}
-              <div 
-                className="absolute left-0 top-0 h-full bg-blue-500 rounded-full"
-                style={{ width: `${progressPercentage}%` }}
-              />
-              
-              {/* Progress Handle */}
-              <div 
-                className="absolute top-1/2 w-3 h-3 bg-blue-500 rounded-full transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ left: `calc(${progressPercentage}% - 6px)` }}
-              />
-              
-              {/* Hover Preview */}
-              {hoverTime !== null && (
-                <div 
-                  className="absolute bottom-6 transform -translate-x-1/2 bg-black/80 text-white px-2 py-1 rounded text-sm pointer-events-none z-10"
-                  style={{ left: `${(hoverTime / state.duration) * 100}%` }}
-                >
-                  {formatTime(hoverTime)}
-                </div>
-              )}
-            </div>
+            <ProgressBar
+              currentTime={state.currentTime}
+              duration={state.duration}
+              bufferedRanges={state.bufferedRanges}
+              videoUrl={videoUrl}
+              thumbnailPreviewEnabled={playerContextState.thumbnailPreview}
+              timelineThumbnailsEnabled={controlsConfig.timelineThumbnails || false}
+              thumbnailSpriteSheet={thumbnailSpriteSheet}
+              thumbnailUrls={thumbnailUrls}
+              onSeek={controls.seek}
+              onSeekStart={() => console.log('🎯 Seek started')}
+              onSeekEnd={() => console.log('🎯 Seek ended')}
+              onHover={(time) => setHoverTime(time)}
+              className="w-full"
+            />
           </div>
         )}
 
@@ -207,9 +294,11 @@ export const VideoControls: React.FC<VideoControlsProps> = ({
               </Tooltip>
             )}
 
-            {/* Time Display */}
+            {/* Modern Time Display with Debug */}
             <div className="text-white text-sm font-mono">
-              {formatTime(state.currentTime)} / {formatTime(state.duration)}
+              <span title={`Current: ${state.currentTime.toFixed(2)}s | Duration: ${state.duration.toFixed(2)}s`}>
+                {formatTime(state.currentTime)} / {formatTime(state.duration)}
+              </span>
             </div>
           </div>
 
@@ -293,41 +382,6 @@ export const VideoControls: React.FC<VideoControlsProps> = ({
               </DropdownMenu>
             )}
 
-            {/* Quality Selector */}
-            {controlsConfig.quality && qualityLevels.length > 0 && (
-              <DropdownMenu>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-white hover:bg-white/10 p-2"
-                      >
-                        <Settings className="w-5 h-5" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                  </TooltipTrigger>
-                  <TooltipContent>Quality</TooltipContent>
-                </Tooltip>
-                
-                <DropdownMenuContent align="end" className="bg-black/90 border-white/10">
-                  {qualityLevels.map((level) => (
-                    <DropdownMenuItem
-                      key={level.id}
-                      onClick={() => controls.setQuality(level.id)}
-                      className="text-white hover:bg-white/10 cursor-pointer"
-                    >
-                      {level.label}
-                      {state.quality === level.label && (
-                        <span className="ml-2 text-blue-400">✓</span>
-                      )}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-
             {/* Theater Mode Toggle */}
             {controlsConfig.theaterMode && (
               <Tooltip>
@@ -376,6 +430,20 @@ export const VideoControls: React.FC<VideoControlsProps> = ({
 
             {/* Keyboard Shortcuts */}
             <KeyboardShortcuts />
+
+            {/* Settings Menu */}
+            {controlsConfig.settings && (
+              <SettingsMenu 
+                qualities={qualityLevels.map(level => ({
+                  label: level.label,
+                  value: level.id,
+                  selected: state.quality === level.id
+                }))}
+                playbackRate={state.playbackRate}
+                onQualityChange={controls.setQuality}
+                onPlaybackRateChange={controls.setPlaybackRate}
+              />
+            )}
 
             {/* Fullscreen Toggle */}
             {controlsConfig.fullscreen && (

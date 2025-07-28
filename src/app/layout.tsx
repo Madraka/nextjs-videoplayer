@@ -2,6 +2,11 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+// 🎯 Modern Context Providers
+import { PlayerProvider } from '@/contexts/player-context';
+import { ThemeProvider } from '@/contexts/theme-context';
+import { AnalyticsProvider } from '@/contexts/analytics-context';
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -124,7 +129,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <PlayerProvider>
+          <ThemeProvider>
+            <AnalyticsProvider>
+              {children}
+            </AnalyticsProvider>
+          </ThemeProvider>
+        </PlayerProvider>
       </body>
     </html>
   );

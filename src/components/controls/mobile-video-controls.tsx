@@ -3,6 +3,8 @@
  * Features: Touch-friendly UI, gesture support, adaptive layout
  */
 
+"use client";
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Play, 
