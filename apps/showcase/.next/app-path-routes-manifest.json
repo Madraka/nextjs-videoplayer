@@ -1,0 +1,10 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/api/placeholder/[width]/[height]/route": "/api/placeholder/[width]/[height]",
+  "/config-examples/page": "/config-examples",
+  "/favicon.ico/route": "/favicon.ico",
+  "/manifest.webmanifest/route": "/manifest.webmanifest",
+  "/page": "/",
+  "/sitemap.xml/route": "/sitemap.xml"
+}
