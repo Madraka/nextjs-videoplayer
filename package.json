@@ -13,6 +13,7 @@
     "start": "pnpm -C apps/showcase run start",
     "lint": "pnpm -C apps/showcase run lint && pnpm -C packages/player run lint",
     "type-check": "pnpm -C apps/showcase run type-check && pnpm -C packages/player run type-check",
+    "test": "pnpm -C packages/player run test",
     "changeset": "changeset",
     "changeset:version": "changeset version",
     "release:check": "pnpm run lint && pnpm run type-check && pnpm run build && pnpm run build:package",

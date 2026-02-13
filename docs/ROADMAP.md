@@ -49,6 +49,7 @@ Definition of done:
 ## Phase 3: Hardening (in progress)
 
 1. Add component/unit/e2e tests.
+   Status: unit test baseline completed in `packages/player` with Vitest.
 2. Add bundle-size and API-surface checks.
 3. Enforce branch protection and required checks.
 4. Add release runbook and rollback playbook.

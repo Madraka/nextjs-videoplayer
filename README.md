@@ -297,6 +297,9 @@ pnpm build
 
 # Build npm package
 pnpm build:package
+
+# Run package tests
+pnpm test
 ```
 
 ### CI/CD Pipelines

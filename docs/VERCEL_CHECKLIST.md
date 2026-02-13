@@ -3,21 +3,21 @@
 ## Project Settings
 
 1. Framework Preset: `Next.js`
-2. Root Directory: repository root (`.`)
+2. Root Directory: `apps/showcase`
 3. Install Command: `pnpm install`
-4. Build Command: `pnpm -C apps/showcase build`
-5. Output Directory: `apps/showcase/.next`
+4. Build Command: `pnpm build`
+5. Output Directory: `.next`
 
 ## Environment
 
 1. Node.js version: `20.x`
-2. Ensure any required `NEXT_PUBLIC_*` variables are set in Vercel project settings.
+2. Ensure required `NEXT_PUBLIC_*` variables are set in Vercel project settings.
 
 ## Validation
 
-1. Push to `main` should trigger Vercel production deployment.
-2. Preview deployment should work for pull requests.
-3. Build logs should show `apps/showcase` build command.
+1. Push to `main` triggers production deployment.
+2. Preview deployment works for pull requests.
+3. Build logs show the showcase app build.
 
 ## Release Separation
 

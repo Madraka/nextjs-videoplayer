@@ -36,6 +36,9 @@ jobs:
       - name: Type check
         run: pnpm -C packages/player run type-check
 
+      - name: Test
+        run: pnpm -C packages/player run test
+
       - name: Build package
         run: pnpm -C packages/player run build
 
