@@ -1,3 +1,8 @@
+## [1.0.6] - 2026-02-13
+
+### Changed
+- Added GitHub Actions `id-token: write` permission for npm provenance publishing.
+
 ## [1.0.5] - 2026-02-13
 
 ### Changed
