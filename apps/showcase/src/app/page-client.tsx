@@ -1825,15 +1825,19 @@ export default function MyPage() {
       enginePlugins={enginePlugins}
       drmConfig={drmConfig}
       className="w-full aspect-video"
-      controls={{
-        fullscreen: true,
-        quality: true,
-        volume: true,
-      }}
-      gestures={{
-        enabled: true,
-        tapToPlay: true,
-        doubleTapSeek: true,
+      configOverride={{
+        controls: {
+          visibility: {
+            fullscreen: true,
+            quality: true,
+            volume: true,
+          },
+        },
+        gestures: {
+          enabled: true,
+          tapToPlay: true,
+          doubleTapSeek: true,
+        },
       }}
     />
   );
