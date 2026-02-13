@@ -12,9 +12,20 @@ interface DrmSystemConfiguration {
     distinctiveIdentifier?: MediaKeysRequirement;
     sessionTypes?: MediaKeySessionType[];
 }
+interface DrmLicenseRequestContext {
+    keySystem: string;
+    licenseServerUrl: string;
+    headers: Record<string, string>;
+    message: ArrayBuffer;
+    session: MediaKeySession;
+    signal: AbortSignal;
+}
+type DrmLicenseRequestHandler = (context: DrmLicenseRequestContext) => Promise<ArrayBuffer>;
 interface DrmConfiguration {
     enabled: boolean;
     systems: DrmSystemConfiguration[];
+    requestTimeoutMs?: number;
+    licenseRequestHandler?: DrmLicenseRequestHandler;
 }
 
 /**
@@ -652,6 +663,14 @@ declare class VideoEnginePluginManager {
     private safeRun;
 }
 
+interface TokenLicenseRequestHandlerOptions {
+    getToken: () => Promise<string>;
+    refreshToken?: () => Promise<string>;
+    headerName?: string;
+    fetch?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+}
+declare const createTokenLicenseRequestHandler: (options: TokenLicenseRequestHandlerOptions) => DrmLicenseRequestHandler;
+
 declare function cn(...inputs: ClassValue[]): string;
 
 /**
@@ -705,4 +724,4 @@ declare const createAnalyticsPlugin: (config: AnalyticsConfig) => VideoEnginePlu
 
 declare const VERSION = "1.0.0";
 
-export { type AdapterLoadContext, AdapterRegistry, type AdapterSelectionContext, type AdvancedFeatures, type AnalyticsConfig$1 as AnalyticsConfig, type AnalyticsEvent, AnalyticsPlugin, type AutoBehavior, ConfigurableVideoPlayer, type ControlsVisibility, type DrmConfiguration, type DrmSystemConfiguration, type EmeController, type EmeEnvironment, type AnalyticsConfig as EngineAnalyticsConfig, ErrorDisplay, type GestureCallbacks, type GestureConfig, type GesturesConfig, type KeyboardShortcutsConfig, LoadingSpinner, MobileVideoControls, PlayerConfigPanel, PlayerConfigProvider, type PlayerConfiguration, PlayerPresets, type PlayerTheme, type QualityLevel, type StreamingAdapter, type StreamingAdapterFactory, VERSION, VideoControls, VideoEngine, type VideoEngineConfig, type VideoEngineEvents, type VideoEngineOptions, type VideoEnginePlugin, type VideoEnginePluginContext, type VideoEnginePluginErrorPayload, type VideoEnginePluginLoadPayload, VideoEnginePluginManager, type VideoEnginePluginSourceLoadFailedPayload, type VideoEnginePluginTimeUpdatePayload, type VideoEnginePluginVolumePayload, VideoPlayer, type VideoPlayerControls, VideoPlayerDemo, type VideoPlayerState, type VideoSource, VideoSourceSelector, VideoThumbnail, cn, createAnalyticsPlugin, createEmeController, defaultStreamingAdapters, getBrowserCapabilities, getStreamingStrategy, isEmeSupported, mergePlayerConfig, usePlayerConfig, usePlayerPresets, useVideoGestures, useVideoPlayer };
+export { type AdapterLoadContext, AdapterRegistry, type AdapterSelectionContext, type AdvancedFeatures, type AnalyticsConfig$1 as AnalyticsConfig, type AnalyticsEvent, AnalyticsPlugin, type AutoBehavior, ConfigurableVideoPlayer, type ControlsVisibility, type DrmConfiguration, type DrmLicenseRequestContext, type DrmLicenseRequestHandler, type DrmSystemConfiguration, type EmeController, type EmeEnvironment, type AnalyticsConfig as EngineAnalyticsConfig, ErrorDisplay, type GestureCallbacks, type GestureConfig, type GesturesConfig, type KeyboardShortcutsConfig, LoadingSpinner, MobileVideoControls, PlayerConfigPanel, PlayerConfigProvider, type PlayerConfiguration, PlayerPresets, type PlayerTheme, type QualityLevel, type StreamingAdapter, type StreamingAdapterFactory, type TokenLicenseRequestHandlerOptions, VERSION, VideoControls, VideoEngine, type VideoEngineConfig, type VideoEngineEvents, type VideoEngineOptions, type VideoEnginePlugin, type VideoEnginePluginContext, type VideoEnginePluginErrorPayload, type VideoEnginePluginLoadPayload, VideoEnginePluginManager, type VideoEnginePluginSourceLoadFailedPayload, type VideoEnginePluginTimeUpdatePayload, type VideoEnginePluginVolumePayload, VideoPlayer, type VideoPlayerControls, VideoPlayerDemo, type VideoPlayerState, type VideoSource, VideoSourceSelector, VideoThumbnail, cn, createAnalyticsPlugin, createEmeController, createTokenLicenseRequestHandler, defaultStreamingAdapters, getBrowserCapabilities, getStreamingStrategy, isEmeSupported, mergePlayerConfig, usePlayerConfig, usePlayerPresets, useVideoGestures, useVideoPlayer };

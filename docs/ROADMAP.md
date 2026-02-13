@@ -83,3 +83,5 @@ Definition of done:
    Status: completed (`VideoEngineConfig.fallbackSources` + failover tests).
 6. Add DRM/EME foundation with typed config and engine integration.
    Status: completed (`src/core/drm`, `drm` support in `VideoEngineConfig`).
+7. Add configurable DRM license request pipeline (token refresh capable).
+   Status: completed (`licenseRequestHandler`, `createTokenLicenseRequestHandler`).

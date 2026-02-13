@@ -31,6 +31,7 @@ Provide a stable core for enterprise use cases where playback transport logic an
 4. DRM Layer (`src/core/drm`)
 - `createEmeController`: initializes MediaKeys and license exchange workflow.
 - `isEmeSupported`: feature detection helper.
+- `createTokenLicenseRequestHandler`: token/refresh-token aware license handler helper.
 - Engine-level optional `drm` config per source load.
 
 ## Runtime Flow

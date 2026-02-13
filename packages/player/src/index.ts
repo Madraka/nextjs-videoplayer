@@ -27,6 +27,7 @@ export { AdapterRegistry } from './core/adapters/adapter-registry';
 export { defaultStreamingAdapters } from './core/adapters/default-adapters';
 export { VideoEnginePluginManager } from './core/plugins/plugin-manager';
 export { createEmeController, isEmeSupported } from './core/drm/eme-controller';
+export { createTokenLicenseRequestHandler } from './core/drm/license-request';
 
 // Types
 export type { 
@@ -61,6 +62,8 @@ export type {
 
 export type {
   DrmConfiguration,
+  DrmLicenseRequestContext,
+  DrmLicenseRequestHandler,
   DrmSystemConfiguration,
 } from './core/drm/types';
 
@@ -68,6 +71,10 @@ export type {
   EmeController,
   EmeEnvironment,
 } from './core/drm/eme-controller';
+
+export type {
+  TokenLicenseRequestHandlerOptions,
+} from './core/drm/license-request';
 
 export type {
   VideoEnginePlugin,

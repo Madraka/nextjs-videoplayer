@@ -49,6 +49,22 @@ const buildKeySystemConfiguration = (system: DrmSystemConfiguration): MediaKeySy
   };
 };
 
+const withTimeout = async <T>(
+  timeoutMs: number,
+  run: (signal: AbortSignal) => Promise<T>
+): Promise<T> => {
+  const controller = new AbortController();
+  const timeoutId = globalThis.setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+
+  try {
+    return await run(controller.signal);
+  } finally {
+    globalThis.clearTimeout(timeoutId);
+  }
+};
+
 const requestKeySystemAccess = async (
   systems: DrmSystemConfiguration[],
   environment: EmeEnvironment
@@ -84,6 +100,7 @@ export const createEmeController = async (
   }
 
   const emeEnvironment = resolveEnvironment(environment);
+  const requestTimeoutMs = configuration.requestTimeoutMs ?? 15000;
   const { access, system } = await requestKeySystemAccess(configuration.systems, emeEnvironment);
   const mediaKeys = await access.createMediaKeys();
 
@@ -104,20 +121,35 @@ export const createEmeController = async (
           throw new Error(`Missing licenseServerUrl for key system ${system.keySystem}`);
         }
 
-        const response = await emeEnvironment.fetch(system.licenseServerUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/octet-stream',
-            ...(system.headers ?? {}),
-          },
-          body: messageEvent.message,
+        const license = await withTimeout(requestTimeoutMs, async (signal) => {
+          if (configuration.licenseRequestHandler) {
+            return configuration.licenseRequestHandler({
+              keySystem: system.keySystem,
+              licenseServerUrl: system.licenseServerUrl as string,
+              headers: system.headers ?? {},
+              message: messageEvent.message,
+              session,
+              signal,
+            });
+          }
+
+          const response = await emeEnvironment.fetch(system.licenseServerUrl as string, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/octet-stream',
+              ...(system.headers ?? {}),
+            },
+            body: messageEvent.message,
+            signal,
+          });
+
+          if (!response.ok) {
+            throw new Error(`License request failed with status ${response.status}`);
+          }
+
+          return response.arrayBuffer();
         });
 
-        if (!response.ok) {
-          throw new Error(`License request failed with status ${response.status}`);
-        }
-
-        const license = await response.arrayBuffer();
         await session.update(license);
       })().catch((error) => {
         console.warn('EME license exchange failed:', error);

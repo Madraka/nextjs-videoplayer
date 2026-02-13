@@ -80,6 +80,7 @@ __export(index_exports, {
   cn: () => cn,
   createAnalyticsPlugin: () => createAnalyticsPlugin,
   createEmeController: () => createEmeController,
+  createTokenLicenseRequestHandler: () => createTokenLicenseRequestHandler,
   defaultStreamingAdapters: () => defaultStreamingAdapters,
   getBrowserCapabilities: () => getBrowserCapabilities,
   getStreamingStrategy: () => getStreamingStrategy,
@@ -1726,6 +1727,17 @@ var buildKeySystemConfiguration = (system) => {
     sessionTypes: (_f = system.sessionTypes) != null ? _f : ["temporary"]
   };
 };
+var withTimeout = async (timeoutMs, run) => {
+  const controller = new AbortController();
+  const timeoutId = globalThis.setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+  try {
+    return await run(controller.signal);
+  } finally {
+    globalThis.clearTimeout(timeoutId);
+  }
+};
 var requestKeySystemAccess = async (systems, environment) => {
   const errors = [];
   for (const system of systems) {
@@ -1742,6 +1754,7 @@ var requestKeySystemAccess = async (systems, environment) => {
   throw new Error(`No configured DRM key system is supported. ${lastError ? `Last error: ${lastError.message}` : ""}`.trim());
 };
 var createEmeController = async (videoElement, configuration, environment) => {
+  var _a;
   if (!configuration.enabled) {
     throw new Error("DRM configuration is disabled.");
   }
@@ -1749,6 +1762,7 @@ var createEmeController = async (videoElement, configuration, environment) => {
     throw new Error("DRM requires at least one key system configuration.");
   }
   const emeEnvironment = resolveEnvironment(environment);
+  const requestTimeoutMs = (_a = configuration.requestTimeoutMs) != null ? _a : 15e3;
   const { access, system } = await requestKeySystemAccess(configuration.systems, emeEnvironment);
   const mediaKeys = await access.createMediaKeys();
   const onEncrypted = async (event) => {
@@ -1759,22 +1773,35 @@ var createEmeController = async (videoElement, configuration, environment) => {
     const session = mediaKeys.createSession("temporary");
     session.addEventListener("message", (sessionEvent) => {
       void (async () => {
-        var _a;
         const messageEvent = sessionEvent;
         if (!system.licenseServerUrl) {
           throw new Error(`Missing licenseServerUrl for key system ${system.keySystem}`);
         }
-        const response = await emeEnvironment.fetch(system.licenseServerUrl, {
-          method: "POST",
-          headers: __spreadValues({
-            "Content-Type": "application/octet-stream"
-          }, (_a = system.headers) != null ? _a : {}),
-          body: messageEvent.message
+        const license = await withTimeout(requestTimeoutMs, async (signal) => {
+          var _a2, _b;
+          if (configuration.licenseRequestHandler) {
+            return configuration.licenseRequestHandler({
+              keySystem: system.keySystem,
+              licenseServerUrl: system.licenseServerUrl,
+              headers: (_a2 = system.headers) != null ? _a2 : {},
+              message: messageEvent.message,
+              session,
+              signal
+            });
+          }
+          const response = await emeEnvironment.fetch(system.licenseServerUrl, {
+            method: "POST",
+            headers: __spreadValues({
+              "Content-Type": "application/octet-stream"
+            }, (_b = system.headers) != null ? _b : {}),
+            body: messageEvent.message,
+            signal
+          });
+          if (!response.ok) {
+            throw new Error(`License request failed with status ${response.status}`);
+          }
+          return response.arrayBuffer();
         });
-        if (!response.ok) {
-          throw new Error(`License request failed with status ${response.status}`);
-        }
-        const license = await response.arrayBuffer();
         await session.update(license);
       })().catch((error) => {
         console.warn("EME license exchange failed:", error);
@@ -4549,6 +4576,44 @@ var PlayerConfigPanel = () => {
   ] });
 };
 
+// src/core/drm/license-request.ts
+var createTokenLicenseRequestHandler = (options) => {
+  const {
+    getToken,
+    refreshToken,
+    headerName = "Authorization",
+    fetch: fetchFn = fetch
+  } = options;
+  const buildHeaders = (contextHeaders, token) => {
+    const tokenValue = headerName.toLowerCase() === "authorization" ? `Bearer ${token}` : token;
+    return __spreadProps(__spreadValues({
+      "Content-Type": "application/octet-stream"
+    }, contextHeaders), {
+      [headerName]: tokenValue
+    });
+  };
+  const requestLicense = async (context, token) => {
+    return fetchFn(context.licenseServerUrl, {
+      method: "POST",
+      headers: buildHeaders(context.headers, token),
+      body: context.message,
+      signal: context.signal
+    });
+  };
+  return async (context) => {
+    let token = await getToken();
+    let response = await requestLicense(context, token);
+    if (response.status === 401 && refreshToken) {
+      token = await refreshToken();
+      response = await requestLicense(context, token);
+    }
+    if (!response.ok) {
+      throw new Error(`License request failed with status ${response.status}`);
+    }
+    return response.arrayBuffer();
+  };
+};
+
 // src/plugins/analytics.ts
 var AnalyticsPlugin = class {
   constructor(config) {
@@ -4703,6 +4768,7 @@ var VERSION = "1.0.0";
   cn,
   createAnalyticsPlugin,
   createEmeController,
+  createTokenLicenseRequestHandler,
   defaultStreamingAdapters,
   getBrowserCapabilities,
   getStreamingStrategy,

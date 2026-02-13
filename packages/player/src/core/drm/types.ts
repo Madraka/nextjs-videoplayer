@@ -10,7 +10,22 @@ export interface DrmSystemConfiguration {
   sessionTypes?: MediaKeySessionType[];
 }
 
+export interface DrmLicenseRequestContext {
+  keySystem: string;
+  licenseServerUrl: string;
+  headers: Record<string, string>;
+  message: ArrayBuffer;
+  session: MediaKeySession;
+  signal: AbortSignal;
+}
+
+export type DrmLicenseRequestHandler = (
+  context: DrmLicenseRequestContext
+) => Promise<ArrayBuffer>;
+
 export interface DrmConfiguration {
   enabled: boolean;
   systems: DrmSystemConfiguration[];
+  requestTimeoutMs?: number;
+  licenseRequestHandler?: DrmLicenseRequestHandler;
 }
