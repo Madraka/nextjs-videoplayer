@@ -12,6 +12,7 @@ import type { VideoEnginePlugin } from '@/core/plugins/types';
 
 export interface VideoEngineConfig {
   src: string;
+  fallbackSources?: string[];
   autoplay?: boolean;
   muted?: boolean;
   loop?: boolean;
@@ -35,6 +36,7 @@ export interface VideoEngineEvents {
 export interface VideoEngineOptions {
   plugins?: VideoEnginePlugin[];
   adapters?: StreamingAdapterFactory[];
+  capabilitiesResolver?: () => Promise<BrowserCapabilities>;
 }
 
 export class VideoEngine {
@@ -42,6 +44,7 @@ export class VideoEngine {
   private readonly events: Partial<VideoEngineEvents>;
   private readonly adapterRegistry: AdapterRegistry;
   private readonly pluginManager: VideoEnginePluginManager;
+  private readonly resolveCapabilities: () => Promise<BrowserCapabilities>;
 
   private activeAdapter?: StreamingAdapter;
   private capabilities?: BrowserCapabilities;
@@ -57,6 +60,7 @@ export class VideoEngine {
     this.events = events;
     this.adapterRegistry = new AdapterRegistry();
     this.pluginManager = new VideoEnginePluginManager(options.plugins ?? []);
+    this.resolveCapabilities = options.capabilitiesResolver ?? getBrowserCapabilities;
 
     for (const adapter of defaultStreamingAdapters) {
       this.adapterRegistry.register(adapter);
@@ -72,7 +76,7 @@ export class VideoEngine {
 
   async initialize(): Promise<void> {
     try {
-      this.capabilities = await getBrowserCapabilities();
+      this.capabilities = await this.resolveCapabilities();
       this.pluginManager.onInit();
       this.events.onReady?.();
     } catch (error) {
@@ -93,58 +97,88 @@ export class VideoEngine {
     this.cleanupActiveAdapter();
     this.applyVideoConfig(config);
 
-    const selectionContext = {
-      src: config.src,
-      capabilities: this.capabilities,
-    };
-
-    const adapterFactory = this.adapterRegistry.resolve(selectionContext);
-
-    if (!adapterFactory) {
-      const error = new Error(`Unsupported video format. This browser cannot play: ${config.src}`);
-      this.events.onError?.(error);
-      this.pluginManager.onError({ error, src: config.src });
-      throw error;
-    }
-
     this.events.onLoadStart?.();
+    const candidateSources = this.getCandidateSources(config);
+    const totalAttempts = candidateSources.length;
+    const attemptErrors: Error[] = [];
+    let lastAttemptStrategy: string | undefined;
 
-    const payload = {
-      src: config.src,
-      strategy: adapterFactory.id,
-      capabilities: this.capabilities,
-    };
-
-    this.pluginManager.onSourceLoadStart(payload);
-
-    try {
-      const adapter = adapterFactory.create();
-      await adapter.load({
-        src: config.src,
+    for (let index = 0; index < candidateSources.length; index += 1) {
+      const src = candidateSources[index];
+      const adapterFactory = this.adapterRegistry.resolve({
+        src,
         capabilities: this.capabilities,
-        videoElement: this.videoElement,
-        onQualityChange: (quality: string) => {
-          this.events.onQualityChange?.(quality);
-          this.pluginManager.onQualityChange(quality);
-        },
       });
+      const strategy = adapterFactory?.id ?? 'unresolved';
+      lastAttemptStrategy = strategy;
 
-      this.activeAdapter = adapter;
-      this.currentStrategy = adapterFactory.id;
-      this.currentSource = config.src;
+      const payload = {
+        src,
+        strategy,
+        capabilities: this.capabilities,
+      };
 
-      this.pluginManager.onSourceLoaded(payload);
-      this.events.onLoadEnd?.();
-    } catch (error) {
-      const runtimeError = error as Error;
-      this.events.onError?.(runtimeError);
-      this.pluginManager.onError({
-        error: runtimeError,
-        src: config.src,
-        strategy: adapterFactory.id,
-      });
-      throw runtimeError;
+      this.pluginManager.onSourceLoadStart(payload);
+
+      if (!adapterFactory) {
+        const unsupportedError = new Error(`Unsupported video format. This browser cannot play: ${src}`);
+        attemptErrors.push(unsupportedError);
+        this.pluginManager.onSourceLoadFailed({
+          src,
+          strategy,
+          error: unsupportedError,
+          attempt: index + 1,
+          totalAttempts,
+        });
+        continue;
+      }
+
+      const adapter = adapterFactory.create();
+
+      try {
+        await adapter.load({
+          src,
+          capabilities: this.capabilities,
+          videoElement: this.videoElement,
+          onQualityChange: (quality: string) => {
+            this.events.onQualityChange?.(quality);
+            this.pluginManager.onQualityChange(quality);
+          },
+        });
+
+        this.activeAdapter = adapter;
+        this.currentStrategy = adapterFactory.id;
+        this.currentSource = src;
+
+        this.pluginManager.onSourceLoaded(payload);
+        this.events.onLoadEnd?.();
+        return;
+      } catch (error) {
+        const runtimeError = error as Error;
+        adapter.destroy();
+        attemptErrors.push(runtimeError);
+        this.pluginManager.onSourceLoadFailed({
+          src,
+          strategy: adapterFactory.id,
+          error: runtimeError,
+          attempt: index + 1,
+          totalAttempts,
+        });
+      }
     }
+
+    const lastError = attemptErrors[attemptErrors.length - 1] ?? new Error('Unknown playback failure');
+    const failureSummary = new Error(
+      `All playback sources failed (${totalAttempts} attempts). Last error: ${lastError.message}`
+    );
+
+    this.events.onError?.(failureSummary);
+    this.pluginManager.onError({
+      error: failureSummary,
+      src: candidateSources[candidateSources.length - 1],
+      strategy: lastAttemptStrategy,
+    });
+    throw failureSummary;
   }
 
   getQualityLevels(): QualityLevel[] {
@@ -240,5 +274,13 @@ export class VideoEngine {
     this.activeAdapter?.destroy();
     this.activeAdapter = undefined;
     this.currentStrategy = undefined;
+  }
+
+  private getCandidateSources(config: VideoEngineConfig): string[] {
+    const sources = [config.src, ...(config.fallbackSources ?? [])]
+      .map((source) => source.trim())
+      .filter((source) => source.length > 0);
+
+    return Array.from(new Set(sources));
   }
 }

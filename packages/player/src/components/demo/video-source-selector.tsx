@@ -10,6 +10,7 @@ export interface VideoSource {
   id: string;
   name: string;
   url: string;
+  fallbackUrls?: string[];
   format: string;
   quality: string;
   size: string;
@@ -281,6 +282,11 @@ export const VideoSourceSelector: React.FC<VideoSourceSelectorProps> = ({
                       <Badge className={`text-xs ${getQualityColor(source.quality)}`}>
                         {source.quality}
                       </Badge>
+                      {source.fallbackUrls && source.fallbackUrls.length > 0 && (
+                        <Badge variant="outline" className="text-xs">
+                          Failover
+                        </Badge>
+                      )}
                       {source.aspectRatio && (
                         <Badge variant="outline" className="text-xs">
                           {source.aspectRatio === '16/9' ? '📺 Landscape' :

@@ -10,6 +10,7 @@ Provide a stable core for enterprise use cases where playback transport logic an
 - Owns media element lifecycle.
 - Detects capabilities.
 - Selects and executes streaming adapter.
+- Supports ordered source failover (`src` + `fallbackSources`).
 - Emits typed lifecycle hooks to plugins.
 
 2. Adapter Layer (`src/core/adapters`)
@@ -23,7 +24,7 @@ Provide a stable core for enterprise use cases where playback transport logic an
 - `VideoEnginePluginManager`: safe plugin isolation (one plugin failure does not crash engine).
 - Hook coverage:
   - `setup`, `onInit`
-  - `onSourceLoadStart`, `onSourceLoaded`
+  - `onSourceLoadStart`, `onSourceLoaded`, `onSourceLoadFailed`
   - `onPlay`, `onPause`, `onTimeUpdate`, `onVolumeChange`, `onQualityChange`
   - `onError`, `onDispose`
 
@@ -32,8 +33,9 @@ Provide a stable core for enterprise use cases where playback transport logic an
 1. `VideoEngine.initialize()` resolves browser capabilities.
 2. `loadSource()` queries `AdapterRegistry` with source + capabilities.
 3. Highest-priority compatible adapter is instantiated and loaded.
-4. Plugin manager receives lifecycle events before/after load and during playback.
-5. On source change or disposal, active adapter is destroyed and plugins are notified.
+4. If source load fails, engine retries next fallback source before surfacing terminal error.
+5. Plugin manager receives lifecycle events before/after load and during playback.
+6. On source change or disposal, active adapter is destroyed and plugins are notified.
 
 ## Extension Points
 

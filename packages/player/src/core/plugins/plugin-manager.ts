@@ -3,6 +3,7 @@ import type {
   VideoEnginePluginContext,
   VideoEnginePluginErrorPayload,
   VideoEnginePluginLoadPayload,
+  VideoEnginePluginSourceLoadFailedPayload,
   VideoEnginePluginTimeUpdatePayload,
   VideoEnginePluginVolumePayload,
 } from '@/core/plugins/types';
@@ -35,6 +36,12 @@ export class VideoEnginePluginManager {
   onSourceLoaded(payload: VideoEnginePluginLoadPayload): void {
     for (const plugin of this.plugins) {
       this.safeRun(plugin.name, 'onSourceLoaded', () => plugin.onSourceLoaded?.(payload));
+    }
+  }
+
+  onSourceLoadFailed(payload: VideoEnginePluginSourceLoadFailedPayload): void {
+    for (const plugin of this.plugins) {
+      this.safeRun(plugin.name, 'onSourceLoadFailed', () => plugin.onSourceLoadFailed?.(payload));
     }
   }
 

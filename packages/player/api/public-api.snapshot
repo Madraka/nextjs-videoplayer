@@ -2,7 +2,7 @@ export type { AnalyticsConfig as EngineAnalyticsConfig, AnalyticsEvent, } from '
 export type { GestureConfig, GestureCallbacks, } from './hooks/use-video-gestures';
 export type { QualityLevel, StreamingAdapter, StreamingAdapterFactory, AdapterSelectionContext, AdapterLoadContext, } from './core/adapters/types';
 export type { VideoEngineConfig, VideoEngineEvents, VideoEngineOptions, } from './core/video-engine';
-export type { VideoEnginePlugin, VideoEnginePluginContext, VideoEnginePluginErrorPayload, VideoEnginePluginLoadPayload, VideoEnginePluginTimeUpdatePayload, VideoEnginePluginVolumePayload, } from './core/plugins/types';
+export type { VideoEnginePlugin, VideoEnginePluginContext, VideoEnginePluginErrorPayload, VideoEnginePluginLoadPayload, VideoEnginePluginSourceLoadFailedPayload, VideoEnginePluginTimeUpdatePayload, VideoEnginePluginVolumePayload, } from './core/plugins/types';
 export type { VideoPlayerState, VideoPlayerControls, } from './hooks/use-video-player';
 export type { VideoSource } from './components/demo/video-source-selector';
 export { AdapterRegistry } from './core/adapters/adapter-registry';

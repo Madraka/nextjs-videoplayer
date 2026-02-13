@@ -35,6 +35,13 @@ interface VideoEnginePluginErrorPayload {
     strategy?: string;
     error: Error;
 }
+interface VideoEnginePluginSourceLoadFailedPayload {
+    src: string;
+    strategy: string;
+    error: Error;
+    attempt: number;
+    totalAttempts: number;
+}
 interface VideoEnginePluginTimeUpdatePayload {
     currentTime: number;
     duration: number;
@@ -49,6 +56,7 @@ interface VideoEnginePlugin {
     onInit?(): void;
     onSourceLoadStart?(payload: VideoEnginePluginLoadPayload): void;
     onSourceLoaded?(payload: VideoEnginePluginLoadPayload): void;
+    onSourceLoadFailed?(payload: VideoEnginePluginSourceLoadFailedPayload): void;
     onPlay?(): void;
     onPause?(): void;
     onTimeUpdate?(payload: VideoEnginePluginTimeUpdatePayload): void;
@@ -187,6 +195,7 @@ declare const mergePlayerConfig: (base?: PlayerConfiguration, override?: PlayerC
 
 interface ConfigurableVideoPlayerProps {
     src?: string;
+    fallbackSources?: string[];
     poster?: string;
     thumbnailUrl?: string;
     autoPlay?: boolean;
@@ -220,6 +229,7 @@ type LegacyPluginContext = {
 type LegacyPlayerPlugin = (player: LegacyPluginContext) => void;
 interface VideoPlayerProps {
     src: string;
+    fallbackSources?: string[];
     poster?: string;
     autoPlay?: boolean;
     muted?: boolean;
@@ -288,6 +298,7 @@ interface StreamingAdapterFactory {
 
 interface VideoEngineConfig {
     src: string;
+    fallbackSources?: string[];
     autoplay?: boolean;
     muted?: boolean;
     loop?: boolean;
@@ -309,12 +320,14 @@ interface VideoEngineEvents {
 interface VideoEngineOptions {
     plugins?: VideoEnginePlugin[];
     adapters?: StreamingAdapterFactory[];
+    capabilitiesResolver?: () => Promise<BrowserCapabilities>;
 }
 declare class VideoEngine {
     private readonly videoElement;
     private readonly events;
     private readonly adapterRegistry;
     private readonly pluginManager;
+    private readonly resolveCapabilities;
     private activeAdapter?;
     private capabilities?;
     private currentStrategy?;
@@ -333,6 +346,7 @@ declare class VideoEngine {
     private setupVideoElementEvents;
     private getBufferedPercentage;
     private cleanupActiveAdapter;
+    private getCandidateSources;
 }
 
 /**
@@ -496,6 +510,7 @@ interface VideoSource {
     id: string;
     name: string;
     url: string;
+    fallbackUrls?: string[];
     format: string;
     quality: string;
     size: string;
@@ -591,6 +606,7 @@ declare class VideoEnginePluginManager {
     onInit(): void;
     onSourceLoadStart(payload: VideoEnginePluginLoadPayload): void;
     onSourceLoaded(payload: VideoEnginePluginLoadPayload): void;
+    onSourceLoadFailed(payload: VideoEnginePluginSourceLoadFailedPayload): void;
     onPlay(): void;
     onPause(): void;
     onTimeUpdate(payload: VideoEnginePluginTimeUpdatePayload): void;
@@ -654,4 +670,4 @@ declare const createAnalyticsPlugin: (config: AnalyticsConfig) => VideoEnginePlu
 
 declare const VERSION = "1.0.0";
 
-export { type AdapterLoadContext, AdapterRegistry, type AdapterSelectionContext, type AdvancedFeatures, type AnalyticsConfig$1 as AnalyticsConfig, type AnalyticsEvent, AnalyticsPlugin, type AutoBehavior, ConfigurableVideoPlayer, type ControlsVisibility, type AnalyticsConfig as EngineAnalyticsConfig, ErrorDisplay, type GestureCallbacks, type GestureConfig, type GesturesConfig, type KeyboardShortcutsConfig, LoadingSpinner, MobileVideoControls, PlayerConfigPanel, PlayerConfigProvider, type PlayerConfiguration, PlayerPresets, type PlayerTheme, type QualityLevel, type StreamingAdapter, type StreamingAdapterFactory, VERSION, VideoControls, VideoEngine, type VideoEngineConfig, type VideoEngineEvents, type VideoEngineOptions, type VideoEnginePlugin, type VideoEnginePluginContext, type VideoEnginePluginErrorPayload, type VideoEnginePluginLoadPayload, VideoEnginePluginManager, type VideoEnginePluginTimeUpdatePayload, type VideoEnginePluginVolumePayload, VideoPlayer, type VideoPlayerControls, VideoPlayerDemo, type VideoPlayerState, type VideoSource, VideoSourceSelector, VideoThumbnail, cn, createAnalyticsPlugin, defaultStreamingAdapters, getBrowserCapabilities, getStreamingStrategy, mergePlayerConfig, usePlayerConfig, usePlayerPresets, useVideoGestures, useVideoPlayer };
+export { type AdapterLoadContext, AdapterRegistry, type AdapterSelectionContext, type AdvancedFeatures, type AnalyticsConfig$1 as AnalyticsConfig, type AnalyticsEvent, AnalyticsPlugin, type AutoBehavior, ConfigurableVideoPlayer, type ControlsVisibility, type AnalyticsConfig as EngineAnalyticsConfig, ErrorDisplay, type GestureCallbacks, type GestureConfig, type GesturesConfig, type KeyboardShortcutsConfig, LoadingSpinner, MobileVideoControls, PlayerConfigPanel, PlayerConfigProvider, type PlayerConfiguration, PlayerPresets, type PlayerTheme, type QualityLevel, type StreamingAdapter, type StreamingAdapterFactory, VERSION, VideoControls, VideoEngine, type VideoEngineConfig, type VideoEngineEvents, type VideoEngineOptions, type VideoEnginePlugin, type VideoEnginePluginContext, type VideoEnginePluginErrorPayload, type VideoEnginePluginLoadPayload, VideoEnginePluginManager, type VideoEnginePluginSourceLoadFailedPayload, type VideoEnginePluginTimeUpdatePayload, type VideoEnginePluginVolumePayload, VideoPlayer, type VideoPlayerControls, VideoPlayerDemo, type VideoPlayerState, type VideoSource, VideoSourceSelector, VideoThumbnail, cn, createAnalyticsPlugin, defaultStreamingAdapters, getBrowserCapabilities, getStreamingStrategy, mergePlayerConfig, usePlayerConfig, usePlayerPresets, useVideoGestures, useVideoPlayer };

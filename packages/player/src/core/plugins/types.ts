@@ -16,6 +16,14 @@ export interface VideoEnginePluginErrorPayload {
   error: Error;
 }
 
+export interface VideoEnginePluginSourceLoadFailedPayload {
+  src: string;
+  strategy: string;
+  error: Error;
+  attempt: number;
+  totalAttempts: number;
+}
+
 export interface VideoEnginePluginTimeUpdatePayload {
   currentTime: number;
   duration: number;
@@ -32,6 +40,7 @@ export interface VideoEnginePlugin {
   onInit?(): void;
   onSourceLoadStart?(payload: VideoEnginePluginLoadPayload): void;
   onSourceLoaded?(payload: VideoEnginePluginLoadPayload): void;
+  onSourceLoadFailed?(payload: VideoEnginePluginSourceLoadFailedPayload): void;
   onPlay?(): void;
   onPause?(): void;
   onTimeUpdate?(payload: VideoEnginePluginTimeUpdatePayload): void;

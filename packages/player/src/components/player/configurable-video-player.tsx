@@ -15,6 +15,7 @@ import type { PlayerConfiguration } from '@/types/player-config';
 
 interface ConfigurableVideoPlayerProps {
   src?: string;
+  fallbackSources?: string[];
   poster?: string;
   thumbnailUrl?: string;
   autoPlay?: boolean;
@@ -36,6 +37,7 @@ interface ConfigurableVideoPlayerProps {
 
 export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, ConfigurableVideoPlayerProps>(({
   src,
+  fallbackSources,
   poster,
   thumbnailUrl,
   autoPlay,
@@ -153,6 +155,7 @@ export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, Configurable
 
     const videoConfig: VideoEngineConfig = {
       src,
+      fallbackSources,
       poster,
       autoplay: autoPlay ?? config.auto?.autoPlay ?? false,
       muted,
@@ -165,7 +168,7 @@ export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, Configurable
     }, 50);
 
     return () => clearTimeout(timer);
-  }, [src, poster, autoPlay, muted, loop, playsInline, engine, config.auto?.autoPlay]);
+  }, [src, fallbackSources, poster, autoPlay, muted, loop, playsInline, engine, config.auto?.autoPlay]);
 
   // Event callbacks
   useEffect(() => {
@@ -324,6 +327,7 @@ export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, Configurable
             if (src) {
               playerControls.load({
                 src,
+                fallbackSources,
                 poster,
                 autoplay: autoPlay ?? config.auto?.autoPlay ?? false,
                 muted,

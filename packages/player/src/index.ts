@@ -63,6 +63,7 @@ export type {
   VideoEnginePluginContext,
   VideoEnginePluginErrorPayload,
   VideoEnginePluginLoadPayload,
+  VideoEnginePluginSourceLoadFailedPayload,
   VideoEnginePluginTimeUpdatePayload,
   VideoEnginePluginVolumePayload,
 } from './core/plugins/types';

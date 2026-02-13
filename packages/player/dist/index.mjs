@@ -1699,6 +1699,14 @@ var VideoEnginePluginManager = class {
       });
     }
   }
+  onSourceLoadFailed(payload) {
+    for (const plugin of this.plugins) {
+      this.safeRun(plugin.name, "onSourceLoadFailed", () => {
+        var _a;
+        return (_a = plugin.onSourceLoadFailed) == null ? void 0 : _a.call(plugin, payload);
+      });
+    }
+  }
   onPlay() {
     for (const plugin of this.plugins) {
       this.safeRun(plugin.name, "onPlay", () => {
@@ -1767,15 +1775,16 @@ var VideoEnginePluginManager = class {
 // src/core/video-engine.ts
 var VideoEngine = class {
   constructor(videoElement, events = {}, options = {}) {
-    var _a, _b;
+    var _a, _b, _c;
     this.videoElement = videoElement;
     this.events = events;
     this.adapterRegistry = new AdapterRegistry();
     this.pluginManager = new VideoEnginePluginManager((_a = options.plugins) != null ? _a : []);
+    this.resolveCapabilities = (_b = options.capabilitiesResolver) != null ? _b : getBrowserCapabilities;
     for (const adapter of defaultStreamingAdapters) {
       this.adapterRegistry.register(adapter);
     }
-    for (const adapter of (_b = options.adapters) != null ? _b : []) {
+    for (const adapter of (_c = options.adapters) != null ? _c : []) {
       this.adapterRegistry.register(adapter);
     }
     this.setupVideoElementEvents();
@@ -1784,7 +1793,7 @@ var VideoEngine = class {
   async initialize() {
     var _a, _b, _c, _d;
     try {
-      this.capabilities = await getBrowserCapabilities();
+      this.capabilities = await this.resolveCapabilities();
       this.pluginManager.onInit();
       (_b = (_a = this.events).onReady) == null ? void 0 : _b.call(_a);
     } catch (error) {
@@ -1802,51 +1811,79 @@ var VideoEngine = class {
     }
     this.cleanupActiveAdapter();
     this.applyVideoConfig(config);
-    const selectionContext = {
-      src: config.src,
-      capabilities: this.capabilities
-    };
-    const adapterFactory = this.adapterRegistry.resolve(selectionContext);
-    if (!adapterFactory) {
-      const error = new Error(`Unsupported video format. This browser cannot play: ${config.src}`);
-      (_b = (_a = this.events).onError) == null ? void 0 : _b.call(_a, error);
-      this.pluginManager.onError({ error, src: config.src });
-      throw error;
-    }
-    (_d = (_c = this.events).onLoadStart) == null ? void 0 : _d.call(_c);
-    const payload = {
-      src: config.src,
-      strategy: adapterFactory.id,
-      capabilities: this.capabilities
-    };
-    this.pluginManager.onSourceLoadStart(payload);
-    try {
+    (_b = (_a = this.events).onLoadStart) == null ? void 0 : _b.call(_a);
+    const candidateSources = this.getCandidateSources(config);
+    const totalAttempts = candidateSources.length;
+    const attemptErrors = [];
+    let lastAttemptStrategy;
+    for (let index = 0; index < candidateSources.length; index += 1) {
+      const src = candidateSources[index];
+      const adapterFactory = this.adapterRegistry.resolve({
+        src,
+        capabilities: this.capabilities
+      });
+      const strategy = (_c = adapterFactory == null ? void 0 : adapterFactory.id) != null ? _c : "unresolved";
+      lastAttemptStrategy = strategy;
+      const payload = {
+        src,
+        strategy,
+        capabilities: this.capabilities
+      };
+      this.pluginManager.onSourceLoadStart(payload);
+      if (!adapterFactory) {
+        const unsupportedError = new Error(`Unsupported video format. This browser cannot play: ${src}`);
+        attemptErrors.push(unsupportedError);
+        this.pluginManager.onSourceLoadFailed({
+          src,
+          strategy,
+          error: unsupportedError,
+          attempt: index + 1,
+          totalAttempts
+        });
+        continue;
+      }
       const adapter = adapterFactory.create();
-      await adapter.load({
-        src: config.src,
-        capabilities: this.capabilities,
-        videoElement: this.videoElement,
-        onQualityChange: (quality) => {
-          var _a2, _b2;
-          (_b2 = (_a2 = this.events).onQualityChange) == null ? void 0 : _b2.call(_a2, quality);
-          this.pluginManager.onQualityChange(quality);
-        }
-      });
-      this.activeAdapter = adapter;
-      this.currentStrategy = adapterFactory.id;
-      this.currentSource = config.src;
-      this.pluginManager.onSourceLoaded(payload);
-      (_f = (_e = this.events).onLoadEnd) == null ? void 0 : _f.call(_e);
-    } catch (error) {
-      const runtimeError = error;
-      (_h = (_g = this.events).onError) == null ? void 0 : _h.call(_g, runtimeError);
-      this.pluginManager.onError({
-        error: runtimeError,
-        src: config.src,
-        strategy: adapterFactory.id
-      });
-      throw runtimeError;
+      try {
+        await adapter.load({
+          src,
+          capabilities: this.capabilities,
+          videoElement: this.videoElement,
+          onQualityChange: (quality) => {
+            var _a2, _b2;
+            (_b2 = (_a2 = this.events).onQualityChange) == null ? void 0 : _b2.call(_a2, quality);
+            this.pluginManager.onQualityChange(quality);
+          }
+        });
+        this.activeAdapter = adapter;
+        this.currentStrategy = adapterFactory.id;
+        this.currentSource = src;
+        this.pluginManager.onSourceLoaded(payload);
+        (_e = (_d = this.events).onLoadEnd) == null ? void 0 : _e.call(_d);
+        return;
+      } catch (error) {
+        const runtimeError = error;
+        adapter.destroy();
+        attemptErrors.push(runtimeError);
+        this.pluginManager.onSourceLoadFailed({
+          src,
+          strategy: adapterFactory.id,
+          error: runtimeError,
+          attempt: index + 1,
+          totalAttempts
+        });
+      }
     }
+    const lastError = (_f = attemptErrors[attemptErrors.length - 1]) != null ? _f : new Error("Unknown playback failure");
+    const failureSummary = new Error(
+      `All playback sources failed (${totalAttempts} attempts). Last error: ${lastError.message}`
+    );
+    (_h = (_g = this.events).onError) == null ? void 0 : _h.call(_g, failureSummary);
+    this.pluginManager.onError({
+      error: failureSummary,
+      src: candidateSources[candidateSources.length - 1],
+      strategy: lastAttemptStrategy
+    });
+    throw failureSummary;
   }
   getQualityLevels() {
     var _a, _b;
@@ -1933,6 +1970,11 @@ var VideoEngine = class {
     (_a = this.activeAdapter) == null ? void 0 : _a.destroy();
     this.activeAdapter = void 0;
     this.currentStrategy = void 0;
+  }
+  getCandidateSources(config) {
+    var _a;
+    const sources = [config.src, ...(_a = config.fallbackSources) != null ? _a : []].map((source) => source.trim()).filter((source) => source.length > 0);
+    return Array.from(new Set(sources));
   }
 };
 
@@ -2640,6 +2682,7 @@ var usePlayerPresets = () => {
 import { Fragment, jsx as jsx13, jsxs as jsxs10 } from "react/jsx-runtime";
 var ConfigurableVideoPlayer = forwardRef(({
   src,
+  fallbackSources,
   poster,
   thumbnailUrl,
   autoPlay,
@@ -2732,6 +2775,7 @@ var ConfigurableVideoPlayer = forwardRef(({
     if (!src || !engine) return;
     const videoConfig = {
       src,
+      fallbackSources,
       poster,
       autoplay: (_b2 = autoPlay != null ? autoPlay : (_a2 = config.auto) == null ? void 0 : _a2.autoPlay) != null ? _b2 : false,
       muted,
@@ -2742,7 +2786,7 @@ var ConfigurableVideoPlayer = forwardRef(({
       playerControls.load(videoConfig);
     }, 50);
     return () => clearTimeout(timer);
-  }, [src, poster, autoPlay, muted, loop, playsInline, engine, (_g = config.auto) == null ? void 0 : _g.autoPlay]);
+  }, [src, fallbackSources, poster, autoPlay, muted, loop, playsInline, engine, (_g = config.auto) == null ? void 0 : _g.autoPlay]);
   useEffect7(() => {
     if (state.isPlaying) {
       onPlay == null ? void 0 : onPlay();
@@ -2865,6 +2909,7 @@ var ConfigurableVideoPlayer = forwardRef(({
               if (src) {
                 playerControls.load({
                   src,
+                  fallbackSources,
                   poster,
                   autoplay: (_b2 = autoPlay != null ? autoPlay : (_a2 = config.auto) == null ? void 0 : _a2.autoPlay) != null ? _b2 : false,
                   muted,
@@ -2930,6 +2975,7 @@ import React7, { useRef as useRef5, useEffect as useEffect8, forwardRef as forwa
 import { jsx as jsx14, jsxs as jsxs11 } from "react/jsx-runtime";
 var VideoPlayer = forwardRef2(({
   src,
+  fallbackSources,
   poster,
   autoPlay = false,
   muted = false,
@@ -3028,6 +3074,7 @@ var VideoPlayer = forwardRef2(({
     if (!src || !engine) return;
     const config = {
       src,
+      fallbackSources,
       poster,
       autoplay: autoPlay,
       muted,
@@ -3038,7 +3085,7 @@ var VideoPlayer = forwardRef2(({
       playerControls.load(config);
     }, 50);
     return () => clearTimeout(timer);
-  }, [src, poster, autoPlay, muted, loop, playsInline, engine]);
+  }, [src, fallbackSources, poster, autoPlay, muted, loop, playsInline, engine]);
   useEffect8(() => {
     if (state.isPlaying) {
       handlePlay();
@@ -3143,7 +3190,7 @@ var VideoPlayer = forwardRef2(({
           })
         ),
         state.isLoading && /* @__PURE__ */ jsx14("div", { className: "absolute inset-0 flex items-center justify-center bg-black/50", children: /* @__PURE__ */ jsx14(LoadingSpinner, {}) }),
-        state.error && /* @__PURE__ */ jsx14("div", { className: "absolute inset-0 flex items-center justify-center bg-black/80", children: /* @__PURE__ */ jsx14(ErrorDisplay, { error: state.error, onRetry: () => playerControls.load({ src }) }) }),
+        state.error && /* @__PURE__ */ jsx14("div", { className: "absolute inset-0 flex items-center justify-center bg-black/80", children: /* @__PURE__ */ jsx14(ErrorDisplay, { error: state.error, onRetry: () => playerControls.load({ src, fallbackSources }) }) }),
         isGestureActive && gestures.enabled && /* @__PURE__ */ jsx14("div", { className: "absolute inset-0 pointer-events-none", children: /* @__PURE__ */ jsx14("div", { className: "absolute inset-0 bg-white/10 animate-pulse" }) }),
         controls.show && (showControls || state.isPaused || !state.duration) && /* @__PURE__ */ jsx14(
           VideoControls,
@@ -3454,6 +3501,7 @@ var VideoSourceSelector = ({
             /* @__PURE__ */ jsxs12("div", { className: "flex gap-2 flex-wrap", children: [
               /* @__PURE__ */ jsx17(Badge, { className: `text-xs ${getFormatColor(source.format)}`, children: source.format }),
               /* @__PURE__ */ jsx17(Badge, { className: `text-xs ${getQualityColor(source.quality)}`, children: source.quality }),
+              source.fallbackUrls && source.fallbackUrls.length > 0 && /* @__PURE__ */ jsx17(Badge, { variant: "outline", className: "text-xs", children: "Failover" }),
               source.aspectRatio && /* @__PURE__ */ jsx17(Badge, { variant: "outline", className: "text-xs", children: source.aspectRatio === "16/9" ? "\u{1F4FA} Landscape" : source.aspectRatio === "9/16" ? "\u{1F4F1} Vertical" : source.aspectRatio === "1/1" ? "\u2B1C Square" : source.aspectRatio })
             ] }),
             /* @__PURE__ */ jsx17("p", { className: "text-xs text-muted-foreground line-clamp-2", children: hasError ? "\u26A0\uFE0F This video failed to load. Click 'Retry' to try again." : source.description }),

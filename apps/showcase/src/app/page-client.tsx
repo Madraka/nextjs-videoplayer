@@ -48,6 +48,20 @@ const videoSources: VideoSource[] = [
     features: ['4K Resolution', 'MP4 Container', 'Progressive Download', 'Thumbnail Preview']
   },
   {
+    id: 'failover-demo',
+    name: 'Failover Demo (Broken Primary -> MP4 Backup)',
+    url: 'https://cdn.invalid.example/video-not-found.mp4',
+    fallbackUrls: ['https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'],
+    poster: 'https://storage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg',
+    thumbnailUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny_thumbs',
+    format: 'MP4 + Failover',
+    quality: 'Adaptive Recovery',
+    size: 'Primary fail / Backup 15.3 MB',
+    aspectRatio: '16/9',
+    description: 'Primary URL intentionally fails. Engine automatically retries fallback source.',
+    features: ['Automatic Failover', 'Retry Chain', 'Playback Recovery', 'Error Isolation']
+  },
+  {
     id: 'elephant',
     name: 'Elephant Dream (MP4)',
     url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
@@ -129,6 +143,11 @@ const createQoeMonitorPlugin = (
       const startup = loadStart > 0 ? Date.now() - loadStart : 0;
       onStrategy(strategy);
       onEvent(`Playback ready via ${strategy.toUpperCase()} (${startup}ms startup)`);
+    },
+    onSourceLoadFailed: ({ src, strategy, attempt, totalAttempts, error }) => {
+      onEvent(
+        `Attempt ${attempt}/${totalAttempts} failed (${strategy.toUpperCase()}): ${src} -> ${error.message}`
+      );
     },
     onQualityChange: (quality) => {
       onEvent(`Quality changed to ${quality}`);
@@ -638,6 +657,7 @@ function HomePageClient() {
                     <ConfigurableVideoPlayer
                       key={pluginConfigKey}
                       src={selectedVideo.url}
+                      fallbackSources={selectedVideo.fallbackUrls}
                       poster={selectedVideo.poster}
                       thumbnailUrl={selectedVideo.thumbnailUrl}
                       autoPlay={true}

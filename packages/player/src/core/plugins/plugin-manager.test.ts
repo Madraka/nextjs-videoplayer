@@ -17,6 +17,7 @@ describe('VideoEnginePluginManager', () => {
       onInit: () => hookOrder.push('init'),
       onSourceLoadStart: () => hookOrder.push('loadStart'),
       onSourceLoaded: () => hookOrder.push('loaded'),
+      onSourceLoadFailed: () => hookOrder.push('loadFailed'),
       onPlay: () => hookOrder.push('play'),
       onPause: () => hookOrder.push('pause'),
       onTimeUpdate: () => hookOrder.push('timeupdate'),
@@ -60,6 +61,13 @@ describe('VideoEnginePluginManager', () => {
         supportsPictureInPicture: true,
       },
     });
+    manager.onSourceLoadFailed({
+      src: 'https://cdn.example.com/video.m3u8',
+      strategy: 'hlsjs',
+      error: new Error('test'),
+      attempt: 1,
+      totalAttempts: 2,
+    });
     manager.onPlay();
     manager.onPause();
     manager.onTimeUpdate({ currentTime: 10, duration: 120 });
@@ -73,6 +81,7 @@ describe('VideoEnginePluginManager', () => {
       'init',
       'loadStart',
       'loaded',
+      'loadFailed',
       'play',
       'pause',
       'timeupdate',

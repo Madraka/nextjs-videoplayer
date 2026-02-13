@@ -25,6 +25,7 @@ type LegacyPlayerPlugin = (player: LegacyPluginContext) => void;
 
 export interface VideoPlayerProps {
   src: string;
+  fallbackSources?: string[];
   poster?: string;
   autoPlay?: boolean;
   muted?: boolean;
@@ -60,6 +61,7 @@ export interface VideoPlayerProps {
 
 export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(({
   src,
+  fallbackSources,
   poster,
   autoPlay = false,
   muted = false,
@@ -173,6 +175,7 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(({
 
     const config: VideoEngineConfig = {
       src,
+      fallbackSources,
       poster,
       autoplay: autoPlay,
       muted,
@@ -186,7 +189,7 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(({
     }, 50);
 
     return () => clearTimeout(timer);
-  }, [src, poster, autoPlay, muted, loop, playsInline, engine]);
+  }, [src, fallbackSources, poster, autoPlay, muted, loop, playsInline, engine]);
 
   // Event callbacks
   useEffect(() => {
@@ -324,7 +327,7 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(({
       {/* Error Display */}
       {state.error && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/80">
-          <ErrorDisplay error={state.error} onRetry={() => playerControls.load({ src })} />
+          <ErrorDisplay error={state.error} onRetry={() => playerControls.load({ src, fallbackSources })} />
         </div>
       )}
 

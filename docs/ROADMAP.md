@@ -76,6 +76,8 @@ Definition of done:
 2. Introduce typed plugin lifecycle for engine-level extensibility.
    Status: completed (`src/core/plugins`, analytics plugin migration).
 3. Expose architecture in showcase with interactive plugin toggles.
-   Status: in progress.
+   Status: completed (plugin playground + runtime signals in showcase).
 4. Add architecture reference documentation.
    Status: completed in `docs/PLAYER_ARCHITECTURE.md`.
+5. Add source failover support for resilient playback.
+   Status: completed (`VideoEngineConfig.fallbackSources` + failover tests).
