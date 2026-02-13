@@ -39,8 +39,14 @@ jobs:
       - name: Test
         run: pnpm -C packages/player run test
 
+      - name: API surface check
+        run: pnpm run api:check
+
       - name: Build package
         run: pnpm -C packages/player run build
+
+      - name: Bundle size check
+        run: pnpm run size:check
 
       - name: Verify tag/version match
         if: startsWith(github.ref, 'refs/tags/v')

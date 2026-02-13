@@ -45,5 +45,14 @@ jobs:
       - name: Test
         run: pnpm run test
 
+      - name: API surface check
+        run: pnpm run api:check
+
+      - name: Build package
+        run: pnpm run build:package
+
+      - name: Bundle size check
+        run: pnpm run size:check
+
       - name: Build showcase
         run: pnpm run build
