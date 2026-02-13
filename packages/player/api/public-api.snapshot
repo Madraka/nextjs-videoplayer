@@ -1,5 +1,6 @@
 export const VERSION = __PLAYER_VERSION__;
 export type { AnalyticsConfig as EngineAnalyticsConfig, AnalyticsEvent, } from './plugins/analytics';
+export type { ConsoleLoggerOptions, PlayerLogger } from './lib/logger';
 export type { DrmConfiguration, DrmLicenseRequestContext, DrmLicenseRequestHandler, DrmSystemConfiguration, } from './core/drm/types';
 export type { EmeController, EmeEnvironment, } from './core/drm/eme-controller';
 export type { GestureConfig, GestureCallbacks, } from './hooks/use-video-gestures';
@@ -20,6 +21,7 @@ export { VideoEnginePluginManager } from './core/plugins/plugin-manager';
 export { VideoPlayer } from './components/player/video-player';
 export { VideoSourceSelector } from './components/demo/video-source-selector';
 export { VideoThumbnail } from './components/player/video-thumbnail';
+export { createConsoleLogger, getPlayerLogger, setPlayerLogger } from './lib/logger';
 export { createEmeController, isEmeSupported } from './core/drm/eme-controller';
 export { createTokenLicenseRequestHandler } from './core/drm/license-request';
 export { defaultStreamingAdapters } from './core/adapters/default-adapters';

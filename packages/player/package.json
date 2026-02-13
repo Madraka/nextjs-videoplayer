@@ -1,6 +1,6 @@
 {
   "name": "@madraka/nextjs-videoplayer",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Modern, customizable video player for Next.js with HLS/DASH support, mobile optimization, and advanced features",
   "private": false,
   "main": "./dist/index.js",

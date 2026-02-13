@@ -1,3 +1,13 @@
+## [1.0.5] - 2026-02-13
+
+### Changed
+- Updated package versions to 1.0.5.
+- Aligned showcase "Simple Implementation" example with current `ConfigurableVideoPlayer` API (`configOverride` usage).
+- Updated public API snapshot after logger exports change.
+
+### Fixed
+- Resolved type mismatch in showcase/player demo state wiring for `VideoPlayerState`.
+
 ## [1.0.4] - 2025-07-25
 
 ### Added
