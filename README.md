@@ -289,12 +289,67 @@ git clone https://github.com/madraka/nextjs-videoplayer.git
 # Install dependencies
 pnpm install
 
-# Start development server
+# Start showcase development server
 pnpm dev
 
-# Build package
+# Build showcase
+pnpm build
+
+# Build npm package
 pnpm build:package
 ```
+
+### CI/CD Pipelines
+
+This repository uses two separate GitHub Actions workflows:
+
+- `Showcase CI` (`.github/workflows/showcase-ci.yml`)
+  - Runs on `push` and `pull_request` to `main`
+  - Validates showcase quality: `lint`, `type-check`, `build`
+  - Does not publish to npm
+
+- `Package Publish` (`.github/workflows/package-publish.yml`)
+  - Runs on version tags like `v1.2.3`
+  - Validates package quality and runs `build:package`
+  - Publishes to npm and creates a GitHub Release
+
+This keeps Vercel showcase deployment and npm package publishing isolated.
+
+### Monorepo Migration Status
+
+- Workspace scaffolding is active via `pnpm-workspace.yaml`.
+- Active layout:
+  - `apps/showcase` (Next.js showcase app)
+  - `packages/player` (publishable npm package)
+- Root scripts orchestrate both workspaces.
+- Migration plan and phases are documented in `docs/ROADMAP.md`.
+
+### Vercel Deploy
+
+- Root `vercel.json` now builds the showcase app from `apps/showcase`.
+- Build command: `pnpm -C apps/showcase build`
+- Output directory: `apps/showcase/.next`
+
+### Release Flow
+
+```bash
+# 1) add a changeset in your feature/fix branch
+pnpm changeset
+
+# 2) merge PR, then prepare versions/changelog on main
+pnpm changeset:version
+git add .changeset package.json packages/player/package.json pnpm-lock.yaml CHANGELOG.md packages/player/CHANGELOG.md
+git commit -m "release: version packages"
+
+# 3) validate release candidate
+pnpm release:check
+
+# 4) create and push tag from packages/player/package.json version
+pnpm release:tag
+git push origin main
+```
+
+When the `vX.Y.Z` tag is pushed, `Package Publish` handles npm publish + GitHub release.
 
 ### GitHub Installation
 
@@ -318,16 +373,14 @@ npm install github:Madraka/nextjs-videoplayer#v1.0.0
 ## 📦 Package Structure
 
 ```
-@madraka/nextjs-videoplayer/
-├── dist/                 # Built package
-├── src/
-│   ├── components/       # React components
-│   ├── hooks/           # Custom hooks  
-│   ├── core/            # Video engine
-│   ├── types/           # TypeScript types
-│   └── lib/             # Utilities
-├── README.md
-└── package.json
+nextjs-videoplayer/
+├── apps/
+│   └── showcase/         # Next.js showcase app
+├── packages/
+│   └── player/           # Publishable npm package (@madraka/nextjs-videoplayer)
+├── docs/
+├── pnpm-workspace.yaml
+└── turbo.json
 ```
 
 ## 🤝 Contributing

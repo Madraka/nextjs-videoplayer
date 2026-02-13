@@ -1,7 +1,7 @@
 {
-  "buildCommand": "pnpm build",
-  "outputDirectory": ".next",
+  "buildCommand": "pnpm -C apps/showcase build",
+  "outputDirectory": "apps/showcase/.next",
   "framework": "nextjs",
   "installCommand": "pnpm install",
-  "devCommand": "pnpm dev"
+  "devCommand": "pnpm -C apps/showcase dev"
 }
