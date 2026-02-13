@@ -10,12 +10,14 @@ import { useVideoPlayer } from '@/hooks/use-video-player';
 import { useVideoGestures } from '@/hooks/use-video-gestures';
 import { usePlayerConfig } from '@/contexts/player-config-context';
 import type { VideoEngineConfig } from '@/core/video-engine';
+import type { DrmConfiguration } from '@/core/drm/types';
 import type { VideoEnginePlugin } from '@/core/plugins/types';
 import type { PlayerConfiguration } from '@/types/player-config';
 
 interface ConfigurableVideoPlayerProps {
   src?: string;
   fallbackSources?: string[];
+  drmConfig?: DrmConfiguration;
   poster?: string;
   thumbnailUrl?: string;
   autoPlay?: boolean;
@@ -38,6 +40,7 @@ interface ConfigurableVideoPlayerProps {
 export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, ConfigurableVideoPlayerProps>(({
   src,
   fallbackSources,
+  drmConfig,
   poster,
   thumbnailUrl,
   autoPlay,
@@ -156,6 +159,7 @@ export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, Configurable
     const videoConfig: VideoEngineConfig = {
       src,
       fallbackSources,
+      drm: drmConfig,
       poster,
       autoplay: autoPlay ?? config.auto?.autoPlay ?? false,
       muted,
@@ -168,7 +172,7 @@ export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, Configurable
     }, 50);
 
     return () => clearTimeout(timer);
-  }, [src, fallbackSources, poster, autoPlay, muted, loop, playsInline, engine, config.auto?.autoPlay]);
+  }, [src, fallbackSources, drmConfig, poster, autoPlay, muted, loop, playsInline, engine, config.auto?.autoPlay]);
 
   // Event callbacks
   useEffect(() => {
@@ -328,6 +332,7 @@ export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, Configurable
               playerControls.load({
                 src,
                 fallbackSources,
+                drm: drmConfig,
                 poster,
                 autoplay: autoPlay ?? config.auto?.autoPlay ?? false,
                 muted,

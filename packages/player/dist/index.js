@@ -79,9 +79,11 @@ __export(index_exports, {
   VideoThumbnail: () => VideoThumbnail,
   cn: () => cn,
   createAnalyticsPlugin: () => createAnalyticsPlugin,
+  createEmeController: () => createEmeController,
   defaultStreamingAdapters: () => defaultStreamingAdapters,
   getBrowserCapabilities: () => getBrowserCapabilities,
   getStreamingStrategy: () => getStreamingStrategy,
+  isEmeSupported: () => isEmeSupported,
   mergePlayerConfig: () => mergePlayerConfig,
   usePlayerConfig: () => usePlayerConfig,
   usePlayerPresets: () => usePlayerPresets,
@@ -1694,6 +1696,103 @@ var defaultStreamingAdapters = [
   }
 ];
 
+// src/core/drm/eme-controller.ts
+var resolveEnvironment = (environment) => {
+  var _a, _b, _c;
+  const requestMediaKeySystemAccess = (_b = environment == null ? void 0 : environment.requestMediaKeySystemAccess) != null ? _b : typeof navigator !== "undefined" ? (_a = navigator.requestMediaKeySystemAccess) == null ? void 0 : _a.bind(navigator) : void 0;
+  if (!requestMediaKeySystemAccess) {
+    throw new Error("Encrypted Media Extensions are not supported in this environment.");
+  }
+  const fetchFn = (_c = environment == null ? void 0 : environment.fetch) != null ? _c : fetch;
+  return {
+    requestMediaKeySystemAccess,
+    fetch: fetchFn
+  };
+};
+var isEmeSupported = (environment) => {
+  if (environment == null ? void 0 : environment.requestMediaKeySystemAccess) {
+    return true;
+  }
+  return typeof navigator !== "undefined" && typeof navigator.requestMediaKeySystemAccess === "function";
+};
+var buildKeySystemConfiguration = (system) => {
+  var _a, _b, _c, _d, _e, _f;
+  return {
+    initDataTypes: (_a = system.initDataTypes) != null ? _a : ["cenc"],
+    audioCapabilities: (_b = system.audioCapabilities) != null ? _b : [{ contentType: 'audio/mp4; codecs="mp4a.40.2"' }],
+    videoCapabilities: (_c = system.videoCapabilities) != null ? _c : [{ contentType: 'video/mp4; codecs="avc1.42E01E"' }],
+    persistentState: (_d = system.persistentState) != null ? _d : "optional",
+    distinctiveIdentifier: (_e = system.distinctiveIdentifier) != null ? _e : "optional",
+    sessionTypes: (_f = system.sessionTypes) != null ? _f : ["temporary"]
+  };
+};
+var requestKeySystemAccess = async (systems, environment) => {
+  const errors = [];
+  for (const system of systems) {
+    try {
+      const access = await environment.requestMediaKeySystemAccess(system.keySystem, [
+        buildKeySystemConfiguration(system)
+      ]);
+      return { access, system };
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+  const lastError = errors[errors.length - 1];
+  throw new Error(`No configured DRM key system is supported. ${lastError ? `Last error: ${lastError.message}` : ""}`.trim());
+};
+var createEmeController = async (videoElement, configuration, environment) => {
+  if (!configuration.enabled) {
+    throw new Error("DRM configuration is disabled.");
+  }
+  if (!configuration.systems || configuration.systems.length === 0) {
+    throw new Error("DRM requires at least one key system configuration.");
+  }
+  const emeEnvironment = resolveEnvironment(environment);
+  const { access, system } = await requestKeySystemAccess(configuration.systems, emeEnvironment);
+  const mediaKeys = await access.createMediaKeys();
+  const onEncrypted = async (event) => {
+    const encryptedEvent = event;
+    if (!encryptedEvent.initData) {
+      return;
+    }
+    const session = mediaKeys.createSession("temporary");
+    session.addEventListener("message", (sessionEvent) => {
+      void (async () => {
+        var _a;
+        const messageEvent = sessionEvent;
+        if (!system.licenseServerUrl) {
+          throw new Error(`Missing licenseServerUrl for key system ${system.keySystem}`);
+        }
+        const response = await emeEnvironment.fetch(system.licenseServerUrl, {
+          method: "POST",
+          headers: __spreadValues({
+            "Content-Type": "application/octet-stream"
+          }, (_a = system.headers) != null ? _a : {}),
+          body: messageEvent.message
+        });
+        if (!response.ok) {
+          throw new Error(`License request failed with status ${response.status}`);
+        }
+        const license = await response.arrayBuffer();
+        await session.update(license);
+      })().catch((error) => {
+        console.warn("EME license exchange failed:", error);
+      });
+    });
+    await session.generateRequest(encryptedEvent.initDataType, encryptedEvent.initData);
+  };
+  await videoElement.setMediaKeys(mediaKeys);
+  videoElement.addEventListener("encrypted", onEncrypted);
+  return {
+    keySystem: access.keySystem,
+    destroy: () => {
+      videoElement.removeEventListener("encrypted", onEncrypted);
+      void videoElement.setMediaKeys(null).catch(() => void 0);
+    }
+  };
+};
+
 // src/core/plugins/plugin-manager.ts
 var VideoEnginePluginManager = class {
   constructor(plugins = []) {
@@ -1813,6 +1912,7 @@ var VideoEngine = class {
     this.adapterRegistry = new AdapterRegistry();
     this.pluginManager = new VideoEnginePluginManager((_a = options.plugins) != null ? _a : []);
     this.resolveCapabilities = (_b = options.capabilitiesResolver) != null ? _b : getBrowserCapabilities;
+    this.emeEnvironment = options.emeEnvironment;
     for (const adapter of defaultStreamingAdapters) {
       this.adapterRegistry.register(adapter);
     }
@@ -1834,7 +1934,7 @@ var VideoEngine = class {
     }
   }
   async loadSource(config) {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i;
     if (!this.capabilities) {
       await this.initialize();
     }
@@ -1842,8 +1942,12 @@ var VideoEngine = class {
       throw new Error("Failed to initialize video engine capabilities");
     }
     this.cleanupActiveAdapter();
+    this.cleanupDrmController();
     this.applyVideoConfig(config);
-    (_b = (_a = this.events).onLoadStart) == null ? void 0 : _b.call(_a);
+    if ((_a = config.drm) == null ? void 0 : _a.enabled) {
+      await this.setupDrm(config.drm);
+    }
+    (_c = (_b = this.events).onLoadStart) == null ? void 0 : _c.call(_b);
     const candidateSources = this.getCandidateSources(config);
     const totalAttempts = candidateSources.length;
     const attemptErrors = [];
@@ -1854,7 +1958,7 @@ var VideoEngine = class {
         src,
         capabilities: this.capabilities
       });
-      const strategy = (_c = adapterFactory == null ? void 0 : adapterFactory.id) != null ? _c : "unresolved";
+      const strategy = (_d = adapterFactory == null ? void 0 : adapterFactory.id) != null ? _d : "unresolved";
       lastAttemptStrategy = strategy;
       const payload = {
         src,
@@ -1890,7 +1994,7 @@ var VideoEngine = class {
         this.currentStrategy = adapterFactory.id;
         this.currentSource = src;
         this.pluginManager.onSourceLoaded(payload);
-        (_e = (_d = this.events).onLoadEnd) == null ? void 0 : _e.call(_d);
+        (_f = (_e = this.events).onLoadEnd) == null ? void 0 : _f.call(_e);
         return;
       } catch (error) {
         const runtimeError = error;
@@ -1905,11 +2009,11 @@ var VideoEngine = class {
         });
       }
     }
-    const lastError = (_f = attemptErrors[attemptErrors.length - 1]) != null ? _f : new Error("Unknown playback failure");
+    const lastError = (_g = attemptErrors[attemptErrors.length - 1]) != null ? _g : new Error("Unknown playback failure");
     const failureSummary = new Error(
       `All playback sources failed (${totalAttempts} attempts). Last error: ${lastError.message}`
     );
-    (_h = (_g = this.events).onError) == null ? void 0 : _h.call(_g, failureSummary);
+    (_i = (_h = this.events).onError) == null ? void 0 : _i.call(_h, failureSummary);
     this.pluginManager.onError({
       error: failureSummary,
       src: candidateSources[candidateSources.length - 1],
@@ -1927,9 +2031,11 @@ var VideoEngine = class {
   }
   cleanup() {
     this.cleanupActiveAdapter();
+    this.cleanupDrmController();
   }
   dispose() {
     this.cleanupActiveAdapter();
+    this.cleanupDrmController();
     this.pluginManager.dispose();
   }
   getCurrentStrategy() {
@@ -2002,6 +2108,24 @@ var VideoEngine = class {
     (_a = this.activeAdapter) == null ? void 0 : _a.destroy();
     this.activeAdapter = void 0;
     this.currentStrategy = void 0;
+  }
+  async setupDrm(configuration) {
+    var _a, _b;
+    try {
+      this.activeEmeController = await createEmeController(this.videoElement, configuration, this.emeEnvironment);
+    } catch (error) {
+      const drmError = new Error(`Failed to initialize DRM: ${error.message}`);
+      (_b = (_a = this.events).onError) == null ? void 0 : _b.call(_a, drmError);
+      this.pluginManager.onError({
+        error: drmError
+      });
+      throw drmError;
+    }
+  }
+  cleanupDrmController() {
+    var _a;
+    (_a = this.activeEmeController) == null ? void 0 : _a.destroy();
+    this.activeEmeController = void 0;
   }
   getCandidateSources(config) {
     var _a;
@@ -2715,6 +2839,7 @@ var import_jsx_runtime13 = require("react/jsx-runtime");
 var ConfigurableVideoPlayer = (0, import_react7.forwardRef)(({
   src,
   fallbackSources,
+  drmConfig,
   poster,
   thumbnailUrl,
   autoPlay,
@@ -2808,6 +2933,7 @@ var ConfigurableVideoPlayer = (0, import_react7.forwardRef)(({
     const videoConfig = {
       src,
       fallbackSources,
+      drm: drmConfig,
       poster,
       autoplay: (_b2 = autoPlay != null ? autoPlay : (_a2 = config.auto) == null ? void 0 : _a2.autoPlay) != null ? _b2 : false,
       muted,
@@ -2818,7 +2944,7 @@ var ConfigurableVideoPlayer = (0, import_react7.forwardRef)(({
       playerControls.load(videoConfig);
     }, 50);
     return () => clearTimeout(timer);
-  }, [src, fallbackSources, poster, autoPlay, muted, loop, playsInline, engine, (_g = config.auto) == null ? void 0 : _g.autoPlay]);
+  }, [src, fallbackSources, drmConfig, poster, autoPlay, muted, loop, playsInline, engine, (_g = config.auto) == null ? void 0 : _g.autoPlay]);
   (0, import_react7.useEffect)(() => {
     if (state.isPlaying) {
       onPlay == null ? void 0 : onPlay();
@@ -2942,6 +3068,7 @@ var ConfigurableVideoPlayer = (0, import_react7.forwardRef)(({
                 playerControls.load({
                   src,
                   fallbackSources,
+                  drm: drmConfig,
                   poster,
                   autoplay: (_b2 = autoPlay != null ? autoPlay : (_a2 = config.auto) == null ? void 0 : _a2.autoPlay) != null ? _b2 : false,
                   muted,
@@ -3008,6 +3135,7 @@ var import_jsx_runtime14 = require("react/jsx-runtime");
 var VideoPlayer = (0, import_react8.forwardRef)(({
   src,
   fallbackSources,
+  drmConfig,
   poster,
   autoPlay = false,
   muted = false,
@@ -3107,6 +3235,7 @@ var VideoPlayer = (0, import_react8.forwardRef)(({
     const config = {
       src,
       fallbackSources,
+      drm: drmConfig,
       poster,
       autoplay: autoPlay,
       muted,
@@ -3117,7 +3246,7 @@ var VideoPlayer = (0, import_react8.forwardRef)(({
       playerControls.load(config);
     }, 50);
     return () => clearTimeout(timer);
-  }, [src, fallbackSources, poster, autoPlay, muted, loop, playsInline, engine]);
+  }, [src, fallbackSources, drmConfig, poster, autoPlay, muted, loop, playsInline, engine]);
   (0, import_react8.useEffect)(() => {
     if (state.isPlaying) {
       handlePlay();
@@ -3222,7 +3351,7 @@ var VideoPlayer = (0, import_react8.forwardRef)(({
           })
         ),
         state.isLoading && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "absolute inset-0 flex items-center justify-center bg-black/50", children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(LoadingSpinner, {}) }),
-        state.error && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "absolute inset-0 flex items-center justify-center bg-black/80", children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(ErrorDisplay, { error: state.error, onRetry: () => playerControls.load({ src, fallbackSources }) }) }),
+        state.error && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "absolute inset-0 flex items-center justify-center bg-black/80", children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(ErrorDisplay, { error: state.error, onRetry: () => playerControls.load({ src, fallbackSources, drm: drmConfig }) }) }),
         isGestureActive && gestures.enabled && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "absolute inset-0 pointer-events-none", children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "absolute inset-0 bg-white/10 animate-pulse" }) }),
         controls.show && (showControls || state.isPaused || !state.duration) && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
           VideoControls,
@@ -4573,9 +4702,11 @@ var VERSION = "1.0.0";
   VideoThumbnail,
   cn,
   createAnalyticsPlugin,
+  createEmeController,
   defaultStreamingAdapters,
   getBrowserCapabilities,
   getStreamingStrategy,
+  isEmeSupported,
   mergePlayerConfig,
   usePlayerConfig,
   usePlayerPresets,

@@ -26,6 +26,7 @@ export { getBrowserCapabilities, getStreamingStrategy } from './core/compatibili
 export { AdapterRegistry } from './core/adapters/adapter-registry';
 export { defaultStreamingAdapters } from './core/adapters/default-adapters';
 export { VideoEnginePluginManager } from './core/plugins/plugin-manager';
+export { createEmeController, isEmeSupported } from './core/drm/eme-controller';
 
 // Types
 export type { 
@@ -57,6 +58,16 @@ export type {
   AdapterSelectionContext,
   AdapterLoadContext,
 } from './core/adapters/types';
+
+export type {
+  DrmConfiguration,
+  DrmSystemConfiguration,
+} from './core/drm/types';
+
+export type {
+  EmeController,
+  EmeEnvironment,
+} from './core/drm/eme-controller';
 
 export type {
   VideoEnginePlugin,

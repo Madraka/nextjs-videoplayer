@@ -81,3 +81,5 @@ Definition of done:
    Status: completed in `docs/PLAYER_ARCHITECTURE.md`.
 5. Add source failover support for resilient playback.
    Status: completed (`VideoEngineConfig.fallbackSources` + failover tests).
+6. Add DRM/EME foundation with typed config and engine integration.
+   Status: completed (`src/core/drm`, `drm` support in `VideoEngineConfig`).

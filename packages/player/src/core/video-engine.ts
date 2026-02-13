@@ -7,12 +7,15 @@ import { AdapterRegistry } from '@/core/adapters/adapter-registry';
 import { defaultStreamingAdapters } from '@/core/adapters/default-adapters';
 import type { QualityLevel, StreamingAdapter, StreamingAdapterFactory } from '@/core/adapters/types';
 import { getBrowserCapabilities, type BrowserCapabilities } from '@/core/compatibility';
+import { createEmeController, type EmeController, type EmeEnvironment } from '@/core/drm/eme-controller';
+import type { DrmConfiguration } from '@/core/drm/types';
 import { VideoEnginePluginManager } from '@/core/plugins/plugin-manager';
 import type { VideoEnginePlugin } from '@/core/plugins/types';
 
 export interface VideoEngineConfig {
   src: string;
   fallbackSources?: string[];
+  drm?: DrmConfiguration;
   autoplay?: boolean;
   muted?: boolean;
   loop?: boolean;
@@ -37,6 +40,7 @@ export interface VideoEngineOptions {
   plugins?: VideoEnginePlugin[];
   adapters?: StreamingAdapterFactory[];
   capabilitiesResolver?: () => Promise<BrowserCapabilities>;
+  emeEnvironment?: Partial<EmeEnvironment>;
 }
 
 export class VideoEngine {
@@ -45,8 +49,10 @@ export class VideoEngine {
   private readonly adapterRegistry: AdapterRegistry;
   private readonly pluginManager: VideoEnginePluginManager;
   private readonly resolveCapabilities: () => Promise<BrowserCapabilities>;
+  private readonly emeEnvironment?: Partial<EmeEnvironment>;
 
   private activeAdapter?: StreamingAdapter;
+  private activeEmeController?: EmeController;
   private capabilities?: BrowserCapabilities;
   private currentStrategy?: string;
   private currentSource?: string;
@@ -61,6 +67,7 @@ export class VideoEngine {
     this.adapterRegistry = new AdapterRegistry();
     this.pluginManager = new VideoEnginePluginManager(options.plugins ?? []);
     this.resolveCapabilities = options.capabilitiesResolver ?? getBrowserCapabilities;
+    this.emeEnvironment = options.emeEnvironment;
 
     for (const adapter of defaultStreamingAdapters) {
       this.adapterRegistry.register(adapter);
@@ -95,7 +102,12 @@ export class VideoEngine {
     }
 
     this.cleanupActiveAdapter();
+    this.cleanupDrmController();
     this.applyVideoConfig(config);
+
+    if (config.drm?.enabled) {
+      await this.setupDrm(config.drm);
+    }
 
     this.events.onLoadStart?.();
     const candidateSources = this.getCandidateSources(config);
@@ -191,10 +203,12 @@ export class VideoEngine {
 
   cleanup(): void {
     this.cleanupActiveAdapter();
+    this.cleanupDrmController();
   }
 
   dispose(): void {
     this.cleanupActiveAdapter();
+    this.cleanupDrmController();
     this.pluginManager.dispose();
   }
 
@@ -274,6 +288,24 @@ export class VideoEngine {
     this.activeAdapter?.destroy();
     this.activeAdapter = undefined;
     this.currentStrategy = undefined;
+  }
+
+  private async setupDrm(configuration: DrmConfiguration): Promise<void> {
+    try {
+      this.activeEmeController = await createEmeController(this.videoElement, configuration, this.emeEnvironment);
+    } catch (error) {
+      const drmError = new Error(`Failed to initialize DRM: ${(error as Error).message}`);
+      this.events.onError?.(drmError);
+      this.pluginManager.onError({
+        error: drmError,
+      });
+      throw drmError;
+    }
+  }
+
+  private cleanupDrmController(): void {
+    this.activeEmeController?.destroy();
+    this.activeEmeController = undefined;
   }
 
   private getCandidateSources(config: VideoEngineConfig): string[] {

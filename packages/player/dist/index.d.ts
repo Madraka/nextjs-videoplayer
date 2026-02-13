@@ -1,6 +1,22 @@
 import React$1 from 'react';
 import { ClassValue } from 'clsx';
 
+interface DrmSystemConfiguration {
+    keySystem: string;
+    licenseServerUrl?: string;
+    headers?: Record<string, string>;
+    audioCapabilities?: MediaKeySystemMediaCapability[];
+    videoCapabilities?: MediaKeySystemMediaCapability[];
+    initDataTypes?: string[];
+    persistentState?: MediaKeysRequirement;
+    distinctiveIdentifier?: MediaKeysRequirement;
+    sessionTypes?: MediaKeySessionType[];
+}
+interface DrmConfiguration {
+    enabled: boolean;
+    systems: DrmSystemConfiguration[];
+}
+
 /**
  * Browser and device compatibility utilities
  * Detects HLS support, device capabilities, and autoplay policies
@@ -196,6 +212,7 @@ declare const mergePlayerConfig: (base?: PlayerConfiguration, override?: PlayerC
 interface ConfigurableVideoPlayerProps {
     src?: string;
     fallbackSources?: string[];
+    drmConfig?: DrmConfiguration;
     poster?: string;
     thumbnailUrl?: string;
     autoPlay?: boolean;
@@ -230,6 +247,7 @@ type LegacyPlayerPlugin = (player: LegacyPluginContext) => void;
 interface VideoPlayerProps {
     src: string;
     fallbackSources?: string[];
+    drmConfig?: DrmConfiguration;
     poster?: string;
     autoPlay?: boolean;
     muted?: boolean;
@@ -291,6 +309,17 @@ interface StreamingAdapterFactory {
     create(): StreamingAdapter;
 }
 
+interface EmeEnvironment {
+    requestMediaKeySystemAccess: (keySystem: string, configurations: MediaKeySystemConfiguration[]) => Promise<MediaKeySystemAccess>;
+    fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+}
+interface EmeController {
+    keySystem: string;
+    destroy: () => void;
+}
+declare const isEmeSupported: (environment?: Partial<EmeEnvironment>) => boolean;
+declare const createEmeController: (videoElement: HTMLVideoElement, configuration: DrmConfiguration, environment?: Partial<EmeEnvironment>) => Promise<EmeController>;
+
 /**
  * Core video engine that handles different streaming protocols
  * Supports pluggable adapters and plugin lifecycle hooks.
@@ -299,6 +328,7 @@ interface StreamingAdapterFactory {
 interface VideoEngineConfig {
     src: string;
     fallbackSources?: string[];
+    drm?: DrmConfiguration;
     autoplay?: boolean;
     muted?: boolean;
     loop?: boolean;
@@ -321,6 +351,7 @@ interface VideoEngineOptions {
     plugins?: VideoEnginePlugin[];
     adapters?: StreamingAdapterFactory[];
     capabilitiesResolver?: () => Promise<BrowserCapabilities>;
+    emeEnvironment?: Partial<EmeEnvironment>;
 }
 declare class VideoEngine {
     private readonly videoElement;
@@ -328,7 +359,9 @@ declare class VideoEngine {
     private readonly adapterRegistry;
     private readonly pluginManager;
     private readonly resolveCapabilities;
+    private readonly emeEnvironment?;
     private activeAdapter?;
+    private activeEmeController?;
     private capabilities?;
     private currentStrategy?;
     private currentSource?;
@@ -346,6 +379,8 @@ declare class VideoEngine {
     private setupVideoElementEvents;
     private getBufferedPercentage;
     private cleanupActiveAdapter;
+    private setupDrm;
+    private cleanupDrmController;
     private getCandidateSources;
 }
 
@@ -670,4 +705,4 @@ declare const createAnalyticsPlugin: (config: AnalyticsConfig) => VideoEnginePlu
 
 declare const VERSION = "1.0.0";
 
-export { type AdapterLoadContext, AdapterRegistry, type AdapterSelectionContext, type AdvancedFeatures, type AnalyticsConfig$1 as AnalyticsConfig, type AnalyticsEvent, AnalyticsPlugin, type AutoBehavior, ConfigurableVideoPlayer, type ControlsVisibility, type AnalyticsConfig as EngineAnalyticsConfig, ErrorDisplay, type GestureCallbacks, type GestureConfig, type GesturesConfig, type KeyboardShortcutsConfig, LoadingSpinner, MobileVideoControls, PlayerConfigPanel, PlayerConfigProvider, type PlayerConfiguration, PlayerPresets, type PlayerTheme, type QualityLevel, type StreamingAdapter, type StreamingAdapterFactory, VERSION, VideoControls, VideoEngine, type VideoEngineConfig, type VideoEngineEvents, type VideoEngineOptions, type VideoEnginePlugin, type VideoEnginePluginContext, type VideoEnginePluginErrorPayload, type VideoEnginePluginLoadPayload, VideoEnginePluginManager, type VideoEnginePluginSourceLoadFailedPayload, type VideoEnginePluginTimeUpdatePayload, type VideoEnginePluginVolumePayload, VideoPlayer, type VideoPlayerControls, VideoPlayerDemo, type VideoPlayerState, type VideoSource, VideoSourceSelector, VideoThumbnail, cn, createAnalyticsPlugin, defaultStreamingAdapters, getBrowserCapabilities, getStreamingStrategy, mergePlayerConfig, usePlayerConfig, usePlayerPresets, useVideoGestures, useVideoPlayer };
+export { type AdapterLoadContext, AdapterRegistry, type AdapterSelectionContext, type AdvancedFeatures, type AnalyticsConfig$1 as AnalyticsConfig, type AnalyticsEvent, AnalyticsPlugin, type AutoBehavior, ConfigurableVideoPlayer, type ControlsVisibility, type DrmConfiguration, type DrmSystemConfiguration, type EmeController, type EmeEnvironment, type AnalyticsConfig as EngineAnalyticsConfig, ErrorDisplay, type GestureCallbacks, type GestureConfig, type GesturesConfig, type KeyboardShortcutsConfig, LoadingSpinner, MobileVideoControls, PlayerConfigPanel, PlayerConfigProvider, type PlayerConfiguration, PlayerPresets, type PlayerTheme, type QualityLevel, type StreamingAdapter, type StreamingAdapterFactory, VERSION, VideoControls, VideoEngine, type VideoEngineConfig, type VideoEngineEvents, type VideoEngineOptions, type VideoEnginePlugin, type VideoEnginePluginContext, type VideoEnginePluginErrorPayload, type VideoEnginePluginLoadPayload, VideoEnginePluginManager, type VideoEnginePluginSourceLoadFailedPayload, type VideoEnginePluginTimeUpdatePayload, type VideoEnginePluginVolumePayload, VideoPlayer, type VideoPlayerControls, VideoPlayerDemo, type VideoPlayerState, type VideoSource, VideoSourceSelector, VideoThumbnail, cn, createAnalyticsPlugin, createEmeController, defaultStreamingAdapters, getBrowserCapabilities, getStreamingStrategy, isEmeSupported, mergePlayerConfig, usePlayerConfig, usePlayerPresets, useVideoGestures, useVideoPlayer };
