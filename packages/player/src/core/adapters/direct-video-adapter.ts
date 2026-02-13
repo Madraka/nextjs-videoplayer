@@ -5,15 +5,17 @@ class DirectVideoAdapter implements StreamingAdapter {
   readonly id = 'direct';
 
   async load(context: AdapterLoadContext): Promise<void> {
-    const { videoElement, src } = context;
+    const { videoElement, src, signal } = context;
 
     if (!isVideoFormatSupported(src)) {
       throw new Error('Video format not supported by this browser');
     }
 
+    this.assertNotAborted(signal);
     videoElement.src = src;
 
     await new Promise<void>((resolve, reject) => {
+      const abortError = this.createAbortError();
       const timeout = window.setTimeout(() => {
         cleanup();
         reject(new Error('Video loading timeout (30s)'));
@@ -31,14 +33,27 @@ class DirectVideoAdapter implements StreamingAdapter {
         reject(new Error(message));
       };
 
+      const onAbort = () => {
+        cleanup();
+        reject(abortError);
+      };
+
       const cleanup = () => {
         window.clearTimeout(timeout);
         videoElement.removeEventListener('loadeddata', onLoadedData);
         videoElement.removeEventListener('error', onError);
+        signal?.removeEventListener('abort', onAbort);
       };
+
+      if (signal?.aborted) {
+        cleanup();
+        reject(abortError);
+        return;
+      }
 
       videoElement.addEventListener('loadeddata', onLoadedData);
       videoElement.addEventListener('error', onError);
+      signal?.addEventListener('abort', onAbort, { once: true });
       videoElement.load();
     });
   }
@@ -53,6 +68,18 @@ class DirectVideoAdapter implements StreamingAdapter {
 
   setQuality(): void {
     // Direct source quality selection is not supported.
+  }
+
+  private assertNotAborted(signal?: AbortSignal): void {
+    if (signal?.aborted) {
+      throw this.createAbortError();
+    }
+  }
+
+  private createAbortError(): Error {
+    const error = new Error('DirectVideoAdapter.load() aborted');
+    error.name = 'AbortError';
+    return error;
   }
 }
 

@@ -14,6 +14,7 @@
     "lint": "pnpm -C apps/showcase run lint && pnpm -C packages/player run lint",
     "type-check": "pnpm -C apps/showcase run type-check && pnpm -C packages/player run type-check",
     "test": "pnpm -C packages/player run test",
+    "test:contracts": "pnpm -C packages/player run test:contracts",
     "api:check": "node scripts/check-api-surface.mjs",
     "api:update": "node scripts/check-api-surface.mjs --update",
     "size:check": "pnpm -C packages/player run size",

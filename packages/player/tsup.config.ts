@@ -1,5 +1,6 @@
 import { defineConfig } from 'tsup';
 import path from 'path';
+import type { BuildOptions } from 'esbuild';
 
 export default defineConfig({
   entry: ['src/index.ts'],
@@ -32,7 +33,10 @@ export default defineConfig({
   banner: {
     js: '"use client";',
   },
-  esbuildOptions(options: any) {
+  define: {
+    __PLAYER_VERSION__: JSON.stringify(process.env.npm_package_version ?? '0.0.0'),
+  },
+  esbuildOptions(options: BuildOptions) {
     options.jsx = 'automatic';
     options.alias = {
       '@': path.resolve('./src'),

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { getPlayerLogger } from '@/lib/logger';
 import { FileVideo, Play, Download, Info, AlertTriangle } from 'lucide-react';
 
 export interface VideoSource {
@@ -61,42 +62,42 @@ const videoSources: VideoSource[] = [
   {
     id: 'sintel-480p',
     name: 'MP4 - Sintel (480p)',
-    url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
+    url: 'https://samplelib.com/lib/preview/mp4/sample-5s.mp4',
     format: 'MP4',
     quality: '480p',
-    size: '17.2MB',
-    description: 'Blender Foundation short film - reliable Google storage',
-    features: ['Blender Foundation', 'Good Quality', 'Google CDN']
+    size: '2.8MB',
+    description: 'SampleLib short MP4 sample',
+    features: ['Reliable', 'HTTPS', 'Quick Load']
   },
   {
     id: 'tears-steel-480p',
     name: 'MP4 - Tears of Steel (480p)',
-    url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
+    url: 'https://samplelib.com/lib/preview/mp4/sample-10s.mp4',
     format: 'MP4',
     quality: '480p',
-    size: '12.3MB',
-    description: 'Another Blender Foundation film from Google storage',
-    features: ['Blender Foundation', 'Sci-Fi', 'Google CDN']
+    size: '5.3MB',
+    description: 'SampleLib medium-length MP4 sample',
+    features: ['Reliable', 'HTTPS', 'MP4']
   },
   {
     id: 'elephant-dream',
     name: 'MP4 - Elephant\'s Dream',
-    url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    url: 'https://samplelib.com/lib/preview/mp4/sample-15s.mp4',
     format: 'MP4',
     quality: '720p',
-    size: '18.9MB',
-    description: 'First open movie by Blender Foundation',
-    features: ['Open Source', 'Creative Commons', 'Google CDN']
+    size: '11.3MB',
+    description: 'SampleLib long MP4 sample',
+    features: ['Reliable', 'HTTPS', 'Longer Clip']
   },
   {
     id: 'mp4-big-buck-bunny',
     name: 'MP4 - Big Buck Bunny',
-    url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    url: 'https://samplelib.com/lib/preview/mp4/sample-20s.mp4',
     format: 'MP4',
     quality: '720p',
-    size: '158MB',
-    description: 'Classic MP4 video file for compatibility testing',
-    features: ['Direct Download', 'Wide Compatibility', 'Single Quality']
+    size: '11.2MB',
+    description: 'Longer MP4 test clip for compatibility validation',
+    features: ['Reliable', 'HTTPS', 'Single Quality']
   },
   {
     id: 'hls-apple-basic',
@@ -134,7 +135,7 @@ export const VideoSourceSelector: React.FC<VideoSourceSelectorProps> = ({
       return; // Prevent double clicks
     }
     
-    console.log('Selecting video source:', source.name, source.url);
+    getPlayerLogger().info('Selecting video source:', source.name, source.url);
     setIsLoading(source.id);
     
     // Remove from errored sources if user is retrying
@@ -152,7 +153,7 @@ export const VideoSourceSelector: React.FC<VideoSourceSelectorProps> = ({
         await onSourceSelect(source);
       }
     } catch (error) {
-      console.error('Error selecting source:', error);
+      getPlayerLogger().error('Error selecting source:', error);
       // Mark this source as errored
       setErroredSources(prev => new Set([...prev, source.id]));
     } finally {

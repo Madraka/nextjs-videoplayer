@@ -9,18 +9,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { usePlayerConfig, usePlayerPresets } from '@/contexts/player-config-context';
-import { Settings, Palette, Keyboard, Smartphone, Zap, Save, RotateCcw } from 'lucide-react';
+import { usePlayerConfig } from '@/contexts/player-config-context';
+import type { AutoBehavior, ControlsVisibility, PlayerConfiguration } from '@/types/player-config';
+import { Settings, Keyboard, Smartphone, Zap, Save, RotateCcw } from 'lucide-react';
 
 export const PlayerConfigPanel: React.FC = () => {
   const { config, updateConfig, resetConfig, saveConfig, loadSavedConfig, getSavedConfigs } = usePlayerConfig();
-  const { presets, loadPreset } = usePlayerPresets();
   const [saveConfigName, setSaveConfigName] = useState('');
 
   const savedConfigs = getSavedConfigs();
 
-  const handleControlVisibilityChange = (control: string, enabled: boolean) => {
+  const handleControlVisibilityChange = (control: keyof ControlsVisibility, enabled: boolean) => {
     updateConfig({
       controls: {
         ...config.controls,
@@ -32,16 +31,7 @@ export const PlayerConfigPanel: React.FC = () => {
     });
   };
 
-  const handleThemeChange = (property: string, value: string) => {
-    updateConfig({
-      theme: {
-        ...config.theme,
-        [property]: value,
-      },
-    });
-  };
-
-  const handleAutoChange = (property: string, value: any) => {
+  const handleAutoChange = <K extends keyof AutoBehavior>(property: K, value: AutoBehavior[K]) => {
     updateConfig({
       auto: {
         ...config.auto,
@@ -59,6 +49,20 @@ export const PlayerConfigPanel: React.FC = () => {
     });
   };
 
+  const controlLabels: Record<keyof ControlsVisibility, string> = {
+    playPause: 'Play/Pause Button',
+    progress: 'Progress Bar',
+    volume: 'Volume Control',
+    quality: 'Quality Selector',
+    fullscreen: 'Fullscreen Toggle',
+    pictureInPicture: 'Picture-in-Picture',
+    theaterMode: 'Theater Mode',
+    playbackRate: 'Playback Speed',
+    keyboardShortcuts: 'Keyboard Shortcuts',
+    settings: 'Settings Menu',
+    time: 'Time Display',
+  };
+
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
@@ -67,19 +71,6 @@ export const PlayerConfigPanel: React.FC = () => {
           Video Player Configuration
         </CardTitle>
         <div className="flex gap-2 flex-wrap">
-          <Select onValueChange={loadPreset}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Load Preset" />
-            </SelectTrigger>
-            <SelectContent>
-              {presets.map((preset) => (
-                <SelectItem key={preset} value={preset}>
-                  {preset.charAt(0).toUpperCase() + preset.slice(1)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
           {savedConfigs.length > 0 && (
             <Select onValueChange={loadSavedConfig}>
               <SelectTrigger className="w-48">
@@ -104,9 +95,8 @@ export const PlayerConfigPanel: React.FC = () => {
 
       <CardContent>
         <Tabs defaultValue="controls" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="controls">Controls</TabsTrigger>
-            <TabsTrigger value="theme">Theme</TabsTrigger>
             <TabsTrigger value="behavior">Behavior</TabsTrigger>
             <TabsTrigger value="gestures">Gestures</TabsTrigger>
             <TabsTrigger value="save">Save</TabsTrigger>
@@ -116,24 +106,12 @@ export const PlayerConfigPanel: React.FC = () => {
             <div>
               <h3 className="text-lg font-medium mb-4">Control Visibility</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {Object.entries({
-                  playPause: 'Play/Pause Button',
-                  progress: 'Progress Bar',
-                  volume: 'Volume Control',
-                  quality: 'Quality Selector',
-                  fullscreen: 'Fullscreen Toggle',
-                  pictureInPicture: 'Picture-in-Picture',
-                  theaterMode: 'Theater Mode',
-                  playbackRate: 'Playback Speed',
-                  keyboardShortcuts: 'Keyboard Shortcuts',
-                  settings: 'Settings Menu',
-                  time: 'Time Display',
-                }).map(([key, label]) => (
+                {Object.entries(controlLabels).map(([key, label]) => (
                   <div key={key} className="flex items-center space-x-2">
                     <Switch
                       id={key}
-                      checked={config.controls?.visibility?.[key as keyof typeof config.controls.visibility] ?? true}
-                      onCheckedChange={(checked) => handleControlVisibilityChange(key, checked)}
+                      checked={config.controls?.visibility?.[key as keyof ControlsVisibility] ?? true}
+                      onCheckedChange={(checked) => handleControlVisibilityChange(key as keyof ControlsVisibility, checked)}
                     />
                     <Label htmlFor={key} className="text-sm">{label}</Label>
                   </div>
@@ -144,34 +122,14 @@ export const PlayerConfigPanel: React.FC = () => {
             <Separator />
 
             <div>
-              <h3 className="text-lg font-medium mb-4">Control Style</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="style">Style</Label>
-                  <Select
-                    value={config.controls?.style || 'youtube'}
-                    onValueChange={(value) => updateConfig({
-                      controls: { ...config.controls, style: value as any }
-                    })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="youtube">YouTube</SelectItem>
-                      <SelectItem value="vimeo">Vimeo</SelectItem>
-                      <SelectItem value="netflix">Netflix</SelectItem>
-                      <SelectItem value="minimal">Minimal</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
+              <h3 className="text-lg font-medium mb-4">Control Layout</h3>
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <Label htmlFor="size">Size</Label>
                   <Select
                     value={config.controls?.size || 'medium'}
                     onValueChange={(value) => updateConfig({
-                      controls: { ...config.controls, size: value as any }
+                      controls: { ...config.controls, size: value as NonNullable<PlayerConfiguration['controls']>['size'] }
                     })}
                   >
                     <SelectTrigger>
@@ -184,35 +142,6 @@ export const PlayerConfigPanel: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="theme" className="space-y-6">
-            <div>
-              <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
-                <Palette className="h-5 w-5" />
-                Color Theme
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                {Object.entries({
-                  primary: 'Primary Color',
-                  secondary: 'Secondary Color',
-                  accent: 'Accent Color',
-                  progressColor: 'Progress Color',
-                  bufferColor: 'Buffer Color',
-                }).map(([key, label]) => (
-                  <div key={key}>
-                    <Label htmlFor={key}>{label}</Label>
-                    <Input
-                      id={key}
-                      type="color"
-                      value={config.theme?.[key as keyof typeof config.theme] || '#3b82f6'}
-                      onChange={(e) => handleThemeChange(key, e.target.value)}
-                      className="h-10"
-                    />
-                  </div>
-                ))}
               </div>
             </div>
           </TabsContent>
@@ -266,7 +195,12 @@ export const PlayerConfigPanel: React.FC = () => {
                     id="autoHideDelay"
                     type="number"
                     value={config.auto?.autoHideDelay || 3000}
-                    onChange={(e) => handleAutoChange('autoHideDelay', parseInt(e.target.value))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const parsed = Number.parseInt(e.target.value, 10);
+                      if (Number.isFinite(parsed)) {
+                        handleAutoChange('autoHideDelay', parsed);
+                      }
+                    }}
                     min="1000"
                     max="10000"
                     step="500"
@@ -351,7 +285,7 @@ export const PlayerConfigPanel: React.FC = () => {
                 <Input
                   placeholder="Configuration name..."
                   value={saveConfigName}
-                  onChange={(e) => setSaveConfigName(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSaveConfigName(e.target.value)}
                 />
                 <Button 
                   onClick={() => {
@@ -368,24 +302,6 @@ export const PlayerConfigPanel: React.FC = () => {
             </div>
 
             <Separator />
-
-            <div>
-              <h3 className="text-lg font-medium mb-4">Quick Presets</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {presets.map((preset) => (
-                  <Button
-                    key={preset}
-                    variant="outline"
-                    onClick={() => loadPreset(preset)}
-                    className="justify-start"
-                  >
-                    <Badge variant="secondary" className="mr-2">
-                      {preset}
-                    </Badge>
-                  </Button>
-                ))}
-              </div>
-            </div>
           </TabsContent>
         </Tabs>
       </CardContent>

@@ -1,12 +1,15 @@
 import type {
+  VideoEnginePluginFailoverPayload,
   VideoEnginePlugin,
   VideoEnginePluginContext,
   VideoEnginePluginErrorPayload,
   VideoEnginePluginLoadPayload,
+  VideoEnginePluginRetryPayload,
   VideoEnginePluginSourceLoadFailedPayload,
   VideoEnginePluginTimeUpdatePayload,
   VideoEnginePluginVolumePayload,
 } from '@/core/plugins/types';
+import { getPlayerLogger } from '@/lib/logger';
 
 export class VideoEnginePluginManager {
   private readonly plugins: VideoEnginePlugin[];
@@ -42,6 +45,18 @@ export class VideoEnginePluginManager {
   onSourceLoadFailed(payload: VideoEnginePluginSourceLoadFailedPayload): void {
     for (const plugin of this.plugins) {
       this.safeRun(plugin.name, 'onSourceLoadFailed', () => plugin.onSourceLoadFailed?.(payload));
+    }
+  }
+
+  onRetry(payload: VideoEnginePluginRetryPayload): void {
+    for (const plugin of this.plugins) {
+      this.safeRun(plugin.name, 'onRetry', () => plugin.onRetry?.(payload));
+    }
+  }
+
+  onFailover(payload: VideoEnginePluginFailoverPayload): void {
+    for (const plugin of this.plugins) {
+      this.safeRun(plugin.name, 'onFailover', () => plugin.onFailover?.(payload));
     }
   }
 
@@ -91,7 +106,7 @@ export class VideoEnginePluginManager {
     try {
       run();
     } catch (error) {
-      console.warn(`Plugin ${pluginName} failed during ${lifecycle}:`, error);
+      getPlayerLogger().warn(`Plugin ${pluginName} failed during ${lifecycle}:`, error);
     }
   }
 }

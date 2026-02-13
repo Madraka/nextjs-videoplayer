@@ -3,8 +3,9 @@
 import React, { useRef, useState } from 'react';
 import { VideoPlayer } from '@/components/player/video-player';
 import { VideoAnalytics } from '@/components/analytics/video-analytics';
-import { VideoSourceSelector } from '@/components/demo/video-source-selector';
+import { VideoSourceSelector, type VideoSource } from '@/components/demo/video-source-selector';
 import { Separator } from '@/components/ui/separator';
+import { getPlayerLogger } from '@/lib/logger';
 
 export default function Home() {
   const playerRef = useRef<HTMLVideoElement>(null);
@@ -12,7 +13,7 @@ export default function Home() {
     process.env.NEXT_PUBLIC_STREAM_URL || "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8"
   );
 
-  const handleSourceChange = (source: any) => {
+  const handleSourceChange = (source: VideoSource) => {
     setCurrentVideoUrl(source.url);
   };
 
@@ -70,10 +71,10 @@ export default function Home() {
               doubleTapSeek: true,
               swipeVolume: true,
             }}
-            onReady={() => console.log('Video player ready')}
-            onPlay={() => console.log('Video started playing')}
-            onPause={() => console.log('Video paused')}
-            onError={(error) => console.error('Video error:', error)}
+            onReady={() => getPlayerLogger().info('Video player ready')}
+            onPlay={() => getPlayerLogger().info('Video started playing')}
+            onPause={() => getPlayerLogger().info('Video paused')}
+            onError={(error) => getPlayerLogger().error('Video error:', error)}
           />
         </section>
 

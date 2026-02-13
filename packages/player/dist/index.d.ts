@@ -69,6 +69,24 @@ interface VideoEnginePluginSourceLoadFailedPayload {
     attempt: number;
     totalAttempts: number;
 }
+interface VideoEnginePluginRetryPayload {
+    src: string;
+    strategy: string;
+    error: Error;
+    attempt: number;
+    retryAttempt: number;
+    maxRetries: number;
+    retryDelayMs: number;
+}
+interface VideoEnginePluginFailoverPayload {
+    fromSrc: string;
+    fromStrategy: string;
+    toSrc: string;
+    toStrategy: string;
+    error: Error;
+    attempt: number;
+    totalAttempts: number;
+}
 interface VideoEnginePluginTimeUpdatePayload {
     currentTime: number;
     duration: number;
@@ -84,6 +102,8 @@ interface VideoEnginePlugin {
     onSourceLoadStart?(payload: VideoEnginePluginLoadPayload): void;
     onSourceLoaded?(payload: VideoEnginePluginLoadPayload): void;
     onSourceLoadFailed?(payload: VideoEnginePluginSourceLoadFailedPayload): void;
+    onRetry?(payload: VideoEnginePluginRetryPayload): void;
+    onFailover?(payload: VideoEnginePluginFailoverPayload): void;
     onPlay?(): void;
     onPause?(): void;
     onTimeUpdate?(payload: VideoEnginePluginTimeUpdatePayload): void;
@@ -182,7 +202,6 @@ interface PlayerConfiguration {
         show?: boolean;
         visibility?: ControlsVisibility;
         position?: 'bottom' | 'top' | 'overlay' | 'external';
-        style?: 'youtube' | 'vimeo' | 'netflix' | 'minimal' | 'custom';
         size?: 'small' | 'medium' | 'large';
     };
     keyboard?: KeyboardShortcutsConfig;
@@ -220,79 +239,6 @@ declare const PlayerPresets: {
 };
 declare const mergePlayerConfig: (base?: PlayerConfiguration, override?: PlayerConfiguration) => PlayerConfiguration;
 
-interface ConfigurableVideoPlayerProps {
-    src?: string;
-    fallbackSources?: string[];
-    drmConfig?: DrmConfiguration;
-    poster?: string;
-    thumbnailUrl?: string;
-    autoPlay?: boolean;
-    muted?: boolean;
-    loop?: boolean;
-    playsInline?: boolean;
-    className?: string;
-    configOverride?: Partial<PlayerConfiguration>;
-    enginePlugins?: VideoEnginePlugin[];
-    aspectRatio?: 'auto' | '16/9' | '4/3' | '1/1' | '9/16' | '3/4' | 'custom';
-    customAspectRatio?: string;
-    onReady?: () => void;
-    onPlay?: () => void;
-    onPause?: () => void;
-    onError?: (error: string) => void;
-    onTimeUpdate?: (currentTime: number, duration: number) => void;
-    onStateChange?: (state: any) => void;
-}
-declare const ConfigurableVideoPlayer: React$1.ForwardRefExoticComponent<ConfigurableVideoPlayerProps & React$1.RefAttributes<HTMLVideoElement>>;
-
-/**
- * Main video player component
- * Combines video engine, controls, and gesture handling
- */
-
-type LegacyPluginContext = {
-    engine: unknown;
-    state: unknown;
-    controls: unknown;
-};
-type LegacyPlayerPlugin = (player: LegacyPluginContext) => void;
-interface VideoPlayerProps {
-    src: string;
-    fallbackSources?: string[];
-    drmConfig?: DrmConfiguration;
-    poster?: string;
-    autoPlay?: boolean;
-    muted?: boolean;
-    loop?: boolean;
-    playsInline?: boolean;
-    className?: string;
-    controls?: {
-        show?: boolean;
-        fullscreen?: boolean;
-        quality?: boolean;
-        volume?: boolean;
-        progress?: boolean;
-        playPause?: boolean;
-        playbackRate?: boolean;
-        pictureInPicture?: boolean;
-        theaterMode?: boolean;
-    };
-    gestures?: {
-        enabled?: boolean;
-        tapToPlay?: boolean;
-        doubleTapSeek?: boolean;
-        swipeVolume?: boolean;
-    };
-    plugins?: LegacyPlayerPlugin[];
-    enginePlugins?: VideoEnginePlugin[];
-    onReady?: () => void;
-    onPlay?: () => void;
-    onPause?: () => void;
-    onError?: (error: string) => void;
-    onTimeUpdate?: (currentTime: number, duration: number) => void;
-    onStateChange?: (state: any) => void;
-}
-declare const VideoPlayer: React$1.ForwardRefExoticComponent<VideoPlayerProps & React$1.RefAttributes<HTMLVideoElement>>;
-
 interface AdapterSelectionContext {
     src: string;
     capabilities: BrowserCapabilities;
@@ -300,6 +246,7 @@ interface AdapterSelectionContext {
 interface AdapterLoadContext extends AdapterSelectionContext {
     videoElement: HTMLVideoElement;
     onQualityChange?: (quality: string) => void;
+    signal?: AbortSignal;
 }
 interface QualityLevel {
     id: string;
@@ -339,6 +286,15 @@ declare const createEmeController: (videoElement: HTMLVideoElement, configuratio
 interface VideoEngineConfig {
     src: string;
     fallbackSources?: string[];
+    signal?: AbortSignal;
+    retryPolicy?: {
+        maxRetries?: number;
+        retryDelayMs?: number;
+        maxRetryDelayMs?: number;
+        backoffMultiplier?: number;
+        jitterRatio?: number;
+        retryOn?: Array<'network' | 'timeout' | 'server' | 'unsupported' | 'unknown' | 'all'>;
+    };
     drm?: DrmConfiguration;
     autoplay?: boolean;
     muted?: boolean;
@@ -376,6 +332,20 @@ declare class VideoEngine {
     private capabilities?;
     private currentStrategy?;
     private currentSource?;
+    private isDisposed;
+    private initializationPromise?;
+    private loadRequestId;
+    private timeUpdateFrameId;
+    private progressFrameId;
+    private lastEmittedCurrentTime;
+    private lastEmittedDuration;
+    private lastEmittedBuffered;
+    private readonly onPlayListener;
+    private readonly onPauseListener;
+    private readonly onTimeUpdateListener;
+    private readonly onProgressListener;
+    private readonly onVolumeChangeListener;
+    private readonly onErrorListener;
     constructor(videoElement: HTMLVideoElement, events?: Partial<VideoEngineEvents>, options?: VideoEngineOptions);
     initialize(): Promise<void>;
     loadSource(config: VideoEngineConfig): Promise<void>;
@@ -388,11 +358,32 @@ declare class VideoEngine {
     getCurrentSource(): string | undefined;
     private applyVideoConfig;
     private setupVideoElementEvents;
+    private removeVideoElementEvents;
     private getBufferedPercentage;
+    private requestFrame;
+    private cancelFrame;
+    private cancelPendingFrames;
     private cleanupActiveAdapter;
     private setupDrm;
     private cleanupDrmController;
     private getCandidateSources;
+    private getRetryLimit;
+    private getRetryDelayMs;
+    private getMaxRetryDelayMs;
+    private getBackoffMultiplier;
+    private getJitterRatio;
+    private isSupersededLoadRequest;
+    private assertActiveLoadRequest;
+    private createSupersededLoadError;
+    private assertNotAborted;
+    private createAbortedLoadError;
+    private isAbortedLoadError;
+    private isRetriableLoadError;
+    private classifyLoadError;
+    private waitForRetryDelay;
+    private calculateRetryDelay;
+    private runWithAbortSignal;
+    private assertNotDisposed;
 }
 
 /**
@@ -451,9 +442,82 @@ declare const useVideoPlayer: (videoRef: React.RefObject<HTMLVideoElement | null
     engine: VideoEngine | null;
 };
 
+interface ConfigurableVideoPlayerProps {
+    src?: string;
+    fallbackSources?: string[];
+    drmConfig?: DrmConfiguration;
+    poster?: string;
+    thumbnailUrl?: string;
+    autoPlay?: boolean;
+    muted?: boolean;
+    loop?: boolean;
+    playsInline?: boolean;
+    className?: string;
+    configOverride?: Partial<PlayerConfiguration>;
+    enginePlugins?: VideoEnginePlugin[];
+    aspectRatio?: 'auto' | '16/9' | '4/3' | '1/1' | '9/16' | '3/4' | 'custom';
+    customAspectRatio?: string;
+    onReady?: () => void;
+    onPlay?: () => void;
+    onPause?: () => void;
+    onError?: (error: string) => void;
+    onTimeUpdate?: (currentTime: number, duration: number) => void;
+    onStateChange?: (state: VideoPlayerState) => void;
+}
+declare const ConfigurableVideoPlayer: React$1.ForwardRefExoticComponent<ConfigurableVideoPlayerProps & React$1.RefAttributes<HTMLVideoElement>>;
+
 /**
- * Mobile-optimized video controls inspired by VK Player
- * Features: Touch-friendly UI, gesture support, adaptive layout
+ * Main video player component
+ * Combines video engine, controls, and gesture handling
+ */
+
+type LegacyPluginContext = {
+    engine: unknown;
+    state: unknown;
+    controls: unknown;
+};
+type LegacyPlayerPlugin = (player: LegacyPluginContext) => void;
+interface VideoPlayerProps {
+    src: string;
+    fallbackSources?: string[];
+    drmConfig?: DrmConfiguration;
+    poster?: string;
+    autoPlay?: boolean;
+    muted?: boolean;
+    loop?: boolean;
+    playsInline?: boolean;
+    className?: string;
+    controls?: {
+        show?: boolean;
+        fullscreen?: boolean;
+        quality?: boolean;
+        volume?: boolean;
+        progress?: boolean;
+        playPause?: boolean;
+        playbackRate?: boolean;
+        pictureInPicture?: boolean;
+        theaterMode?: boolean;
+    };
+    gestures?: {
+        enabled?: boolean;
+        tapToPlay?: boolean;
+        doubleTapSeek?: boolean;
+        swipeVolume?: boolean;
+    };
+    plugins?: LegacyPlayerPlugin[];
+    enginePlugins?: VideoEnginePlugin[];
+    onReady?: () => void;
+    onPlay?: () => void;
+    onPause?: () => void;
+    onError?: (error: string) => void;
+    onTimeUpdate?: (currentTime: number, duration: number) => void;
+    onStateChange?: (state: VideoPlayerState) => void;
+}
+declare const VideoPlayer: React$1.ForwardRefExoticComponent<VideoPlayerProps & React$1.RefAttributes<HTMLVideoElement>>;
+
+/**
+ * YouTube 2025/2026 mobile video controls — fully responsive
+ * Center play/seek overlay + bottom progress-on-top + bubble row + bottom sheet settings
  */
 
 interface MobileVideoControlsProps {
@@ -467,16 +531,15 @@ interface MobileVideoControlsProps {
     className?: string;
     onShow?: () => void;
     onHide?: () => void;
-    /** Enable thumbnail previews */
     thumbnailPreview?: boolean;
-    /** Base URL for thumbnail images */
     thumbnailUrl?: string;
 }
 declare const MobileVideoControls: React$1.FC<MobileVideoControlsProps>;
 
 /**
- * Video player controls component
- * Includes play/pause, progress bar, volume, quality, and fullscreen controls
+ * YouTube 2025/2026 style video player controls — fully responsive
+ * Progress bar on top, bubble buttons below, unified settings panel
+ * Works on desktop & mobile with adaptive sizing
  */
 
 interface VideoControlsProps {
@@ -540,7 +603,7 @@ interface LoadingSpinnerProps {
 declare const LoadingSpinner: React$1.FC<LoadingSpinnerProps>;
 
 /**
- * Error display component for video player
+ * YouTube-style error display for video player
  */
 
 interface ErrorDisplayProps {
@@ -583,7 +646,6 @@ interface PlayerConfigContextType {
     config: PlayerConfiguration;
     updateConfig: (newConfig: Partial<PlayerConfiguration>) => void;
     resetConfig: () => void;
-    loadPreset: (presetName: string) => void;
     saveConfig: (name: string) => void;
     loadSavedConfig: (name: string) => void;
     getSavedConfigs: () => string[];
@@ -595,11 +657,6 @@ interface PlayerConfigProviderProps {
 }
 declare const PlayerConfigProvider: React$1.FC<PlayerConfigProviderProps>;
 declare const usePlayerConfig: () => PlayerConfigContextType;
-declare const usePlayerPresets: () => {
-    presets: string[];
-    loadPreset: (presetName: string) => void;
-    getPresetConfig: (name: string) => PlayerConfiguration;
-};
 
 declare const PlayerConfigPanel: React$1.FC;
 
@@ -653,6 +710,8 @@ declare class VideoEnginePluginManager {
     onSourceLoadStart(payload: VideoEnginePluginLoadPayload): void;
     onSourceLoaded(payload: VideoEnginePluginLoadPayload): void;
     onSourceLoadFailed(payload: VideoEnginePluginSourceLoadFailedPayload): void;
+    onRetry(payload: VideoEnginePluginRetryPayload): void;
+    onFailover(payload: VideoEnginePluginFailoverPayload): void;
     onPlay(): void;
     onPause(): void;
     onTimeUpdate(payload: VideoEnginePluginTimeUpdatePayload): void;
@@ -672,6 +731,22 @@ interface TokenLicenseRequestHandlerOptions {
 declare const createTokenLicenseRequestHandler: (options: TokenLicenseRequestHandlerOptions) => DrmLicenseRequestHandler;
 
 declare function cn(...inputs: ClassValue[]): string;
+
+interface PlayerLogger {
+    debug: (...args: unknown[]) => void;
+    info: (...args: unknown[]) => void;
+    warn: (...args: unknown[]) => void;
+    error: (...args: unknown[]) => void;
+}
+interface ConsoleLoggerOptions {
+    debug?: boolean;
+    info?: boolean;
+    warn?: boolean;
+    error?: boolean;
+}
+declare const createConsoleLogger: (options?: ConsoleLoggerOptions) => PlayerLogger;
+declare const setPlayerLogger: (logger: Partial<PlayerLogger> | null) => void;
+declare const getPlayerLogger: () => PlayerLogger;
 
 /**
  * Analytics plugin for video engine lifecycle events.
@@ -722,6 +797,6 @@ declare class AnalyticsPlugin implements VideoEnginePlugin {
 }
 declare const createAnalyticsPlugin: (config: AnalyticsConfig) => VideoEnginePlugin;
 
-declare const VERSION = "1.0.0";
+declare const VERSION: string;
 
-export { type AdapterLoadContext, AdapterRegistry, type AdapterSelectionContext, type AdvancedFeatures, type AnalyticsConfig$1 as AnalyticsConfig, type AnalyticsEvent, AnalyticsPlugin, type AutoBehavior, ConfigurableVideoPlayer, type ControlsVisibility, type DrmConfiguration, type DrmLicenseRequestContext, type DrmLicenseRequestHandler, type DrmSystemConfiguration, type EmeController, type EmeEnvironment, type AnalyticsConfig as EngineAnalyticsConfig, ErrorDisplay, type GestureCallbacks, type GestureConfig, type GesturesConfig, type KeyboardShortcutsConfig, LoadingSpinner, MobileVideoControls, PlayerConfigPanel, PlayerConfigProvider, type PlayerConfiguration, PlayerPresets, type PlayerTheme, type QualityLevel, type StreamingAdapter, type StreamingAdapterFactory, type TokenLicenseRequestHandlerOptions, VERSION, VideoControls, VideoEngine, type VideoEngineConfig, type VideoEngineEvents, type VideoEngineOptions, type VideoEnginePlugin, type VideoEnginePluginContext, type VideoEnginePluginErrorPayload, type VideoEnginePluginLoadPayload, VideoEnginePluginManager, type VideoEnginePluginSourceLoadFailedPayload, type VideoEnginePluginTimeUpdatePayload, type VideoEnginePluginVolumePayload, VideoPlayer, type VideoPlayerControls, VideoPlayerDemo, type VideoPlayerState, type VideoSource, VideoSourceSelector, VideoThumbnail, cn, createAnalyticsPlugin, createEmeController, createTokenLicenseRequestHandler, defaultStreamingAdapters, getBrowserCapabilities, getStreamingStrategy, isEmeSupported, mergePlayerConfig, usePlayerConfig, usePlayerPresets, useVideoGestures, useVideoPlayer };
+export { type AdapterLoadContext, AdapterRegistry, type AdapterSelectionContext, type AdvancedFeatures, type AnalyticsConfig$1 as AnalyticsConfig, type AnalyticsEvent, AnalyticsPlugin, type AutoBehavior, ConfigurableVideoPlayer, type ConsoleLoggerOptions, type ControlsVisibility, type DrmConfiguration, type DrmLicenseRequestContext, type DrmLicenseRequestHandler, type DrmSystemConfiguration, type EmeController, type EmeEnvironment, type AnalyticsConfig as EngineAnalyticsConfig, ErrorDisplay, type GestureCallbacks, type GestureConfig, type GesturesConfig, type KeyboardShortcutsConfig, LoadingSpinner, MobileVideoControls, PlayerConfigPanel, PlayerConfigProvider, type PlayerConfiguration, type PlayerLogger, PlayerPresets, type PlayerTheme, type QualityLevel, type StreamingAdapter, type StreamingAdapterFactory, type TokenLicenseRequestHandlerOptions, VERSION, VideoControls, VideoEngine, type VideoEngineConfig, type VideoEngineEvents, type VideoEngineOptions, type VideoEnginePlugin, type VideoEnginePluginContext, type VideoEnginePluginErrorPayload, type VideoEnginePluginFailoverPayload, type VideoEnginePluginLoadPayload, VideoEnginePluginManager, type VideoEnginePluginRetryPayload, type VideoEnginePluginSourceLoadFailedPayload, type VideoEnginePluginTimeUpdatePayload, type VideoEnginePluginVolumePayload, VideoPlayer, type VideoPlayerControls, VideoPlayerDemo, type VideoPlayerState, type VideoSource, VideoSourceSelector, VideoThumbnail, cn, createAnalyticsPlugin, createConsoleLogger, createEmeController, createTokenLicenseRequestHandler, defaultStreamingAdapters, getBrowserCapabilities, getPlayerLogger, getStreamingStrategy, isEmeSupported, mergePlayerConfig, setPlayerLogger, usePlayerConfig, useVideoGestures, useVideoPlayer };

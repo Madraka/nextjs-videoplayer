@@ -18,6 +18,8 @@ import {
   createTokenLicenseRequestHandler,
   isEmeSupported,
   type DrmConfiguration,
+  getPlayerLogger,
+  type VideoPlayerState,
   type VideoEnginePlugin,
   type VideoSource,
 } from '@madraka/nextjs-videoplayer';
@@ -44,9 +46,9 @@ const videoSources: VideoSource[] = [
   {
     id: 'bigbuck',
     name: 'Big Buck Bunny (MP4)',
-    url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-    poster: 'https://storage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg',
-    thumbnailUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny_thumbs',
+    url: 'https://samplelib.com/lib/preview/mp4/sample-10s.mp4',
+    poster: '/api/placeholder/1280/720',
+    thumbnailUrl: '/api/placeholder/160/90',
     format: 'MP4',
     quality: '4K',
     size: '15.3 MB',
@@ -58,9 +60,9 @@ const videoSources: VideoSource[] = [
     id: 'failover-demo',
     name: 'Failover Demo (Broken Primary -> MP4 Backup)',
     url: 'https://cdn.invalid.example/video-not-found.mp4',
-    fallbackUrls: ['https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'],
-    poster: 'https://storage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg',
-    thumbnailUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny_thumbs',
+    fallbackUrls: ['https://samplelib.com/lib/preview/mp4/sample-10s.mp4'],
+    poster: '/api/placeholder/1280/720',
+    thumbnailUrl: '/api/placeholder/160/90',
     format: 'MP4 + Failover',
     quality: 'Adaptive Recovery',
     size: 'Primary fail / Backup 15.3 MB',
@@ -71,9 +73,9 @@ const videoSources: VideoSource[] = [
   {
     id: 'elephant',
     name: 'Elephant Dream (MP4)',
-    url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-    poster: 'https://storage.googleapis.com/gtv-videos-bucket/sample/images/ElephantsDream.jpg',
-    thumbnailUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/images/ElephantsDream_thumbs',
+    url: 'https://samplelib.com/lib/preview/mp4/sample-15s.mp4',
+    poster: '/api/placeholder/1280/720',
+    thumbnailUrl: '/api/placeholder/160/90',
     format: 'MP4',
     quality: 'HD',
     size: '8.7 MB',
@@ -84,9 +86,9 @@ const videoSources: VideoSource[] = [
   {
     id: 'sintel',
     name: 'Sintel (MP4)',
-    url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
-    poster: 'https://storage.googleapis.com/gtv-videos-bucket/sample/images/Sintel.jpg',
-    thumbnailUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/images/Sintel_thumbs',
+    url: 'https://samplelib.com/lib/preview/mp4/sample-20s.mp4',
+    poster: '/api/placeholder/1280/720',
+    thumbnailUrl: '/api/placeholder/160/90',
     format: 'MP4',
     quality: 'HD',
     size: '12.1 MB',
@@ -97,7 +99,7 @@ const videoSources: VideoSource[] = [
   {
     id: 'tears',
     name: 'Tears of Steel (HLS)',
-    url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8',
+    url: 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
     format: 'HLS',
     quality: 'Adaptive',
     size: 'Variable',
@@ -108,7 +110,7 @@ const videoSources: VideoSource[] = [
   {
     id: 'vertical-sample',
     name: 'Vertical Demo (9:16)',
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    url: 'https://filesamples.com/samples/video/mp4/sample_640x360.mp4',
     format: 'MP4',
     quality: 'HD',
     size: '15 MB',
@@ -119,7 +121,7 @@ const videoSources: VideoSource[] = [
   {
     id: 'square-sample',
     name: 'Square Demo (1:1)',
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+    url: 'https://filesamples.com/samples/video/mp4/sample_960x540.mp4',
     format: 'MP4',
     quality: 'HD',
     size: '8 MB',
@@ -129,8 +131,25 @@ const videoSources: VideoSource[] = [
   }
 ];
 
+type PlayerAspectRatio = NonNullable<React.ComponentProps<typeof ConfigurableVideoPlayer>['aspectRatio']>;
+
+const resolveAspectRatio = (value?: string): PlayerAspectRatio => {
+  switch (value) {
+    case 'auto':
+    case '16/9':
+    case '4/3':
+    case '1/1':
+    case '9/16':
+    case '3/4':
+    case 'custom':
+      return value;
+    default:
+      return '16/9';
+  }
+};
+
 interface PluginEventLog {
-  id: number;
+  id: string;
   message: string;
 }
 
@@ -205,7 +224,7 @@ const createAutoPausePlugin = (
 
 function HomePageClient() {
   const [selectedVideo, setSelectedVideo] = useState(videoSources[0]);
-  const [playerState, setPlayerState] = useState({
+  const [playerState, setPlayerState] = useState<VideoPlayerState>({
     isPlaying: false,
     isPaused: false,
     isLoading: false,
@@ -220,11 +239,37 @@ function HomePageClient() {
     playCount: 0,
     totalWatchTime: 0,
     bufferingTime: 0,
+    averageBitrate: 0,
     qualityChanges: 0,
     playbackRate: 1,
     isPictureInPicture: false,
     isTheaterMode: false,
   });
+  const handlePlayerStateChange = React.useCallback((nextState: VideoPlayerState) => {
+    setPlayerState((prevState) => {
+      const hasChanged =
+        prevState.isPlaying !== nextState.isPlaying ||
+        prevState.isPaused !== nextState.isPaused ||
+        prevState.isLoading !== nextState.isLoading ||
+        prevState.isMuted !== nextState.isMuted ||
+        prevState.currentTime !== nextState.currentTime ||
+        prevState.duration !== nextState.duration ||
+        prevState.volume !== nextState.volume ||
+        prevState.buffered !== nextState.buffered ||
+        prevState.quality !== nextState.quality ||
+        prevState.error !== nextState.error ||
+        prevState.playCount !== nextState.playCount ||
+        prevState.totalWatchTime !== nextState.totalWatchTime ||
+        prevState.bufferingTime !== nextState.bufferingTime ||
+        prevState.qualityChanges !== nextState.qualityChanges ||
+        prevState.playbackRate !== nextState.playbackRate ||
+        prevState.isPictureInPicture !== nextState.isPictureInPicture ||
+        prevState.isTheaterMode !== nextState.isTheaterMode ||
+        prevState.isFullscreen !== nextState.isFullscreen;
+
+      return hasChanged ? nextState : prevState;
+    });
+  }, []);
 
   // Ambient Lighting System - Enhanced with debugging
   const [ambientColors, setAmbientColors] = useState({
@@ -259,8 +304,13 @@ function HomePageClient() {
   });
 
   const addPluginEvent = React.useCallback((message: string) => {
+    const eventId =
+      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}-${performance.now().toFixed(3)}`;
+
     setPluginEvents((prev) => [
-      { id: Date.now() + Math.floor(Math.random() * 1000), message },
+      { id: eventId, message },
       ...prev.slice(0, 7),
     ]);
   }, []);
@@ -435,19 +485,19 @@ function HomePageClient() {
   // Enhanced video color analysis with performance optimization
   const analyzeVideoColors = React.useCallback((videoElement: HTMLVideoElement) => {
     if (!videoElement || videoElement.readyState < 2) {
-      console.debug('Video not ready for analysis:', videoElement?.readyState);
+      getPlayerLogger().debug('Video not ready for analysis:', videoElement?.readyState);
       return;
     }
 
     // Performance optimization: Skip analysis if video is buffering or seeking
     if (videoElement.seeking || videoElement.networkState === HTMLMediaElement.NETWORK_LOADING) {
-      console.debug('Skipping analysis: video is buffering or seeking');
+      getPlayerLogger().debug('Skipping analysis: video is buffering or seeking');
       return;
     }
 
     // Aggressive CORS handling for Google Cloud Storage
     if (!videoElement.crossOrigin && videoElement.src.includes('googleapis.com')) {
-      console.debug('Setting crossOrigin for Google Cloud video');
+      getPlayerLogger().debug('Setting crossOrigin for Google Cloud video');
       videoElement.crossOrigin = 'anonymous';
       // Force reload to apply crossOrigin
       const currentTime = videoElement.currentTime;
@@ -462,7 +512,7 @@ function HomePageClient() {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         if (!ctx) {
-          console.debug('Canvas context not available');
+          getPlayerLogger().debug('Canvas context not available');
           return;
         }
 
@@ -473,9 +523,9 @@ function HomePageClient() {
         // Draw current video frame - this might fail due to CORS
         try {
           ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-          console.debug('Successfully drew video frame to canvas');
+          getPlayerLogger().debug('Successfully drew video frame to canvas');
         } catch (corsError) {
-          console.debug('CORS error when drawing video frame:', corsError);
+          getPlayerLogger().debug('CORS error when drawing video frame:', corsError);
           setIsAnalysisWorking(false);
           
           // Enhanced fallback dynamic colors based on video time and source
@@ -560,13 +610,13 @@ function HomePageClient() {
           });
           
           setIsAnalysisWorking(true);
-          console.debug('Video color analysis successful:', { avgEdgeR, avgEdgeG, avgEdgeB });
+          getPlayerLogger().debug('Video color analysis successful:', { avgEdgeR, avgEdgeG, avgEdgeB });
         } else {
-          console.debug('No valid pixels found for analysis');
+          getPlayerLogger().debug('No valid pixels found for analysis');
           setIsAnalysisWorking(false);
         }
       } catch (error) {
-        console.debug('Video color analysis failed:', error);
+        getPlayerLogger().debug('Video color analysis failed:', error);
         setIsAnalysisWorking(false);
         // Keep default colors on error
       }
@@ -574,12 +624,12 @@ function HomePageClient() {
   }, [selectedVideo.id]);
 
   // Enhanced video player state management with complete reset
-  const handleVideoSelect = React.useCallback((video: any) => {
-    console.debug('Video selection starting:', video.title);
+  const handleVideoSelect = React.useCallback((video: VideoSource) => {
+    getPlayerLogger().debug('Video selection starting:', video.name);
     
     // Prevent selection if already selected
     if (selectedVideo.id === video.id) {
-      console.debug('Video already selected, skipping');
+      getPlayerLogger().debug('Video already selected, skipping');
       return;
     }
     
@@ -609,7 +659,7 @@ function HomePageClient() {
     // Get video element and reset it completely
     const videoElement = document.querySelector('video') as HTMLVideoElement;
     if (videoElement) {
-      console.debug('Resetting video player completely');
+      getPlayerLogger().debug('Resetting video player completely');
       
       // Stop current video completely
       videoElement.pause();
@@ -624,12 +674,12 @@ function HomePageClient() {
       
       // Small delay to ensure complete DOM reset
       setTimeout(() => {
-        console.debug('Setting new video source:', video.url);
+        getPlayerLogger().debug('Setting new video source:', video.url);
         
         // Set crossOrigin for external sources before setting src
         if (video.url.includes('googleapis.com') || video.url.includes('http')) {
           videoElement.crossOrigin = 'anonymous';
-          console.debug('Set crossOrigin for external video');
+          getPlayerLogger().debug('Set crossOrigin for external video');
         }
         
         // Set new source
@@ -638,11 +688,11 @@ function HomePageClient() {
         
         // Wait for video to be ready, then start playback
         const handleCanPlay = () => {
-          console.debug('Video can play, starting playback');
+          getPlayerLogger().debug('Video can play, starting playback');
           // Small delay to ensure everything is ready
           setTimeout(() => {
             videoElement.play().catch(err => {
-              console.debug('Autoplay failed (expected):', err.message);
+              getPlayerLogger().debug('Autoplay failed (expected):', err.message);
             });
           }, 100);
           videoElement.removeEventListener('canplay', handleCanPlay);
@@ -653,9 +703,9 @@ function HomePageClient() {
         // Fallback - try to play after a longer delay
         setTimeout(() => {
           if (videoElement.paused && videoElement.readyState >= 3) {
-            console.debug('Fallback play attempt');
+            getPlayerLogger().debug('Fallback play attempt');
             videoElement.play().catch(err => {
-              console.debug('Fallback play failed:', err.message);
+              getPlayerLogger().debug('Fallback play failed:', err.message);
             });
           }
         }, 1000);
@@ -668,14 +718,14 @@ function HomePageClient() {
   const initializeVideoAnalysis = React.useCallback(() => {
     const videoElement = document.querySelector('video') as HTMLVideoElement;
     if (!videoElement) {
-      console.debug('Video element not found');
+      getPlayerLogger().debug('Video element not found');
       return;
     }
 
     // Set up analysis when video is ready
     const handleVideoReady = () => {
       if (videoElement.readyState >= 2) {
-        console.debug('Video ready for analysis');
+        getPlayerLogger().debug('Video ready for analysis');
         setTimeout(() => analyzeVideoColors(videoElement), 500);
       }
     };
@@ -721,7 +771,10 @@ function HomePageClient() {
   }, [selectedVideo.url, initializeVideoAnalysis]);
 
   return (
-    <PlayerConfigProvider defaultConfig={PlayerPresets.youtube}>
+    <PlayerConfigProvider
+      defaultConfig={PlayerPresets.default}
+      storageKey="nextjs-videoplayer-showcase-config-v2"
+    >
       <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
         
         {/* Hero Section with Video Player - Completely Neutral Background */}
@@ -830,12 +883,12 @@ function HomePageClient() {
                       drmConfig={drmConfigForPlayer}
                       poster={selectedVideo.poster}
                       thumbnailUrl={selectedVideo.thumbnailUrl}
-                      autoPlay={true}
+                      autoPlay={false}
                       muted={false}
-                      aspectRatio={selectedVideo.aspectRatio as any || '16/9'}
+                      aspectRatio={resolveAspectRatio(selectedVideo.aspectRatio)}
                       enginePlugins={enginePlugins}
                       onReady={() => addPluginEvent('Player ready')}
-                      onStateChange={setPlayerState}
+                      onStateChange={handlePlayerStateChange}
                       className="w-full relative z-20"
                     />
                   </div>
@@ -1332,7 +1385,7 @@ function HomePageClient() {
                           <div className="w-12 h-12 bg-gray-700 dark:bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-3">
                             <Play className="h-6 w-6 ml-0.5" />
                           </div>
-                          <div className="text-sm font-medium">YouTube • Movies • Desktop</div>
+                          <div className="text-sm font-medium">Landscape • Cinema • Desktop</div>
                         </div>
                       </div>
                     </div>
@@ -1350,7 +1403,7 @@ function HomePageClient() {
                       </div>
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-600 dark:text-gray-400">Platforms</span>
-                        <span className="text-gray-700 dark:text-gray-300">YouTube, Vimeo</span>
+                        <span className="text-gray-700 dark:text-gray-300">Streaming Platforms</span>
                       </div>
                     </div>
                   </div>
@@ -1459,7 +1512,7 @@ function HomePageClient() {
                       16:9
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">Landscape</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">YouTube Standard</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">Widescreen Standard</div>
                   </div>
                   <div className="text-center">
                     <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">

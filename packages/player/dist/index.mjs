@@ -32,7 +32,7 @@ var __objRest = (source, exclude) => {
 };
 
 // src/components/player/configurable-video-player.tsx
-import React6, { forwardRef, useRef as useRef4, useCallback as useCallback4, useEffect as useEffect7 } from "react";
+import React3, { forwardRef, useRef as useRef4, useEffect as useEffect5 } from "react";
 
 // src/lib/utils.ts
 import { clsx } from "clsx";
@@ -42,10 +42,11 @@ function cn(...inputs) {
 }
 
 // src/components/controls/video-controls.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Play,
   Pause,
+  Volume1,
   Volume2,
   VolumeX,
   Maximize,
@@ -56,64 +57,14 @@ import {
   PictureInPicture2,
   Gauge,
   Monitor,
-  Smartphone
+  Smartphone,
+  Check,
+  ChevronRight
 } from "lucide-react";
 
-// src/components/ui/button.tsx
-import { Slot } from "@radix-ui/react-slot";
-import { cva } from "class-variance-authority";
-import { jsx } from "react/jsx-runtime";
-var buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
-  {
-    variants: {
-      variant: {
-        default: "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
-        destructive: "bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
-        outline: "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
-        secondary: "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        link: "text-primary underline-offset-4 hover:underline"
-      },
-      size: {
-        default: "h-9 px-4 py-2 has-[>svg]:px-3",
-        sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
-        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
-        icon: "size-9"
-      }
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default"
-    }
-  }
-);
-function Button(_a) {
-  var _b = _a, {
-    className,
-    variant,
-    size,
-    asChild = false
-  } = _b, props = __objRest(_b, [
-    "className",
-    "variant",
-    "size",
-    "asChild"
-  ]);
-  const Comp = asChild ? Slot : "button";
-  return /* @__PURE__ */ jsx(
-    Comp,
-    __spreadValues({
-      "data-slot": "button",
-      className: cn(buttonVariants({ variant, size, className }))
-    }, props)
-  );
-}
-
 // src/components/ui/slider.tsx
-import * as React from "react";
 import * as SliderPrimitive from "@radix-ui/react-slider";
-import { jsx as jsx2, jsxs } from "react/jsx-runtime";
+import { jsx, jsxs } from "react/jsx-runtime";
 function Slider(_a) {
   var _b = _a, {
     className,
@@ -128,10 +79,6 @@ function Slider(_a) {
     "min",
     "max"
   ]);
-  const _values = React.useMemo(
-    () => Array.isArray(value) ? value : Array.isArray(defaultValue) ? defaultValue : [min, max],
-    [value, defaultValue, min, max]
-  );
   return /* @__PURE__ */ jsxs(
     SliderPrimitive.Root,
     __spreadProps(__spreadValues({
@@ -146,14 +93,14 @@ function Slider(_a) {
       )
     }, props), {
       children: [
-        /* @__PURE__ */ jsx2(
+        /* @__PURE__ */ jsx(
           SliderPrimitive.Track,
           {
             "data-slot": "slider-track",
             className: cn(
               "bg-muted relative grow overflow-hidden rounded-full data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5"
             ),
-            children: /* @__PURE__ */ jsx2(
+            children: /* @__PURE__ */ jsx(
               SliderPrimitive.Range,
               {
                 "data-slot": "slider-range",
@@ -164,148 +111,33 @@ function Slider(_a) {
             )
           }
         ),
-        Array.from({ length: _values.length }, (_, index) => /* @__PURE__ */ jsx2(
+        /* @__PURE__ */ jsx(
           SliderPrimitive.Thumb,
           {
             "data-slot": "slider-thumb",
             className: "border-primary bg-background ring-ring/50 block size-4 shrink-0 rounded-full border shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
-          },
-          index
-        ))
+          }
+        )
       ]
     })
   );
-}
-
-// src/components/ui/dropdown-menu.tsx
-import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
-import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react";
-import { jsx as jsx3, jsxs as jsxs2 } from "react/jsx-runtime";
-function DropdownMenu(_a) {
-  var props = __objRest(_a, []);
-  return /* @__PURE__ */ jsx3(DropdownMenuPrimitive.Root, __spreadValues({ "data-slot": "dropdown-menu" }, props));
-}
-function DropdownMenuTrigger(_a) {
-  var props = __objRest(_a, []);
-  return /* @__PURE__ */ jsx3(
-    DropdownMenuPrimitive.Trigger,
-    __spreadValues({
-      "data-slot": "dropdown-menu-trigger"
-    }, props)
-  );
-}
-function DropdownMenuContent(_a) {
-  var _b = _a, {
-    className,
-    sideOffset = 4
-  } = _b, props = __objRest(_b, [
-    "className",
-    "sideOffset"
-  ]);
-  return /* @__PURE__ */ jsx3(DropdownMenuPrimitive.Portal, { children: /* @__PURE__ */ jsx3(
-    DropdownMenuPrimitive.Content,
-    __spreadValues({
-      "data-slot": "dropdown-menu-content",
-      sideOffset,
-      className: cn(
-        "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md",
-        className
-      )
-    }, props)
-  ) });
-}
-function DropdownMenuItem(_a) {
-  var _b = _a, {
-    className,
-    inset,
-    variant = "default"
-  } = _b, props = __objRest(_b, [
-    "className",
-    "inset",
-    "variant"
-  ]);
-  return /* @__PURE__ */ jsx3(
-    DropdownMenuPrimitive.Item,
-    __spreadValues({
-      "data-slot": "dropdown-menu-item",
-      "data-inset": inset,
-      "data-variant": variant,
-      className: cn(
-        "focus:bg-accent focus:text-accent-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 dark:data-[variant=destructive]:focus:bg-destructive/20 data-[variant=destructive]:focus:text-destructive data-[variant=destructive]:*:[svg]:!text-destructive [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        className
-      )
-    }, props)
-  );
-}
-
-// src/components/ui/tooltip.tsx
-import * as TooltipPrimitive from "@radix-ui/react-tooltip";
-import { jsx as jsx4, jsxs as jsxs3 } from "react/jsx-runtime";
-function TooltipProvider(_a) {
-  var _b = _a, {
-    delayDuration = 0
-  } = _b, props = __objRest(_b, [
-    "delayDuration"
-  ]);
-  return /* @__PURE__ */ jsx4(
-    TooltipPrimitive.Provider,
-    __spreadValues({
-      "data-slot": "tooltip-provider",
-      delayDuration
-    }, props)
-  );
-}
-function Tooltip(_a) {
-  var props = __objRest(_a, []);
-  return /* @__PURE__ */ jsx4(TooltipProvider, { children: /* @__PURE__ */ jsx4(TooltipPrimitive.Root, __spreadValues({ "data-slot": "tooltip" }, props)) });
-}
-function TooltipTrigger(_a) {
-  var props = __objRest(_a, []);
-  return /* @__PURE__ */ jsx4(TooltipPrimitive.Trigger, __spreadValues({ "data-slot": "tooltip-trigger" }, props));
-}
-function TooltipContent(_a) {
-  var _b = _a, {
-    className,
-    sideOffset = 0,
-    children
-  } = _b, props = __objRest(_b, [
-    "className",
-    "sideOffset",
-    "children"
-  ]);
-  return /* @__PURE__ */ jsx4(TooltipPrimitive.Portal, { children: /* @__PURE__ */ jsxs3(
-    TooltipPrimitive.Content,
-    __spreadProps(__spreadValues({
-      "data-slot": "tooltip-content",
-      sideOffset,
-      className: cn(
-        "bg-primary text-primary-foreground animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-fit origin-(--radix-tooltip-content-transform-origin) rounded-md px-3 py-1.5 text-xs text-balance",
-        className
-      )
-    }, props), {
-      children: [
-        children,
-        /* @__PURE__ */ jsx4(TooltipPrimitive.Arrow, { className: "bg-primary fill-primary z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px]" })
-      ]
-    })
-  ) });
 }
 
 // src/components/ui/dialog.tsx
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { XIcon } from "lucide-react";
-import { jsx as jsx5, jsxs as jsxs4 } from "react/jsx-runtime";
+import { jsx as jsx2, jsxs as jsxs2 } from "react/jsx-runtime";
 function Dialog(_a) {
   var props = __objRest(_a, []);
-  return /* @__PURE__ */ jsx5(DialogPrimitive.Root, __spreadValues({ "data-slot": "dialog" }, props));
+  return /* @__PURE__ */ jsx2(DialogPrimitive.Root, __spreadValues({ "data-slot": "dialog" }, props));
 }
 function DialogTrigger(_a) {
   var props = __objRest(_a, []);
-  return /* @__PURE__ */ jsx5(DialogPrimitive.Trigger, __spreadValues({ "data-slot": "dialog-trigger" }, props));
+  return /* @__PURE__ */ jsx2(DialogPrimitive.Trigger, __spreadValues({ "data-slot": "dialog-trigger" }, props));
 }
 function DialogPortal(_a) {
   var props = __objRest(_a, []);
-  return /* @__PURE__ */ jsx5(DialogPrimitive.Portal, __spreadValues({ "data-slot": "dialog-portal" }, props));
+  return /* @__PURE__ */ jsx2(DialogPrimitive.Portal, __spreadValues({ "data-slot": "dialog-portal" }, props));
 }
 function DialogOverlay(_a) {
   var _b = _a, {
@@ -313,7 +145,7 @@ function DialogOverlay(_a) {
   } = _b, props = __objRest(_b, [
     "className"
   ]);
-  return /* @__PURE__ */ jsx5(
+  return /* @__PURE__ */ jsx2(
     DialogPrimitive.Overlay,
     __spreadValues({
       "data-slot": "dialog-overlay",
@@ -334,9 +166,9 @@ function DialogContent(_a) {
     "children",
     "showCloseButton"
   ]);
-  return /* @__PURE__ */ jsxs4(DialogPortal, { "data-slot": "dialog-portal", children: [
-    /* @__PURE__ */ jsx5(DialogOverlay, {}),
-    /* @__PURE__ */ jsxs4(
+  return /* @__PURE__ */ jsxs2(DialogPortal, { "data-slot": "dialog-portal", children: [
+    /* @__PURE__ */ jsx2(DialogOverlay, {}),
+    /* @__PURE__ */ jsxs2(
       DialogPrimitive.Content,
       __spreadProps(__spreadValues({
         "data-slot": "dialog-content",
@@ -347,14 +179,14 @@ function DialogContent(_a) {
       }, props), {
         children: [
           children,
-          showCloseButton && /* @__PURE__ */ jsxs4(
+          showCloseButton && /* @__PURE__ */ jsxs2(
             DialogPrimitive.Close,
             {
               "data-slot": "dialog-close",
               className: "ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
               children: [
-                /* @__PURE__ */ jsx5(XIcon, {}),
-                /* @__PURE__ */ jsx5("span", { className: "sr-only", children: "Close" })
+                /* @__PURE__ */ jsx2(XIcon, {}),
+                /* @__PURE__ */ jsx2("span", { className: "sr-only", children: "Close" })
               ]
             }
           )
@@ -365,7 +197,7 @@ function DialogContent(_a) {
 }
 function DialogHeader(_a) {
   var _b = _a, { className } = _b, props = __objRest(_b, ["className"]);
-  return /* @__PURE__ */ jsx5(
+  return /* @__PURE__ */ jsx2(
     "div",
     __spreadValues({
       "data-slot": "dialog-header",
@@ -379,7 +211,7 @@ function DialogTitle(_a) {
   } = _b, props = __objRest(_b, [
     "className"
   ]);
-  return /* @__PURE__ */ jsx5(
+  return /* @__PURE__ */ jsx2(
     DialogPrimitive.Title,
     __spreadValues({
       "data-slot": "dialog-title",
@@ -390,7 +222,7 @@ function DialogTitle(_a) {
 
 // src/components/controls/keyboard-shortcuts.tsx
 import { Keyboard } from "lucide-react";
-import { jsx as jsx6, jsxs as jsxs5 } from "react/jsx-runtime";
+import { jsx as jsx3, jsxs as jsxs3 } from "react/jsx-runtime";
 var shortcuts = [
   { key: "Space / K", description: "Play/Pause" },
   { key: "F", description: "Toggle Fullscreen" },
@@ -405,20 +237,27 @@ var shortcuts = [
   { key: "1-9", description: "Go to 10%-90% of video" }
 ];
 var KeyboardShortcuts = () => {
-  return /* @__PURE__ */ jsxs5(Dialog, { children: [
-    /* @__PURE__ */ jsx6(DialogTrigger, { asChild: true, children: /* @__PURE__ */ jsx6(Button, { variant: "ghost", size: "sm", className: "text-white hover:bg-white/20", children: /* @__PURE__ */ jsx6(Keyboard, { className: "h-4 w-4" }) }) }),
-    /* @__PURE__ */ jsxs5(DialogContent, { className: "max-w-md", children: [
-      /* @__PURE__ */ jsx6(DialogHeader, { children: /* @__PURE__ */ jsx6(DialogTitle, { children: "Keyboard Shortcuts" }) }),
-      /* @__PURE__ */ jsx6("div", { className: "space-y-2", children: shortcuts.map((shortcut, index) => /* @__PURE__ */ jsxs5("div", { className: "flex justify-between items-center py-1", children: [
-        /* @__PURE__ */ jsx6("span", { className: "text-sm text-muted-foreground", children: shortcut.description }),
-        /* @__PURE__ */ jsx6("kbd", { className: "px-2 py-1 text-xs bg-muted rounded font-mono", children: shortcut.key })
+  return /* @__PURE__ */ jsxs3(Dialog, { children: [
+    /* @__PURE__ */ jsx3(DialogTrigger, { asChild: true, children: /* @__PURE__ */ jsx3(
+      "button",
+      {
+        type: "button",
+        className: "flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full text-white hover:bg-white/10 active:bg-white/20 transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:outline-none touch-manipulation",
+        children: /* @__PURE__ */ jsx3(Keyboard, { className: "w-5 h-5 sm:w-[22px] sm:h-[22px]" })
+      }
+    ) }),
+    /* @__PURE__ */ jsxs3(DialogContent, { className: "max-w-md", children: [
+      /* @__PURE__ */ jsx3(DialogHeader, { children: /* @__PURE__ */ jsx3(DialogTitle, { children: "Keyboard Shortcuts" }) }),
+      /* @__PURE__ */ jsx3("div", { className: "space-y-2", children: shortcuts.map((shortcut, index) => /* @__PURE__ */ jsxs3("div", { className: "flex justify-between items-center py-1", children: [
+        /* @__PURE__ */ jsx3("span", { className: "text-sm text-muted-foreground", children: shortcut.description }),
+        /* @__PURE__ */ jsx3("kbd", { className: "px-2 py-1 text-xs bg-muted rounded font-mono", children: shortcut.key })
       ] }, index)) })
     ] })
   ] });
 };
 
 // src/components/controls/video-controls.tsx
-import { jsx as jsx7, jsxs as jsxs6 } from "react/jsx-runtime";
+import { jsx as jsx4, jsxs as jsxs4 } from "react/jsx-runtime";
 var formatTime = (seconds) => {
   if (!isFinite(seconds)) return "0:00";
   const hrs = Math.floor(seconds / 3600);
@@ -439,6 +278,8 @@ var playbackRateOptions = [
   { value: 1.75, label: "1.75x" },
   { value: 2, label: "2x" }
 ];
+var iconBtnClass = "flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full text-white hover:bg-white/10 active:bg-white/20 transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:outline-none touch-manipulation";
+var iconClass = "w-5 h-5 sm:w-[22px] sm:h-[22px]";
 var VideoControls = ({
   state,
   controls,
@@ -450,10 +291,36 @@ var VideoControls = ({
 }) => {
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [hoverTime, setHoverTime] = useState(null);
+  const [hoverX, setHoverX] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [seekingTime, setSeekingTime] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [settingsPage, setSettingsPage] = useState("main");
+  const [settingsDirection, setSettingsDirection] = useState("forward");
+  const progressRef = useRef(null);
+  const settingsRef = useRef(null);
+  const rafRef = useRef(0);
   useEffect(() => {
     setIsMounted(true);
   }, []);
+  useEffect(() => {
+    if (!showSettings) return;
+    const handleClick = (e) => {
+      if (settingsRef.current && !settingsRef.current.contains(e.target)) {
+        setShowSettings(false);
+      }
+    };
+    const timer = setTimeout(() => {
+      document.addEventListener("mousedown", handleClick);
+      document.addEventListener("touchstart", handleClick);
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("touchstart", handleClick);
+    };
+  }, [showSettings]);
   const handlePlayPause = () => {
     if (state.isLoading) return;
     if (state.isPlaying && !state.isPaused) {
@@ -462,759 +329,402 @@ var VideoControls = ({
       controls.play();
     }
   };
-  const handleProgressClick = (event) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const clickX = event.clientX - rect.left;
-    const percentage = clickX / rect.width;
-    const newTime = percentage * state.duration;
-    controls.seek(newTime);
+  const positionFromClient = useCallback((clientX) => {
+    if (!progressRef.current) return 0;
+    const rect = progressRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
+    return x / rect.width * state.duration;
+  }, [state.duration]);
+  const updateHover = useCallback((clientX) => {
+    if (!progressRef.current) return;
+    const rect = progressRef.current.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const pct = Math.max(0, Math.min(x / rect.width, 1));
+    setHoverTime(pct * state.duration);
+    setHoverX(pct * 100);
+  }, [state.duration]);
+  const handleProgressClick = (e) => {
+    if (isDragging) return;
+    const time = positionFromClient(e.clientX);
+    setSeekingTime(time);
+    controls.seek(time);
+    requestAnimationFrame(() => {
+      setTimeout(() => setSeekingTime(null), 150);
+    });
   };
-  const handleProgressHover = (event) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const hoverX = event.clientX - rect.left;
-    const percentage = hoverX / rect.width;
-    const time = percentage * state.duration;
-    setHoverTime(time);
-  };
+  const handleProgressHover = (e) => updateHover(e.clientX);
+  const handleProgressMouseDown = useCallback((e) => {
+    e.preventDefault();
+    const time = positionFromClient(e.clientX);
+    setIsDragging(true);
+    setSeekingTime(time);
+  }, [positionFromClient]);
+  const handleProgressTouchStart = useCallback((e) => {
+    const time = positionFromClient(e.touches[0].clientX);
+    setIsDragging(true);
+    setSeekingTime(time);
+  }, [positionFromClient]);
+  useEffect(() => {
+    if (!isDragging) return;
+    const onMove = (clientX) => {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(() => {
+        const time = positionFromClient(clientX);
+        setSeekingTime(time);
+        updateHover(clientX);
+      });
+    };
+    const onMouseMove = (e) => onMove(e.clientX);
+    const onTouchMove = (e) => onMove(e.touches[0].clientX);
+    const onEnd = () => {
+      cancelAnimationFrame(rafRef.current);
+      setIsDragging(false);
+      if (seekingTime !== null) {
+        controls.seek(seekingTime);
+      }
+      setTimeout(() => setSeekingTime(null), 150);
+    };
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onEnd);
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchend", onEnd);
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onEnd);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onEnd);
+    };
+  }, [isDragging, positionFromClient, updateHover, seekingTime, controls]);
   const handleVolumeChange = (value) => {
-    controls.setVolume(value[0] / 100);
+    const rawValue = value[0];
+    if (!Number.isFinite(rawValue)) return;
+    controls.setVolume(rawValue / 100);
   };
-  const progressPercentage = state.duration > 0 ? state.currentTime / state.duration * 100 : 0;
+  const navigateSettings = (page) => {
+    setSettingsDirection("forward");
+    setSettingsPage(page);
+  };
+  const goBackSettings = () => {
+    setSettingsDirection("back");
+    setSettingsPage("main");
+  };
+  const toggleSettings = () => {
+    if (showSettings) {
+      setShowSettings(false);
+    } else {
+      setSettingsPage("main");
+      setSettingsDirection("forward");
+      setShowSettings(true);
+    }
+  };
+  const displayTime = seekingTime !== null ? seekingTime : state.currentTime;
+  const progressPercentage = state.duration > 0 ? displayTime / state.duration * 100 : 0;
   const bufferedPercentage = state.buffered;
-  return /* @__PURE__ */ jsx7(TooltipProvider, { children: /* @__PURE__ */ jsxs6("div", { className: cn(
-    "absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent",
-    "p-4 transition-opacity duration-300",
+  const VolumeIcon = state.isMuted || state.volume === 0 ? VolumeX : state.volume < 0.5 ? Volume1 : Volume2;
+  return /* @__PURE__ */ jsxs4("div", { className: cn(
+    "absolute bottom-0 left-0 right-0 z-30 pointer-events-auto",
     className
   ), children: [
-    controlsConfig.progress && /* @__PURE__ */ jsx7("div", { className: "mb-4", children: /* @__PURE__ */ jsxs6(
+    controlsConfig.progress && /* @__PURE__ */ jsxs4(
       "div",
       {
-        className: "relative w-full h-1 bg-white/20 rounded-full cursor-pointer group",
+        ref: progressRef,
+        className: "group/progress relative w-full cursor-pointer touch-manipulation",
         onClick: handleProgressClick,
         onMouseMove: handleProgressHover,
-        onMouseLeave: () => setHoverTime(null),
+        onMouseDown: handleProgressMouseDown,
+        onMouseLeave: () => {
+          if (!isDragging) setHoverTime(null);
+        },
+        onTouchStart: handleProgressTouchStart,
+        role: "slider",
+        "aria-valuemin": 0,
+        "aria-valuemax": state.duration || 0,
+        "aria-valuenow": displayTime,
+        "aria-valuetext": `${formatTime(displayTime)} of ${formatTime(state.duration)}`,
+        tabIndex: 0,
         children: [
-          /* @__PURE__ */ jsx7(
+          hoverTime !== null && /* @__PURE__ */ jsx4(
             "div",
             {
-              className: "absolute left-0 top-0 h-full bg-white/30 rounded-full",
-              style: { width: `${bufferedPercentage}%` }
-            }
-          ),
-          /* @__PURE__ */ jsx7(
-            "div",
-            {
-              className: "absolute left-0 top-0 h-full bg-blue-500 rounded-full",
-              style: { width: `${progressPercentage}%` }
-            }
-          ),
-          /* @__PURE__ */ jsx7(
-            "div",
-            {
-              className: "absolute top-1/2 w-3 h-3 bg-blue-500 rounded-full transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity",
-              style: { left: `calc(${progressPercentage}% - 6px)` }
-            }
-          ),
-          hoverTime !== null && /* @__PURE__ */ jsx7(
-            "div",
-            {
-              className: "absolute bottom-6 transform -translate-x-1/2 bg-black/80 text-white px-2 py-1 rounded text-sm pointer-events-none z-10",
-              style: { left: `${hoverTime / state.duration * 100}%` },
+              className: "absolute bottom-full mb-3 -translate-x-1/2 bg-black/90 backdrop-blur-sm text-white px-2.5 py-1 rounded-md text-xs font-medium pointer-events-none z-10 whitespace-nowrap shadow-lg",
+              style: { left: `${hoverX}%` },
               children: formatTime(hoverTime)
             }
-          )
+          ),
+          /* @__PURE__ */ jsx4("div", { className: "h-5 sm:h-5 flex items-end", children: /* @__PURE__ */ jsxs4("div", { className: cn(
+            "relative w-full transition-all duration-150",
+            isDragging ? "h-[5px]" : "h-[3px] group-hover/progress:h-[5px]"
+          ), children: [
+            /* @__PURE__ */ jsx4("div", { className: "absolute inset-0 bg-white/20" }),
+            /* @__PURE__ */ jsx4("div", { className: "absolute left-0 top-0 h-full bg-white/40", style: { width: `${bufferedPercentage}%` } }),
+            /* @__PURE__ */ jsx4("div", { className: "absolute left-0 top-0 h-full bg-red-600", style: { width: `${progressPercentage}%` } }),
+            hoverTime !== null && /* @__PURE__ */ jsx4("div", { className: "absolute top-0 h-full w-[2px] bg-white/60 pointer-events-none", style: { left: `${hoverX}%` } }),
+            /* @__PURE__ */ jsx4(
+              "div",
+              {
+                className: cn(
+                  "absolute top-1/2 w-[14px] h-[14px] bg-red-600 rounded-full -translate-y-1/2 transition-all duration-150 shadow-md",
+                  "opacity-0 scale-75 group-hover/progress:opacity-100 group-hover/progress:scale-100",
+                  isDragging && "opacity-100 scale-110"
+                ),
+                style: { left: `calc(${progressPercentage}% - 7px)` }
+              }
+            )
+          ] }) })
         ]
       }
-    ) }),
-    /* @__PURE__ */ jsxs6("div", { className: "flex items-center justify-between", children: [
-      /* @__PURE__ */ jsxs6("div", { className: "flex items-center space-x-2", children: [
-        controlsConfig.playPause && /* @__PURE__ */ jsxs6(Tooltip, { children: [
-          /* @__PURE__ */ jsx7(TooltipTrigger, { asChild: true, children: /* @__PURE__ */ jsx7(
-            Button,
-            {
-              variant: "ghost",
-              size: "sm",
-              onClick: handlePlayPause,
-              disabled: state.isLoading,
-              className: "text-white hover:bg-white/10 p-2",
-              children: state.isLoading ? /* @__PURE__ */ jsx7(Loader2, { className: "w-5 h-5 animate-spin" }) : state.isPlaying ? /* @__PURE__ */ jsx7(Pause, { className: "w-5 h-5" }) : /* @__PURE__ */ jsx7(Play, { className: "w-5 h-5" })
-            }
-          ) }),
-          /* @__PURE__ */ jsx7(TooltipContent, { children: state.isPlaying ? "Pause" : "Play" })
-        ] }),
-        /* @__PURE__ */ jsxs6("div", { className: "text-white text-sm font-mono", children: [
-          formatTime(state.currentTime),
-          " / ",
-          formatTime(state.duration)
-        ] })
-      ] }),
-      /* @__PURE__ */ jsxs6("div", { className: "flex items-center space-x-2", children: [
-        controlsConfig.volume && /* @__PURE__ */ jsxs6(
+    ),
+    /* @__PURE__ */ jsxs4("div", { className: "flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 pb-2 sm:pb-2.5 pt-0.5", children: [
+      /* @__PURE__ */ jsxs4("div", { className: "flex items-center rounded-full bg-black/60 backdrop-blur-md", children: [
+        controlsConfig.playPause && /* @__PURE__ */ jsx4(
+          "button",
+          {
+            type: "button",
+            onClick: handlePlayPause,
+            disabled: state.isLoading,
+            title: state.isPlaying ? "Pause" : "Play",
+            className: iconBtnClass,
+            children: state.isLoading ? /* @__PURE__ */ jsx4(Loader2, { className: cn(iconClass, "animate-spin") }) : state.isPlaying ? /* @__PURE__ */ jsx4(Pause, { className: iconClass }) : /* @__PURE__ */ jsx4(Play, { className: iconClass })
+          }
+        ),
+        controlsConfig.volume && /* @__PURE__ */ jsxs4(
           "div",
           {
-            className: "flex items-center space-x-2",
+            className: "relative flex items-center",
             onMouseEnter: () => setShowVolumeSlider(true),
             onMouseLeave: () => setShowVolumeSlider(false),
             children: [
-              /* @__PURE__ */ jsxs6(Tooltip, { children: [
-                /* @__PURE__ */ jsx7(TooltipTrigger, { asChild: true, children: /* @__PURE__ */ jsx7(
-                  Button,
-                  {
-                    variant: "ghost",
-                    size: "sm",
-                    onClick: controls.toggleMute,
-                    className: "text-white hover:bg-white/10 p-2",
-                    children: state.isMuted || state.volume === 0 ? /* @__PURE__ */ jsx7(VolumeX, { className: "w-5 h-5" }) : /* @__PURE__ */ jsx7(Volume2, { className: "w-5 h-5" })
-                  }
-                ) }),
-                /* @__PURE__ */ jsx7(TooltipContent, { children: state.isMuted ? "Unmute" : "Mute" })
-              ] }),
-              /* @__PURE__ */ jsx7("div", { className: cn(
-                "transition-all duration-200 overflow-hidden",
-                showVolumeSlider ? "w-20 opacity-100" : "w-0 opacity-0"
-              ), children: /* @__PURE__ */ jsx7(
+              /* @__PURE__ */ jsx4(
+                "button",
+                {
+                  type: "button",
+                  onClick: controls.toggleMute,
+                  title: state.isMuted ? "Unmute" : "Mute",
+                  className: iconBtnClass,
+                  children: /* @__PURE__ */ jsx4(VolumeIcon, { className: iconClass })
+                }
+              ),
+              /* @__PURE__ */ jsx4("div", { className: cn(
+                "hidden sm:flex overflow-hidden transition-all duration-200 items-center",
+                showVolumeSlider ? "w-[80px] opacity-100" : "w-0 opacity-0"
+              ), children: /* @__PURE__ */ jsx4(
                 Slider,
                 {
-                  value: [state.isMuted ? 0 : state.volume * 100],
-                  onValueChange: handleVolumeChange,
+                  min: 0,
                   max: 100,
                   step: 1,
-                  className: "w-full"
+                  value: [Math.round((state.isMuted ? 0 : state.volume) * 100)],
+                  onValueChange: handleVolumeChange,
+                  className: "w-[80px] [&_[data-slot=slider-track]]:bg-white/30 [&_[data-slot=slider-track]]:h-[3px] [&_[data-slot=slider-range]]:bg-white [&_[data-slot=slider-thumb]]:bg-white [&_[data-slot=slider-thumb]]:border-white [&_[data-slot=slider-thumb]]:size-3 [&_[data-slot=slider-thumb]]:shadow-md"
                 }
               ) })
             ]
           }
         ),
-        controlsConfig.playbackRate && /* @__PURE__ */ jsxs6(DropdownMenu, { children: [
-          /* @__PURE__ */ jsxs6(Tooltip, { children: [
-            /* @__PURE__ */ jsx7(TooltipTrigger, { asChild: true, children: /* @__PURE__ */ jsx7(DropdownMenuTrigger, { asChild: true, children: /* @__PURE__ */ jsxs6(
-              Button,
-              {
-                variant: "ghost",
-                size: "sm",
-                className: "text-white hover:bg-white/10 p-2 min-w-[60px]",
-                children: [
-                  /* @__PURE__ */ jsx7(Gauge, { className: "w-4 h-4 mr-1" }),
-                  /* @__PURE__ */ jsxs6("span", { className: "text-xs", children: [
-                    state.playbackRate,
-                    "x"
-                  ] })
-                ]
-              }
-            ) }) }),
-            /* @__PURE__ */ jsx7(TooltipContent, { children: "Playback Speed" })
-          ] }),
-          /* @__PURE__ */ jsx7(DropdownMenuContent, { align: "end", className: "bg-black/90 border-white/10", children: playbackRateOptions.map((option) => /* @__PURE__ */ jsxs6(
-            DropdownMenuItem,
-            {
-              onClick: () => controls.setPlaybackRate(option.value),
-              className: "text-white hover:bg-white/10 cursor-pointer",
-              children: [
-                option.label,
-                state.playbackRate === option.value && /* @__PURE__ */ jsx7("span", { className: "ml-2 text-blue-400", children: "\u2713" })
-              ]
-            },
-            option.value
-          )) })
-        ] }),
-        controlsConfig.quality && qualityLevels.length > 0 && /* @__PURE__ */ jsxs6(DropdownMenu, { children: [
-          /* @__PURE__ */ jsxs6(Tooltip, { children: [
-            /* @__PURE__ */ jsx7(TooltipTrigger, { asChild: true, children: /* @__PURE__ */ jsx7(DropdownMenuTrigger, { asChild: true, children: /* @__PURE__ */ jsx7(
-              Button,
-              {
-                variant: "ghost",
-                size: "sm",
-                className: "text-white hover:bg-white/10 p-2",
-                children: /* @__PURE__ */ jsx7(Settings, { className: "w-5 h-5" })
-              }
-            ) }) }),
-            /* @__PURE__ */ jsx7(TooltipContent, { children: "Quality" })
-          ] }),
-          /* @__PURE__ */ jsx7(DropdownMenuContent, { align: "end", className: "bg-black/90 border-white/10", children: qualityLevels.map((level) => /* @__PURE__ */ jsxs6(
-            DropdownMenuItem,
-            {
-              onClick: () => controls.setQuality(level.id),
-              className: "text-white hover:bg-white/10 cursor-pointer",
-              children: [
-                level.label,
-                state.quality === level.label && /* @__PURE__ */ jsx7("span", { className: "ml-2 text-blue-400", children: "\u2713" })
-              ]
-            },
-            level.id
-          )) })
-        ] }),
-        controlsConfig.theaterMode && /* @__PURE__ */ jsxs6(Tooltip, { children: [
-          /* @__PURE__ */ jsx7(TooltipTrigger, { asChild: true, children: /* @__PURE__ */ jsx7(
-            Button,
-            {
-              variant: "ghost",
-              size: "sm",
-              onClick: controls.toggleTheaterMode,
-              className: "text-white hover:bg-white/10 p-2",
-              children: state.isTheaterMode ? /* @__PURE__ */ jsx7(Smartphone, { className: "w-5 h-5" }) : /* @__PURE__ */ jsx7(Monitor, { className: "w-5 h-5" })
-            }
-          ) }),
-          /* @__PURE__ */ jsx7(TooltipContent, { children: state.isTheaterMode ? "Exit Theater Mode" : "Theater Mode" })
-        ] }),
-        controlsConfig.pictureInPicture && isMounted && typeof document !== "undefined" && "pictureInPictureEnabled" in document && /* @__PURE__ */ jsxs6(Tooltip, { children: [
-          /* @__PURE__ */ jsx7(TooltipTrigger, { asChild: true, children: /* @__PURE__ */ jsx7(
-            Button,
-            {
-              variant: "ghost",
-              size: "sm",
-              onClick: controls.togglePictureInPicture,
-              className: "text-white hover:bg-white/10 p-2",
-              children: state.isPictureInPicture ? /* @__PURE__ */ jsx7(PictureInPicture2, { className: "w-5 h-5" }) : /* @__PURE__ */ jsx7(PictureInPicture, { className: "w-5 h-5" })
-            }
-          ) }),
-          /* @__PURE__ */ jsx7(TooltipContent, { children: state.isPictureInPicture ? "Exit Picture-in-Picture" : "Picture-in-Picture" })
-        ] }),
-        /* @__PURE__ */ jsx7(KeyboardShortcuts, {}),
-        controlsConfig.fullscreen && /* @__PURE__ */ jsxs6(Tooltip, { children: [
-          /* @__PURE__ */ jsx7(TooltipTrigger, { asChild: true, children: /* @__PURE__ */ jsx7(
-            Button,
-            {
-              variant: "ghost",
-              size: "sm",
-              onClick: controls.toggleFullscreen,
-              className: "text-white hover:bg-white/10 p-2",
-              children: state.isFullscreen ? /* @__PURE__ */ jsx7(Minimize, { className: "w-5 h-5" }) : /* @__PURE__ */ jsx7(Maximize, { className: "w-5 h-5" })
-            }
-          ) }),
-          /* @__PURE__ */ jsx7(TooltipContent, { children: state.isFullscreen ? "Exit Fullscreen" : "Fullscreen" })
+        controlsConfig.time !== false && /* @__PURE__ */ jsxs4("span", { className: "text-white/90 text-[11px] sm:text-xs tabular-nums whitespace-nowrap pr-2.5 sm:pr-3 pl-0.5 sm:pl-1 select-none", children: [
+          formatTime(displayTime),
+          " ",
+          /* @__PURE__ */ jsx4("span", { className: "text-white/50", children: "/" }),
+          " ",
+          formatTime(state.duration)
         ] })
-      ] })
-    ] })
-  ] }) });
-};
-
-// src/components/controls/mobile-video-controls.tsx
-import { useState as useState3, useEffect as useEffect3, useRef as useRef2, useCallback } from "react";
-import {
-  Play as Play2,
-  Pause as Pause2,
-  Volume2 as Volume22,
-  VolumeX as VolumeX2,
-  Maximize as Maximize2,
-  Settings as Settings2,
-  MoreHorizontal,
-  SkipBack,
-  SkipForward,
-  Loader2 as Loader22,
-  PictureInPicture as PictureInPicture3,
-  Minimize as Minimize2
-} from "lucide-react";
-
-// src/components/player/video-thumbnail.tsx
-import { useState as useState2, useEffect as useEffect2, useRef } from "react";
-import { jsx as jsx8, jsxs as jsxs7 } from "react/jsx-runtime";
-var formatTime2 = (seconds) => {
-  if (!isFinite(seconds)) return "0:00";
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
-};
-var VideoThumbnail = ({
-  duration,
-  currentTime,
-  thumbnailUrl,
-  thumbnailCount = 100,
-  thumbnailSize = { width: 160, height: 90 },
-  className,
-  showTime = true,
-  isMobile = false
-}) => {
-  const [thumbnailSrc, setThumbnailSrc] = useState2("");
-  const [spritePosition, setSpritePosition] = useState2({ x: 0, y: 0 });
-  const canvasRef = useRef(null);
-  useEffect2(() => {
-    if (!thumbnailUrl || !duration) return;
-    const progress = Math.max(0, Math.min(1, currentTime / duration));
-    const thumbnailIndex = Math.floor(progress * (thumbnailCount - 1));
-    if (thumbnailUrl.includes("sprite")) {
-      const spriteCols = 10;
-      const spriteRows = Math.ceil(thumbnailCount / spriteCols);
-      const col = thumbnailIndex % spriteCols;
-      const row = Math.floor(thumbnailIndex / spriteCols);
-      setSpritePosition({
-        x: col * thumbnailSize.width,
-        y: row * thumbnailSize.height
-      });
-      setThumbnailSrc(thumbnailUrl);
-    } else {
-      const paddedIndex = thumbnailIndex.toString().padStart(3, "0");
-      setThumbnailSrc(`${thumbnailUrl}/thumb_${paddedIndex}.jpg`);
-    }
-  }, [currentTime, duration, thumbnailUrl, thumbnailCount, thumbnailSize]);
-  const generateFallbackThumbnail = async (videoSrc, time) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const video = document.createElement("video");
-    video.crossOrigin = "anonymous";
-    video.muted = true;
-    return new Promise((resolve) => {
-      video.onloadeddata = () => {
-        video.currentTime = time;
-      };
-      video.onseeked = () => {
-        canvas.width = thumbnailSize.width;
-        canvas.height = thumbnailSize.height;
-        ctx.drawImage(video, 0, 0, thumbnailSize.width, thumbnailSize.height);
-        const dataURL = canvas.toDataURL("image/jpeg", 0.8);
-        resolve(dataURL);
-      };
-      video.src = videoSrc;
-    });
-  };
-  if (!thumbnailSrc && !thumbnailUrl) {
-    return null;
-  }
-  return /* @__PURE__ */ jsxs7(
-    "div",
-    {
-      className: cn(
-        "absolute bottom-6 transform -translate-x-1/2 pointer-events-none z-20",
-        "bg-black/90 backdrop-blur-sm rounded-lg overflow-hidden shadow-lg border border-white/20",
-        isMobile ? "bottom-12" : "bottom-6",
-        className
-      ),
-      style: {
-        width: thumbnailSize.width + 16,
-        height: thumbnailSize.height + (showTime ? 40 : 16)
-      },
-      children: [
-        /* @__PURE__ */ jsxs7(
-          "div",
+      ] }),
+      /* @__PURE__ */ jsx4("div", { className: "flex-1 min-w-0" }),
+      /* @__PURE__ */ jsxs4("div", { className: "flex items-center rounded-full bg-black/60 backdrop-blur-md", children: [
+        controlsConfig.theaterMode && /* @__PURE__ */ jsx4(
+          "button",
           {
-            className: "relative bg-gray-800",
-            style: {
-              width: thumbnailSize.width,
-              height: thumbnailSize.height,
-              margin: "8px 8px 0 8px"
-            },
-            children: [
-              thumbnailSrc ? /* @__PURE__ */ jsx8(
-                "img",
-                {
-                  src: thumbnailSrc,
-                  alt: `Preview at ${formatTime2(currentTime)}`,
-                  className: "w-full h-full object-cover rounded",
-                  style: (thumbnailUrl == null ? void 0 : thumbnailUrl.includes("sprite")) ? {
-                    objectPosition: `-${spritePosition.x}px -${spritePosition.y}px`,
-                    width: thumbnailSize.width * 10,
-                    // Sprite sheet width
-                    height: thumbnailSize.height * 10
-                    // Sprite sheet height
-                  } : void 0,
-                  onError: () => {
-                    setThumbnailSrc(`/api/placeholder/${thumbnailSize.width}/${thumbnailSize.height}`);
-                  }
-                }
-              ) : /* @__PURE__ */ jsx8("div", { className: "w-full h-full bg-gray-700 flex items-center justify-center rounded", children: /* @__PURE__ */ jsx8("div", { className: "text-white/60 text-xs", children: "Loading..." }) }),
-              /* @__PURE__ */ jsx8("div", { className: "absolute inset-0 bg-black/20 rounded" })
-            ]
+            type: "button",
+            onClick: controls.toggleTheaterMode,
+            title: state.isTheaterMode ? "Exit Theater Mode" : "Theater Mode",
+            className: cn(iconBtnClass, "hidden sm:flex"),
+            children: state.isTheaterMode ? /* @__PURE__ */ jsx4(Smartphone, { className: iconClass }) : /* @__PURE__ */ jsx4(Monitor, { className: iconClass })
           }
         ),
-        showTime && /* @__PURE__ */ jsx8("div", { className: "px-3 py-2 text-center", children: /* @__PURE__ */ jsx8("span", { className: "text-white text-sm font-medium", children: formatTime2(currentTime) }) }),
-        /* @__PURE__ */ jsx8("div", { className: "absolute -bottom-1 left-1/2 transform -translate-x-1/2", children: /* @__PURE__ */ jsx8("div", { className: "w-3 h-3 bg-black/90 rotate-45 border-r border-b border-white/20" }) }),
-        /* @__PURE__ */ jsx8("canvas", { ref: canvasRef, className: "hidden" })
-      ]
-    }
-  );
-};
-
-// src/components/controls/mobile-video-controls.tsx
-import { jsx as jsx9, jsxs as jsxs8 } from "react/jsx-runtime";
-var formatTime3 = (seconds) => {
-  if (!isFinite(seconds)) return "0:00";
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
-};
-var MobileVideoControls = ({
-  state,
-  controls,
-  qualityLevels,
-  className,
-  onShow,
-  onHide,
-  thumbnailPreview = false,
-  thumbnailUrl
-}) => {
-  const [showVolumePanel, setShowVolumePanel] = useState3(false);
-  const [showSettings, setShowSettings] = useState3(false);
-  const [isDragging, setIsDragging] = useState3(false);
-  const [isMounted, setIsMounted] = useState3(false);
-  const [isVisible, setIsVisible] = useState3(true);
-  const [hoverTime, setHoverTime] = useState3(null);
-  const [touchPosition, setTouchPosition] = useState3(null);
-  const hideTimeoutRef = useRef2(null);
-  useEffect3(() => {
-    setIsMounted(true);
-  }, []);
-  const showControlsTemporarily = useCallback(() => {
-    setIsVisible(true);
-    onShow == null ? void 0 : onShow();
-    if (hideTimeoutRef.current) {
-      clearTimeout(hideTimeoutRef.current);
-      hideTimeoutRef.current = null;
-    }
-    if (state.isPlaying && !showVolumePanel && !showSettings) {
-      hideTimeoutRef.current = setTimeout(() => {
-        setIsVisible(false);
-        onHide == null ? void 0 : onHide();
-      }, 3e3);
-    }
-  }, [state.isPlaying, showVolumePanel, showSettings, onShow, onHide]);
-  useEffect3(() => {
-    if (!state.isPlaying || showVolumePanel || showSettings) {
-      setIsVisible(true);
-      if (hideTimeoutRef.current) {
-        clearTimeout(hideTimeoutRef.current);
-        hideTimeoutRef.current = null;
-      }
-    }
-  }, [state.isPlaying, showVolumePanel, showSettings]);
-  const handleContainerTap = useCallback((e) => {
-    if (e.target === e.currentTarget) {
-      setIsVisible(!isVisible);
-      if (hideTimeoutRef.current) {
-        clearTimeout(hideTimeoutRef.current);
-        hideTimeoutRef.current = null;
-      }
-      if (!isVisible && state.isPlaying && !showVolumePanel && !showSettings) {
-        hideTimeoutRef.current = setTimeout(() => {
-          setIsVisible(false);
-          onHide == null ? void 0 : onHide();
-        }, 3e3);
-      }
-    }
-  }, [isVisible, state.isPlaying, showVolumePanel, showSettings, onHide]);
-  useEffect3(() => {
-    return () => {
-      if (hideTimeoutRef.current) {
-        clearTimeout(hideTimeoutRef.current);
-      }
-    };
-  }, []);
-  const progressPercentage = state.duration > 0 ? state.currentTime / state.duration * 100 : 0;
-  const bufferedPercentage = state.duration > 0 ? state.buffered / state.duration * 100 : 0;
-  const handleProgressClick = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const percent = (e.clientX - rect.left) / rect.width;
-    const newTime = percent * state.duration;
-    controls.seek(newTime);
-  };
-  const handleProgressHover = (e) => {
-    if (!thumbnailPreview) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const percent = (e.clientX - rect.left) / rect.width;
-    const time = percent * state.duration;
-    setHoverTime(time);
-  };
-  const handleProgressLeave = () => {
-    setHoverTime(null);
-  };
-  const handleProgressTouch = (e) => {
-    if (!thumbnailPreview) return;
-    const touch = e.touches[0];
-    const rect = e.currentTarget.getBoundingClientRect();
-    const percent = (touch.clientX - rect.left) / rect.width;
-    const time = percent * state.duration;
-    setHoverTime(time);
-    setTouchPosition({ x: touch.clientX, y: touch.clientY });
-  };
-  const handleTouchEnd = () => {
-    setHoverTime(null);
-    setTouchPosition(null);
-  };
-  const handleSeek = (direction) => {
-    const seekAmount = 10;
-    const newTime = direction === "backward" ? Math.max(0, state.currentTime - seekAmount) : Math.min(state.duration, state.currentTime + seekAmount);
-    controls.seek(newTime);
-  };
-  if (!isMounted) {
-    return null;
-  }
-  return /* @__PURE__ */ jsxs8(
-    "div",
-    {
-      className: cn(
-        "absolute inset-0 flex flex-col justify-between",
-        "bg-gradient-to-t from-black/80 via-transparent to-black/60",
-        "text-white transition-opacity duration-300",
-        "z-10",
-        // Ensure controls are above video
-        isVisible ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
-        className
-      ),
-      onClick: handleContainerTap,
-      style: { paddingBottom: "env(safe-area-inset-bottom)" },
-      children: [
-        /* @__PURE__ */ jsxs8("div", { className: "flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent touch-auto", children: [
-          /* @__PURE__ */ jsxs8("div", { className: "flex items-center gap-3", children: [
-            state.isLoading && /* @__PURE__ */ jsx9(Loader22, { className: "h-5 w-5 animate-spin" }),
-            /* @__PURE__ */ jsx9("div", { className: "px-2 py-1 bg-black/40 rounded text-xs font-medium", children: state.quality === "auto" ? "AUTO" : state.quality.toUpperCase() }),
-            /* @__PURE__ */ jsx9("div", { className: "px-2 py-1 bg-black/40 rounded text-xs font-medium", children: state.isMuted ? "MUTED" : `${Math.round(state.volume * 100)}%` })
-          ] }),
-          /* @__PURE__ */ jsxs8("div", { className: "flex items-center gap-2", children: [
-            /* @__PURE__ */ jsx9(
-              Button,
-              {
-                variant: "ghost",
-                size: "sm",
-                className: "h-12 w-12 p-0 text-white hover:bg-white/20 touch-manipulation",
-                onClick: () => controls.toggleMute(),
-                children: state.isMuted || state.volume === 0 ? /* @__PURE__ */ jsx9(VolumeX2, { className: "h-6 w-6" }) : /* @__PURE__ */ jsx9(Volume22, { className: "h-6 w-6" })
-              }
-            ),
-            /* @__PURE__ */ jsx9(
-              Button,
-              {
-                variant: "ghost",
-                size: "sm",
-                className: "h-12 w-12 p-0 text-white hover:bg-white/20 touch-manipulation",
-                onClick: () => setShowVolumePanel(!showVolumePanel),
-                children: /* @__PURE__ */ jsx9(MoreHorizontal, { className: "h-6 w-6" })
-              }
-            ),
-            /* @__PURE__ */ jsx9(
-              Button,
-              {
-                variant: "ghost",
-                size: "sm",
-                className: "h-12 w-12 p-0 text-white hover:bg-white/20 touch-manipulation",
-                onClick: () => controls.togglePictureInPicture(),
-                disabled: !state.duration,
-                children: /* @__PURE__ */ jsx9(PictureInPicture3, { className: "h-6 w-6" })
-              }
-            ),
-            /* @__PURE__ */ jsx9(
-              Button,
-              {
-                variant: "ghost",
-                size: "sm",
-                className: "h-12 w-12 p-0 text-white hover:bg-white/20 touch-manipulation",
-                onClick: () => setShowSettings(!showSettings),
-                children: /* @__PURE__ */ jsx9(Settings2, { className: "h-6 w-6" })
-              }
-            ),
-            /* @__PURE__ */ jsx9(
-              Button,
-              {
-                variant: "ghost",
-                size: "sm",
-                className: "h-12 w-12 p-0 text-white hover:bg-white/20 touch-manipulation",
-                onClick: () => controls.toggleFullscreen(),
-                children: state.isFullscreen ? /* @__PURE__ */ jsx9(Minimize2, { className: "h-6 w-6" }) : /* @__PURE__ */ jsx9(Maximize2, { className: "h-6 w-6" })
-              }
-            )
-          ] })
-        ] }),
-        /* @__PURE__ */ jsx9("div", { className: "flex-1 flex items-center justify-center touch-auto", children: /* @__PURE__ */ jsxs8("div", { className: "flex items-center gap-8", children: [
-          /* @__PURE__ */ jsx9(
-            Button,
+        controlsConfig.pictureInPicture && isMounted && typeof document !== "undefined" && "pictureInPictureEnabled" in document && /* @__PURE__ */ jsx4(
+          "button",
+          {
+            type: "button",
+            onClick: controls.togglePictureInPicture,
+            title: state.isPictureInPicture ? "Exit PiP" : "Picture-in-Picture",
+            className: cn(iconBtnClass, "hidden sm:flex"),
+            children: state.isPictureInPicture ? /* @__PURE__ */ jsx4(PictureInPicture2, { className: iconClass }) : /* @__PURE__ */ jsx4(PictureInPicture, { className: iconClass })
+          }
+        ),
+        /* @__PURE__ */ jsx4("div", { className: "hidden sm:block", children: /* @__PURE__ */ jsx4(KeyboardShortcuts, {}) }),
+        controlsConfig.settings !== false && /* @__PURE__ */ jsxs4("div", { className: "relative", ref: settingsRef, children: [
+          /* @__PURE__ */ jsx4(
+            "button",
             {
-              variant: "ghost",
-              size: "lg",
-              className: "h-16 w-16 rounded-full bg-black/40 backdrop-blur-sm border border-white/20 text-white hover:bg-black/60 hover:scale-110 transition-all duration-200 touch-manipulation",
-              onClick: () => handleSeek("backward"),
-              disabled: !state.duration,
-              children: /* @__PURE__ */ jsx9(SkipBack, { className: "h-8 w-8" })
+              type: "button",
+              onClick: toggleSettings,
+              title: "Settings",
+              className: cn(iconBtnClass, showSettings && "bg-white/10"),
+              children: /* @__PURE__ */ jsx4(Settings, { className: cn(iconClass, "transition-transform duration-300", showSettings && "rotate-45") })
             }
           ),
-          /* @__PURE__ */ jsx9(
-            Button,
-            {
-              variant: "ghost",
-              size: "lg",
-              className: "h-24 w-24 rounded-full bg-black/50 backdrop-blur-sm border-2 border-white/30 text-white hover:bg-black/70 active:scale-95 transition-all duration-300 shadow-2xl touch-manipulation",
-              onClick: () => {
-                state.isPlaying ? controls.pause() : controls.play();
-              },
-              disabled: !state.duration && !state.isLoading,
-              style: { minHeight: "96px", minWidth: "96px" },
-              children: state.isLoading ? /* @__PURE__ */ jsx9(Loader22, { className: "h-12 w-12 animate-spin" }) : state.isPlaying ? /* @__PURE__ */ jsx9(Pause2, { className: "h-12 w-12" }) : /* @__PURE__ */ jsx9(Play2, { className: "h-12 w-12 ml-1" })
-            }
-          ),
-          /* @__PURE__ */ jsx9(
-            Button,
-            {
-              variant: "ghost",
-              size: "lg",
-              className: "h-16 w-16 rounded-full bg-black/40 backdrop-blur-sm border border-white/20 text-white hover:bg-black/60 hover:scale-110 transition-all duration-200 touch-manipulation",
-              onClick: () => handleSeek("forward"),
-              disabled: !state.duration,
-              children: /* @__PURE__ */ jsx9(SkipForward, { className: "h-8 w-8" })
-            }
-          )
-        ] }) }),
-        /* @__PURE__ */ jsxs8("div", { className: "p-4 bg-gradient-to-t from-black/80 to-transparent space-y-2", style: { paddingBottom: "max(3rem, calc(3rem + env(safe-area-inset-bottom)))" }, children: [
-          state.playbackRate !== 1 && /* @__PURE__ */ jsx9("div", { className: "flex justify-center mb-2", children: /* @__PURE__ */ jsxs8("div", { className: "px-4 py-2 bg-white/20 rounded-full text-sm font-medium", children: [
-            state.playbackRate,
-            "x Speed"
-          ] }) }),
-          /* @__PURE__ */ jsxs8("div", { className: "space-y-2 touch-auto relative", children: [
-            /* @__PURE__ */ jsxs8(
-              "div",
-              {
-                className: "relative h-3 bg-white/20 rounded-full cursor-pointer group touch-manipulation",
-                onClick: handleProgressClick,
-                onMouseMove: handleProgressHover,
-                onMouseLeave: handleProgressLeave,
-                onTouchMove: handleProgressTouch,
-                onTouchEnd: handleTouchEnd,
-                style: { minHeight: "12px" },
-                children: [
-                  /* @__PURE__ */ jsx9(
-                    "div",
-                    {
-                      className: "absolute left-0 top-0 h-full bg-white/30 rounded-full transition-all duration-300",
-                      style: { width: `${bufferedPercentage}%` }
-                    }
-                  ),
-                  /* @__PURE__ */ jsx9(
-                    "div",
-                    {
-                      className: "absolute left-0 top-0 h-full bg-white rounded-full transition-all duration-300",
-                      style: { width: `${progressPercentage}%` }
-                    }
-                  ),
-                  /* @__PURE__ */ jsx9(
-                    "div",
-                    {
-                      className: "absolute top-1/2 transform -translate-y-1/2 w-5 h-5 bg-white rounded-full shadow-lg border-2 border-black/20 transition-all duration-200 group-active:scale-125",
-                      style: { left: `calc(${progressPercentage}% - 10px)` }
-                    }
-                  ),
-                  thumbnailPreview && hoverTime !== null && /* @__PURE__ */ jsx9(
-                    "div",
-                    {
-                      className: "absolute",
-                      style: {
-                        left: `${hoverTime / state.duration * 100}%`,
-                        bottom: "100%",
-                        transform: "translateX(-50%)"
-                      },
-                      children: /* @__PURE__ */ jsx9(
-                        VideoThumbnail,
-                        {
-                          duration: state.duration,
-                          currentTime: hoverTime,
-                          thumbnailUrl,
-                          isMobile: true,
-                          thumbnailSize: { width: 120, height: 68 }
-                        }
-                      )
-                    }
-                  )
-                ]
-              }
-            ),
-            /* @__PURE__ */ jsxs8("div", { className: "flex justify-between text-base font-medium", children: [
-              /* @__PURE__ */ jsx9("span", { children: formatTime3(state.currentTime) }),
-              /* @__PURE__ */ jsx9("span", { children: formatTime3(state.duration) })
-            ] })
-          ] })
-        ] }),
-        showVolumePanel && /* @__PURE__ */ jsx9("div", { className: "absolute top-16 left-4 bg-black/90 backdrop-blur-sm rounded-lg p-4 min-w-[200px]", children: /* @__PURE__ */ jsxs8("div", { className: "space-y-4", children: [
-          /* @__PURE__ */ jsx9("h3", { className: "text-sm font-medium", children: "Audio Controls" }),
-          /* @__PURE__ */ jsxs8("div", { className: "space-y-2", children: [
-            /* @__PURE__ */ jsx9("label", { className: "text-xs text-gray-300", children: "Volume" }),
-            /* @__PURE__ */ jsx9(
-              Slider,
-              {
-                value: [state.isMuted ? 0 : state.volume * 100],
-                onValueChange: ([value]) => {
-                  controls.setVolume(value / 100);
-                  if (value > 0 && state.isMuted) {
-                    controls.toggleMute();
+          showSettings && /* @__PURE__ */ jsx4("div", { className: "absolute bottom-full right-0 mb-2 z-50", children: /* @__PURE__ */ jsx4("div", { className: "bg-neutral-900/95 backdrop-blur-lg rounded-xl border border-white/10 shadow-2xl overflow-hidden w-[260px] sm:w-[280px]", children: /* @__PURE__ */ jsxs4("div", { className: "relative overflow-hidden", children: [
+            settingsPage === "main" && /* @__PURE__ */ jsxs4("div", { className: cn(
+              "py-1",
+              settingsDirection === "back" ? "animate-in slide-in-from-left-4 duration-200" : "animate-in fade-in duration-150"
+            ), children: [
+              controlsConfig.playbackRate && /* @__PURE__ */ jsxs4(
+                "button",
+                {
+                  type: "button",
+                  className: "flex items-center w-full px-4 py-2.5 hover:bg-white/5 active:bg-white/10 transition-colors touch-manipulation",
+                  onClick: () => navigateSettings("speed"),
+                  children: [
+                    /* @__PURE__ */ jsx4(Gauge, { className: "w-5 h-5 text-white/70 mr-3 flex-shrink-0" }),
+                    /* @__PURE__ */ jsx4("span", { className: "text-sm text-white flex-1 text-left", children: "Playback speed" }),
+                    /* @__PURE__ */ jsx4("span", { className: "text-sm text-white/50 mr-1", children: state.playbackRate === 1 ? "Normal" : `${state.playbackRate}x` }),
+                    /* @__PURE__ */ jsx4(ChevronRight, { className: "w-4 h-4 text-white/40" })
+                  ]
+                }
+              ),
+              controlsConfig.quality && qualityLevels.length > 0 && /* @__PURE__ */ jsxs4(
+                "button",
+                {
+                  type: "button",
+                  className: "flex items-center w-full px-4 py-2.5 hover:bg-white/5 active:bg-white/10 transition-colors touch-manipulation",
+                  onClick: () => navigateSettings("quality"),
+                  children: [
+                    /* @__PURE__ */ jsx4(Settings, { className: "w-5 h-5 text-white/70 mr-3 flex-shrink-0" }),
+                    /* @__PURE__ */ jsx4("span", { className: "text-sm text-white flex-1 text-left", children: "Quality" }),
+                    /* @__PURE__ */ jsx4("span", { className: "text-sm text-white/50 mr-1", children: state.quality === "auto" ? "Auto" : state.quality }),
+                    /* @__PURE__ */ jsx4(ChevronRight, { className: "w-4 h-4 text-white/40" })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsx4("div", { className: "sm:hidden px-4 py-2.5", children: /* @__PURE__ */ jsxs4("div", { className: "flex items-center gap-3", children: [
+                /* @__PURE__ */ jsx4("button", { type: "button", onClick: controls.toggleMute, className: "flex-shrink-0", children: /* @__PURE__ */ jsx4(VolumeIcon, { className: "w-5 h-5 text-white/70" }) }),
+                /* @__PURE__ */ jsx4(
+                  Slider,
+                  {
+                    min: 0,
+                    max: 100,
+                    step: 1,
+                    value: [Math.round((state.isMuted ? 0 : state.volume) * 100)],
+                    onValueChange: handleVolumeChange,
+                    className: "flex-1 [&_[data-slot=slider-track]]:bg-white/20 [&_[data-slot=slider-track]]:h-1 [&_[data-slot=slider-range]]:bg-white [&_[data-slot=slider-thumb]]:bg-white [&_[data-slot=slider-thumb]]:border-white [&_[data-slot=slider-thumb]]:size-4"
                   }
+                ),
+                /* @__PURE__ */ jsxs4("span", { className: "text-xs text-white/50 tabular-nums w-8 text-right", children: [
+                  Math.round((state.isMuted ? 0 : state.volume) * 100),
+                  "%"
+                ] })
+              ] }) }),
+              controlsConfig.pictureInPicture && isMounted && typeof document !== "undefined" && "pictureInPictureEnabled" in document && /* @__PURE__ */ jsxs4(
+                "button",
+                {
+                  type: "button",
+                  className: "flex items-center w-full px-4 py-2.5 hover:bg-white/5 active:bg-white/10 transition-colors touch-manipulation sm:hidden",
+                  onClick: () => {
+                    controls.togglePictureInPicture();
+                    setShowSettings(false);
+                  },
+                  children: [
+                    /* @__PURE__ */ jsx4(PictureInPicture, { className: "w-5 h-5 text-white/70 mr-3 flex-shrink-0" }),
+                    /* @__PURE__ */ jsx4("span", { className: "text-sm text-white flex-1 text-left", children: "Picture-in-Picture" })
+                  ]
+                }
+              )
+            ] }),
+            settingsPage === "speed" && /* @__PURE__ */ jsxs4("div", { className: "animate-in slide-in-from-right-4 duration-200", children: [
+              /* @__PURE__ */ jsxs4(
+                "button",
+                {
+                  type: "button",
+                  className: "flex items-center w-full px-4 py-2.5 border-b border-white/10 hover:bg-white/5 active:bg-white/10 transition-colors touch-manipulation",
+                  onClick: goBackSettings,
+                  children: [
+                    /* @__PURE__ */ jsx4(ChevronRight, { className: "w-4 h-4 text-white/60 mr-2 rotate-180" }),
+                    /* @__PURE__ */ jsx4("span", { className: "text-sm font-medium text-white", children: "Playback speed" })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsx4("div", { className: "py-1 max-h-[300px] overflow-y-auto", children: playbackRateOptions.map((opt) => /* @__PURE__ */ jsxs4(
+                "button",
+                {
+                  type: "button",
+                  className: "flex items-center w-full px-4 py-2.5 hover:bg-white/5 active:bg-white/10 transition-colors touch-manipulation",
+                  onClick: () => {
+                    controls.setPlaybackRate(opt.value);
+                    goBackSettings();
+                  },
+                  children: [
+                    /* @__PURE__ */ jsx4("span", { className: "w-6 flex-shrink-0", children: state.playbackRate === opt.value && /* @__PURE__ */ jsx4(Check, { className: "w-4 h-4 text-white" }) }),
+                    /* @__PURE__ */ jsx4("span", { className: cn("text-sm", state.playbackRate === opt.value ? "text-white font-medium" : "text-white/80"), children: opt.label })
+                  ]
                 },
-                max: 100,
-                step: 1,
-                className: "w-full"
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsx9(
-            Button,
-            {
-              variant: "outline",
-              size: "sm",
-              className: "w-full",
-              onClick: () => setShowVolumePanel(false),
-              children: "Close"
-            }
-          )
-        ] }) }),
-        showSettings && /* @__PURE__ */ jsx9("div", { className: "absolute top-16 right-4 bg-black/90 backdrop-blur-sm rounded-lg p-4 min-w-[200px]", children: /* @__PURE__ */ jsxs8("div", { className: "space-y-4", children: [
-          /* @__PURE__ */ jsx9("h3", { className: "text-sm font-medium", children: "Video Settings" }),
-          /* @__PURE__ */ jsxs8("div", { className: "space-y-2", children: [
-            /* @__PURE__ */ jsx9("label", { className: "text-xs text-gray-300", children: "Quality" }),
-            /* @__PURE__ */ jsx9("div", { className: "grid gap-1", children: qualityLevels.map((quality) => /* @__PURE__ */ jsx9(
-              Button,
-              {
-                variant: state.quality === quality.id ? "default" : "ghost",
-                size: "sm",
-                className: "justify-start text-xs",
-                onClick: () => controls.setQuality(quality.id),
-                children: quality.label
-              },
-              quality.id
-            )) })
-          ] }),
-          /* @__PURE__ */ jsxs8("div", { className: "space-y-2", children: [
-            /* @__PURE__ */ jsx9("label", { className: "text-xs text-gray-300", children: "Speed" }),
-            /* @__PURE__ */ jsx9("div", { className: "grid grid-cols-2 gap-1", children: [0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => /* @__PURE__ */ jsxs8(
-              Button,
-              {
-                variant: state.playbackRate === rate ? "default" : "ghost",
-                size: "sm",
-                className: "text-xs",
-                onClick: () => controls.setPlaybackRate(rate),
-                children: [
-                  rate,
-                  "x"
-                ]
-              },
-              rate
-            )) })
-          ] }),
-          /* @__PURE__ */ jsx9(
-            Button,
-            {
-              variant: "outline",
-              size: "sm",
-              className: "w-full",
-              onClick: () => setShowSettings(false),
-              children: "Close"
-            }
-          )
-        ] }) })
-      ]
-    }
-  );
+                opt.value
+              )) })
+            ] }),
+            settingsPage === "quality" && /* @__PURE__ */ jsxs4("div", { className: "animate-in slide-in-from-right-4 duration-200", children: [
+              /* @__PURE__ */ jsxs4(
+                "button",
+                {
+                  type: "button",
+                  className: "flex items-center w-full px-4 py-2.5 border-b border-white/10 hover:bg-white/5 active:bg-white/10 transition-colors touch-manipulation",
+                  onClick: goBackSettings,
+                  children: [
+                    /* @__PURE__ */ jsx4(ChevronRight, { className: "w-4 h-4 text-white/60 mr-2 rotate-180" }),
+                    /* @__PURE__ */ jsx4("span", { className: "text-sm font-medium text-white", children: "Quality" })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsx4("div", { className: "py-1 max-h-[300px] overflow-y-auto", children: qualityLevels.map((level) => /* @__PURE__ */ jsxs4(
+                "button",
+                {
+                  type: "button",
+                  className: "flex items-center w-full px-4 py-2.5 hover:bg-white/5 active:bg-white/10 transition-colors touch-manipulation",
+                  onClick: () => {
+                    controls.setQuality(level.id);
+                    goBackSettings();
+                  },
+                  children: [
+                    /* @__PURE__ */ jsx4("span", { className: "w-6 flex-shrink-0", children: state.quality === level.label && /* @__PURE__ */ jsx4(Check, { className: "w-4 h-4 text-white" }) }),
+                    /* @__PURE__ */ jsx4("span", { className: cn("text-sm", state.quality === level.label ? "text-white font-medium" : "text-white/80"), children: level.label })
+                  ]
+                },
+                level.id
+              )) })
+            ] })
+          ] }) }) })
+        ] }),
+        controlsConfig.fullscreen && /* @__PURE__ */ jsx4(
+          "button",
+          {
+            type: "button",
+            onClick: controls.toggleFullscreen,
+            title: state.isFullscreen ? "Exit Fullscreen" : "Fullscreen",
+            className: iconBtnClass,
+            children: state.isFullscreen ? /* @__PURE__ */ jsx4(Minimize, { className: iconClass }) : /* @__PURE__ */ jsx4(Maximize, { className: iconClass })
+          }
+        )
+      ] })
+    ] })
+  ] });
 };
 
 // src/components/player/loading-spinner.tsx
-import { jsx as jsx10 } from "react/jsx-runtime";
+import { jsx as jsx5 } from "react/jsx-runtime";
 var LoadingSpinner = ({
   className,
   size = "medium"
 }) => {
   const sizeClasses = {
-    small: "w-6 h-6",
-    medium: "w-8 h-8",
-    large: "w-12 h-12"
+    small: "w-6 h-6 border-2",
+    medium: "w-10 h-10 border-[3px]",
+    large: "w-14 h-14 border-[3px]"
   };
-  return /* @__PURE__ */ jsx10("div", { className: cn("flex items-center justify-center", className), children: /* @__PURE__ */ jsx10(
+  return /* @__PURE__ */ jsx5("div", { className: cn("flex items-center justify-center", className), children: /* @__PURE__ */ jsx5(
     "div",
     {
       className: cn(
-        "animate-spin rounded-full border-2 border-gray-300 border-t-white",
+        "animate-spin rounded-full border-white/20 border-t-white",
         sizeClasses[size]
       )
     }
@@ -1223,31 +733,30 @@ var LoadingSpinner = ({
 
 // src/components/player/error-display.tsx
 import { AlertCircle, RefreshCw } from "lucide-react";
-import { jsx as jsx11, jsxs as jsxs9 } from "react/jsx-runtime";
+import { jsx as jsx6, jsxs as jsxs5 } from "react/jsx-runtime";
 var ErrorDisplay = ({
   error,
   onRetry,
   className
 }) => {
-  return /* @__PURE__ */ jsxs9("div", { className: cn(
-    "flex flex-col items-center justify-center space-y-4 p-6 text-white text-center max-w-md",
+  return /* @__PURE__ */ jsxs5("div", { className: cn(
+    "flex flex-col items-center justify-center gap-4 p-6 text-white text-center max-w-md",
     className
   ), children: [
-    /* @__PURE__ */ jsx11(AlertCircle, { className: "w-12 h-12 text-red-400" }),
-    /* @__PURE__ */ jsxs9("div", { className: "space-y-2", children: [
-      /* @__PURE__ */ jsx11("h3", { className: "text-lg font-semibold", children: "Video Error" }),
-      /* @__PURE__ */ jsx11("p", { className: "text-sm text-white/80", children: error })
+    /* @__PURE__ */ jsx6("div", { className: "flex items-center justify-center w-16 h-16 rounded-full bg-white/10 backdrop-blur-md", children: /* @__PURE__ */ jsx6(AlertCircle, { className: "w-8 h-8 text-red-400" }) }),
+    /* @__PURE__ */ jsxs5("div", { className: "space-y-1.5", children: [
+      /* @__PURE__ */ jsx6("h3", { className: "text-base font-medium", children: "Video unavailable" }),
+      /* @__PURE__ */ jsx6("p", { className: "text-sm text-white/60", children: error })
     ] }),
-    onRetry && /* @__PURE__ */ jsxs9(
-      Button,
+    onRetry && /* @__PURE__ */ jsxs5(
+      "button",
       {
+        type: "button",
         onClick: onRetry,
-        variant: "outline",
-        size: "sm",
-        className: "text-white border-white/20 hover:bg-white/10",
+        className: "flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 backdrop-blur-md text-white text-sm font-medium hover:bg-white/20 active:bg-white/25 transition-colors duration-200",
         children: [
-          /* @__PURE__ */ jsx11(RefreshCw, { className: "w-4 h-4 mr-2" }),
-          "Try Again"
+          /* @__PURE__ */ jsx6(RefreshCw, { className: "w-4 h-4" }),
+          "Try again"
         ]
       }
     )
@@ -1255,7 +764,7 @@ var ErrorDisplay = ({
 };
 
 // src/hooks/use-video-player.ts
-import { useState as useState4, useEffect as useEffect4, useCallback as useCallback2 } from "react";
+import { useState as useState2, useEffect as useEffect2, useCallback as useCallback2, useMemo, useReducer, useRef as useRef2 } from "react";
 
 // src/core/adapters/adapter-registry.ts
 var AdapterRegistry = class {
@@ -1263,6 +772,10 @@ var AdapterRegistry = class {
     this.factories = [];
   }
   register(factory) {
+    const existingIndex = this.factories.findIndex((candidate) => candidate.id === factory.id);
+    if (existingIndex >= 0) {
+      this.factories.splice(existingIndex, 1);
+    }
     this.factories.push(factory);
     this.factories.sort((a, b) => b.priority - a.priority);
   }
@@ -1280,19 +793,28 @@ var DashJsAdapter = class {
     this.id = "dashjs";
   }
   async load(context) {
+    this.assertNotAborted(context.signal);
     const dashjs = await import("dashjs");
+    this.assertNotAborted(context.signal);
     this.instance = dashjs.MediaPlayer().create();
-    await new Promise((resolve, reject) => {
-      const dash = this.instance;
-      dash.on("streamInitialized", () => {
-        resolve();
-      });
-      dash.on("error", (errorPayload) => {
-        const errorValue = errorPayload == null ? void 0 : errorPayload.error;
-        reject(new Error(`Dash.js error: ${errorValue != null ? errorValue : "unknown"}`));
-      });
-      dash.initialize(context.videoElement, context.src, false);
-    });
+    await this.runWithAbortSignal(
+      new Promise((resolve, reject) => {
+        const dash = this.instance;
+        dash.on("streamInitialized", () => {
+          resolve();
+        });
+        dash.on("error", (errorPayload) => {
+          const errorValue = errorPayload == null ? void 0 : errorPayload.error;
+          reject(new Error(`Dash.js error: ${errorValue != null ? errorValue : "unknown"}`));
+        });
+        dash.initialize(context.videoElement, context.src, false);
+      }),
+      context.signal,
+      () => {
+        var _a;
+        (_a = this.instance) == null ? void 0 : _a.reset();
+      }
+    );
   }
   destroy() {
     var _a;
@@ -1322,6 +844,46 @@ var DashJsAdapter = class {
       return;
     }
     this.instance.setQualityFor("video", Number.parseInt(qualityId, 10));
+  }
+  assertNotAborted(signal) {
+    if (signal == null ? void 0 : signal.aborted) {
+      throw this.createAbortError();
+    }
+  }
+  createAbortError() {
+    const error = new Error("DashJsAdapter.load() aborted");
+    error.name = "AbortError";
+    return error;
+  }
+  runWithAbortSignal(task, signal, onAbort) {
+    if (!signal) {
+      return task;
+    }
+    if (signal.aborted) {
+      onAbort == null ? void 0 : onAbort();
+      return Promise.reject(this.createAbortError());
+    }
+    return new Promise((resolve, reject) => {
+      const cleanup = () => {
+        signal.removeEventListener("abort", handleAbort);
+      };
+      const handleAbort = () => {
+        cleanup();
+        onAbort == null ? void 0 : onAbort();
+        reject(this.createAbortError());
+      };
+      signal.addEventListener("abort", handleAbort, { once: true });
+      task.then(
+        (value) => {
+          cleanup();
+          resolve(value);
+        },
+        (error) => {
+          cleanup();
+          reject(error);
+        }
+      );
+    });
   }
 };
 var createDashJsAdapter = () => {
@@ -1424,51 +986,34 @@ var getBrowserCapabilities = async () => {
   return capabilities;
 };
 var getStreamingStrategy = (capabilities, streamUrl) => {
-  console.log("VideoEngine: Analyzing stream URL:", streamUrl);
-  const isHlsUrl = streamUrl.includes(".m3u8");
-  const isDashUrl = streamUrl.includes(".mpd");
-  const isDirectVideo = streamUrl.match(/\.(mp4|webm|ogg|avi|mov)(\?|$)/i);
-  console.log("VideoEngine: Format detection:", {
-    isHlsUrl,
-    isDashUrl,
-    isDirectVideo: !!isDirectVideo,
-    capabilities: {
-      hasNativeHls: capabilities.hasNativeHls,
-      hasHlsJs: capabilities.hasHlsJs,
-      hasDashJs: capabilities.hasDashJs,
-      isIOS: capabilities.isIOS
+  const normalizedPath = (() => {
+    try {
+      return new URL(streamUrl, "https://localhost").pathname.toLowerCase();
+    } catch (e) {
+      return streamUrl.toLowerCase();
     }
-  });
+  })();
+  const isHlsUrl = /\.m3u8$/i.test(normalizedPath);
+  const isDashUrl = /\.mpd$/i.test(normalizedPath);
+  const isDirectVideo = /\.(mp4|webm|ogg|avi|mov)$/i.test(normalizedPath);
   if (isHlsUrl) {
     if (capabilities.hasNativeHls && capabilities.isIOS) {
-      console.log("VideoEngine: Using native HLS strategy");
       return "native";
     }
     if (capabilities.hasHlsJs) {
-      console.log("VideoEngine: Using HLS.js strategy");
       return "hlsjs";
     }
-    console.log("VideoEngine: HLS not supported");
   }
   if (isDashUrl && capabilities.hasDashJs) {
-    console.log("VideoEngine: Using DASH.js strategy");
     return "dashjs";
   }
   if (isDirectVideo) {
     const isSupported = isVideoFormatSupported(streamUrl);
-    console.log("VideoEngine: Direct video format support check:", {
-      url: streamUrl,
-      isSupported
-    });
     if (isSupported) {
-      console.log("VideoEngine: Using direct video strategy");
       return "direct";
-    } else {
-      console.log("VideoEngine: Direct video format not supported by browser");
-      return "unsupported";
     }
+    return "unsupported";
   }
-  console.log("VideoEngine: Unsupported format");
   return "unsupported";
 };
 
@@ -1478,12 +1023,14 @@ var DirectVideoAdapter = class {
     this.id = "direct";
   }
   async load(context) {
-    const { videoElement, src } = context;
+    const { videoElement, src, signal } = context;
     if (!isVideoFormatSupported(src)) {
       throw new Error("Video format not supported by this browser");
     }
+    this.assertNotAborted(signal);
     videoElement.src = src;
     await new Promise((resolve, reject) => {
+      const abortError = this.createAbortError();
       const timeout = window.setTimeout(() => {
         cleanup();
         reject(new Error("Video loading timeout (30s)"));
@@ -1498,13 +1045,24 @@ var DirectVideoAdapter = class {
         cleanup();
         reject(new Error(message));
       };
+      const onAbort = () => {
+        cleanup();
+        reject(abortError);
+      };
       const cleanup = () => {
         window.clearTimeout(timeout);
         videoElement.removeEventListener("loadeddata", onLoadedData);
         videoElement.removeEventListener("error", onError);
+        signal == null ? void 0 : signal.removeEventListener("abort", onAbort);
       };
+      if (signal == null ? void 0 : signal.aborted) {
+        cleanup();
+        reject(abortError);
+        return;
+      }
       videoElement.addEventListener("loadeddata", onLoadedData);
       videoElement.addEventListener("error", onError);
+      signal == null ? void 0 : signal.addEventListener("abort", onAbort, { once: true });
       videoElement.load();
     });
   }
@@ -1514,6 +1072,16 @@ var DirectVideoAdapter = class {
     return [];
   }
   setQuality() {
+  }
+  assertNotAborted(signal) {
+    if (signal == null ? void 0 : signal.aborted) {
+      throw this.createAbortError();
+    }
+  }
+  createAbortError() {
+    const error = new Error("DirectVideoAdapter.load() aborted");
+    error.name = "AbortError";
+    return error;
   }
 };
 var createDirectVideoAdapter = () => {
@@ -1526,7 +1094,9 @@ var HlsJsAdapter = class {
     this.id = "hlsjs";
   }
   async load(context) {
+    this.assertNotAborted(context.signal);
     const { default: Hls } = await import("hls.js");
+    this.assertNotAborted(context.signal);
     if (!Hls.isSupported()) {
       throw new Error("HLS.js is not supported in this browser");
     }
@@ -1535,30 +1105,37 @@ var HlsJsAdapter = class {
       lowLatencyMode: false,
       backBufferLength: 90
     });
-    await new Promise((resolve, reject) => {
-      const hls = this.instance;
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        resolve();
-      });
-      hls.on(Hls.Events.ERROR, (_event, data) => {
-        var _a, _b;
-        const maybeFatal = data || {};
-        if (maybeFatal.fatal) {
-          reject(new Error(`HLS.js fatal error: ${(_a = maybeFatal.type) != null ? _a : "unknown"} - ${(_b = maybeFatal.details) != null ? _b : "unknown"}`));
-        }
-      });
-      hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
+    await this.runWithAbortSignal(
+      new Promise((resolve, reject) => {
+        const hls = this.instance;
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          resolve();
+        });
+        hls.on(Hls.Events.ERROR, (_event, data) => {
+          var _a, _b;
+          const maybeFatal = data || {};
+          if (maybeFatal.fatal) {
+            reject(new Error(`HLS.js fatal error: ${(_a = maybeFatal.type) != null ? _a : "unknown"} - ${(_b = maybeFatal.details) != null ? _b : "unknown"}`));
+          }
+        });
+        hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
+          var _a;
+          const levelIndex = data == null ? void 0 : data.level;
+          if (levelIndex === void 0) {
+            return;
+          }
+          const level = hls.levels[levelIndex];
+          (_a = context.onQualityChange) == null ? void 0 : _a.call(context, (level == null ? void 0 : level.height) ? `${level.height}p` : "auto");
+        });
+        hls.loadSource(context.src);
+        hls.attachMedia(context.videoElement);
+      }),
+      context.signal,
+      () => {
         var _a;
-        const levelIndex = data == null ? void 0 : data.level;
-        if (levelIndex === void 0) {
-          return;
-        }
-        const level = hls.levels[levelIndex];
-        (_a = context.onQualityChange) == null ? void 0 : _a.call(context, (level == null ? void 0 : level.height) ? `${level.height}p` : "auto");
-      });
-      hls.loadSource(context.src);
-      hls.attachMedia(context.videoElement);
-    });
+        (_a = this.instance) == null ? void 0 : _a.destroy();
+      }
+    );
   }
   destroy() {
     var _a;
@@ -1581,6 +1158,46 @@ var HlsJsAdapter = class {
     }
     this.instance.currentLevel = Number.parseInt(qualityId, 10);
   }
+  assertNotAborted(signal) {
+    if (signal == null ? void 0 : signal.aborted) {
+      throw this.createAbortError();
+    }
+  }
+  createAbortError() {
+    const error = new Error("HlsJsAdapter.load() aborted");
+    error.name = "AbortError";
+    return error;
+  }
+  runWithAbortSignal(task, signal, onAbort) {
+    if (!signal) {
+      return task;
+    }
+    if (signal.aborted) {
+      onAbort == null ? void 0 : onAbort();
+      return Promise.reject(this.createAbortError());
+    }
+    return new Promise((resolve, reject) => {
+      const cleanup = () => {
+        signal.removeEventListener("abort", handleAbort);
+      };
+      const handleAbort = () => {
+        cleanup();
+        onAbort == null ? void 0 : onAbort();
+        reject(this.createAbortError());
+      };
+      signal.addEventListener("abort", handleAbort, { once: true });
+      task.then(
+        (value) => {
+          cleanup();
+          resolve(value);
+        },
+        (error) => {
+          cleanup();
+          reject(error);
+        }
+      );
+    });
+  }
 };
 var createHlsJsAdapter = () => {
   return new HlsJsAdapter();
@@ -1592,9 +1209,11 @@ var NativeHlsAdapter = class {
     this.id = "native";
   }
   async load(context) {
-    const { videoElement, src } = context;
+    const { videoElement, src, signal } = context;
+    this.assertNotAborted(signal);
     videoElement.src = src;
     await new Promise((resolve, reject) => {
+      const abortError = this.createAbortError();
       const onLoadedData = () => {
         cleanup();
         resolve();
@@ -1603,12 +1222,23 @@ var NativeHlsAdapter = class {
         cleanup();
         reject(new Error("Failed to load native HLS stream"));
       };
+      const onAbort = () => {
+        cleanup();
+        reject(abortError);
+      };
       const cleanup = () => {
         videoElement.removeEventListener("loadeddata", onLoadedData);
         videoElement.removeEventListener("error", onError);
+        signal == null ? void 0 : signal.removeEventListener("abort", onAbort);
       };
+      if (signal == null ? void 0 : signal.aborted) {
+        cleanup();
+        reject(abortError);
+        return;
+      }
       videoElement.addEventListener("loadeddata", onLoadedData);
       videoElement.addEventListener("error", onError);
+      signal == null ? void 0 : signal.addEventListener("abort", onAbort, { once: true });
     });
   }
   destroy() {
@@ -1618,15 +1248,32 @@ var NativeHlsAdapter = class {
   }
   setQuality() {
   }
+  assertNotAborted(signal) {
+    if (signal == null ? void 0 : signal.aborted) {
+      throw this.createAbortError();
+    }
+  }
+  createAbortError() {
+    const error = new Error("NativeHlsAdapter.load() aborted");
+    error.name = "AbortError";
+    return error;
+  }
 };
 var createNativeHlsAdapter = () => {
   return new NativeHlsAdapter();
 };
 
 // src/core/adapters/default-adapters.ts
-var isHls = (src) => src.includes(".m3u8");
-var isDash = (src) => src.includes(".mpd");
-var isDirect = (src) => /\.(mp4|webm|ogg|avi|mov)(\?|$)/i.test(src);
+var getNormalizedPath = (src) => {
+  try {
+    return new URL(src, "https://localhost").pathname.toLowerCase();
+  } catch (e) {
+    return src.toLowerCase();
+  }
+};
+var isHls = (src) => /\.m3u8$/i.test(getNormalizedPath(src));
+var isDash = (src) => /\.mpd$/i.test(getNormalizedPath(src));
+var isDirect = (src) => /\.(mp4|webm|ogg|avi|mov)$/i.test(getNormalizedPath(src));
 var defaultStreamingAdapters = [
   {
     id: "native",
@@ -1661,6 +1308,68 @@ var defaultStreamingAdapters = [
     create: createDirectVideoAdapter
   }
 ];
+
+// src/lib/logger.ts
+var noop = () => void 0;
+var defaultLogger = {
+  debug: noop,
+  info: noop,
+  warn: (...args) => {
+    if (typeof console !== "undefined") {
+      console.warn(...args);
+    }
+  },
+  error: (...args) => {
+    if (typeof console !== "undefined") {
+      console.error(...args);
+    }
+  }
+};
+var activeLogger = defaultLogger;
+var createConsoleLogger = (options = {}) => {
+  const {
+    debug = false,
+    info = false,
+    warn = true,
+    error = true
+  } = options;
+  return {
+    debug: (...args) => {
+      if (debug && typeof console !== "undefined") {
+        console.debug(...args);
+      }
+    },
+    info: (...args) => {
+      if (info && typeof console !== "undefined") {
+        console.info(...args);
+      }
+    },
+    warn: (...args) => {
+      if (warn && typeof console !== "undefined") {
+        console.warn(...args);
+      }
+    },
+    error: (...args) => {
+      if (error && typeof console !== "undefined") {
+        console.error(...args);
+      }
+    }
+  };
+};
+var setPlayerLogger = (logger) => {
+  var _a, _b, _c, _d;
+  if (!logger) {
+    activeLogger = defaultLogger;
+    return;
+  }
+  activeLogger = {
+    debug: (_a = logger.debug) != null ? _a : defaultLogger.debug,
+    info: (_b = logger.info) != null ? _b : defaultLogger.info,
+    warn: (_c = logger.warn) != null ? _c : defaultLogger.warn,
+    error: (_d = logger.error) != null ? _d : defaultLogger.error
+  };
+};
+var getPlayerLogger = () => activeLogger;
 
 // src/core/drm/eme-controller.ts
 var resolveEnvironment = (environment) => {
@@ -1769,7 +1478,7 @@ var createEmeController = async (videoElement, configuration, environment) => {
         });
         await session.update(license);
       })().catch((error) => {
-        console.warn("EME license exchange failed:", error);
+        getPlayerLogger().warn("EME license exchange failed:", error);
       });
     });
     await session.generateRequest(encryptedEvent.initDataType, encryptedEvent.initData);
@@ -1827,6 +1536,22 @@ var VideoEnginePluginManager = class {
       this.safeRun(plugin.name, "onSourceLoadFailed", () => {
         var _a;
         return (_a = plugin.onSourceLoadFailed) == null ? void 0 : _a.call(plugin, payload);
+      });
+    }
+  }
+  onRetry(payload) {
+    for (const plugin of this.plugins) {
+      this.safeRun(plugin.name, "onRetry", () => {
+        var _a;
+        return (_a = plugin.onRetry) == null ? void 0 : _a.call(plugin, payload);
+      });
+    }
+  }
+  onFailover(payload) {
+    for (const plugin of this.plugins) {
+      this.safeRun(plugin.name, "onFailover", () => {
+        var _a;
+        return (_a = plugin.onFailover) == null ? void 0 : _a.call(plugin, payload);
       });
     }
   }
@@ -1890,7 +1615,7 @@ var VideoEnginePluginManager = class {
     try {
       run();
     } catch (error) {
-      console.warn(`Plugin ${pluginName} failed during ${lifecycle}:`, error);
+      getPlayerLogger().warn(`Plugin ${pluginName} failed during ${lifecycle}:`, error);
     }
   }
 };
@@ -1898,6 +1623,77 @@ var VideoEnginePluginManager = class {
 // src/core/video-engine.ts
 var VideoEngine = class {
   constructor(videoElement, events = {}, options = {}) {
+    this.isDisposed = false;
+    this.loadRequestId = 0;
+    this.timeUpdateFrameId = null;
+    this.progressFrameId = null;
+    this.lastEmittedCurrentTime = -1;
+    this.lastEmittedDuration = -1;
+    this.lastEmittedBuffered = -1;
+    this.onPlayListener = () => {
+      var _a, _b;
+      (_b = (_a = this.events).onPlay) == null ? void 0 : _b.call(_a);
+      this.pluginManager.onPlay();
+    };
+    this.onPauseListener = () => {
+      var _a, _b;
+      (_b = (_a = this.events).onPause) == null ? void 0 : _b.call(_a);
+      this.pluginManager.onPause();
+    };
+    this.onTimeUpdateListener = () => {
+      if (this.timeUpdateFrameId !== null || this.isDisposed) {
+        return;
+      }
+      this.timeUpdateFrameId = this.requestFrame(() => {
+        var _a, _b;
+        this.timeUpdateFrameId = null;
+        if (this.isDisposed) {
+          return;
+        }
+        const currentTime = this.videoElement.currentTime;
+        const duration = this.videoElement.duration || 0;
+        const currentTimeDelta = Math.abs(currentTime - this.lastEmittedCurrentTime);
+        const durationDelta = Math.abs(duration - this.lastEmittedDuration);
+        if (currentTimeDelta < 0.05 && durationDelta < 0.01) {
+          return;
+        }
+        this.lastEmittedCurrentTime = currentTime;
+        this.lastEmittedDuration = duration;
+        (_b = (_a = this.events).onTimeUpdate) == null ? void 0 : _b.call(_a, currentTime, duration);
+        this.pluginManager.onTimeUpdate({ currentTime, duration });
+      });
+    };
+    this.onProgressListener = () => {
+      if (this.progressFrameId !== null || this.isDisposed) {
+        return;
+      }
+      this.progressFrameId = this.requestFrame(() => {
+        var _a, _b;
+        this.progressFrameId = null;
+        if (this.isDisposed) {
+          return;
+        }
+        const buffered = this.getBufferedPercentage();
+        if (Math.abs(buffered - this.lastEmittedBuffered) < 0.25) {
+          return;
+        }
+        this.lastEmittedBuffered = buffered;
+        (_b = (_a = this.events).onProgress) == null ? void 0 : _b.call(_a, buffered);
+      });
+    };
+    this.onVolumeChangeListener = () => {
+      var _a, _b;
+      const volume = this.videoElement.volume;
+      const muted = this.videoElement.muted;
+      (_b = (_a = this.events).onVolumeChange) == null ? void 0 : _b.call(_a, volume, muted);
+      this.pluginManager.onVolumeChange({ volume, muted });
+    };
+    this.onErrorListener = () => {
+      var _a, _b;
+      const error = new Error("Video element error");
+      (_b = (_a = this.events).onError) == null ? void 0 : _b.call(_a, error);
+      this.pluginManager.onError({ error, src: this.currentSource, strategy: this.currentStrategy });
+    };
     var _a, _b, _c;
     this.videoElement = videoElement;
     this.events = events;
@@ -1915,21 +1711,46 @@ var VideoEngine = class {
     this.pluginManager.setup({ videoElement: this.videoElement });
   }
   async initialize() {
-    var _a, _b, _c, _d;
-    try {
-      this.capabilities = await this.resolveCapabilities();
-      this.pluginManager.onInit();
-      (_b = (_a = this.events).onReady) == null ? void 0 : _b.call(_a);
-    } catch (error) {
-      (_d = (_c = this.events).onError) == null ? void 0 : _d.call(_c, error);
-      throw error;
+    this.assertNotDisposed("initialize");
+    if (this.capabilities) {
+      return;
     }
+    if (this.initializationPromise) {
+      await this.initializationPromise;
+      return;
+    }
+    this.initializationPromise = (async () => {
+      var _a, _b, _c, _d;
+      try {
+        const capabilities = await this.resolveCapabilities();
+        if (this.isDisposed) {
+          return;
+        }
+        this.capabilities = capabilities;
+        this.pluginManager.onInit();
+        (_b = (_a = this.events).onReady) == null ? void 0 : _b.call(_a);
+      } catch (error) {
+        if (!this.isDisposed) {
+          (_d = (_c = this.events).onError) == null ? void 0 : _d.call(_c, error);
+        }
+        throw error;
+      } finally {
+        this.initializationPromise = void 0;
+      }
+    })();
+    await this.initializationPromise;
   }
   async loadSource(config) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _i;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n;
+    this.assertNotDisposed("loadSource");
+    const requestId = ++this.loadRequestId;
+    const { signal } = config;
+    this.assertNotAborted(signal);
     if (!this.capabilities) {
       await this.initialize();
     }
+    this.assertActiveLoadRequest(requestId);
+    this.assertNotAborted(signal);
     if (!this.capabilities) {
       throw new Error("Failed to initialize video engine capabilities");
     }
@@ -1937,19 +1758,44 @@ var VideoEngine = class {
     this.cleanupDrmController();
     this.applyVideoConfig(config);
     if ((_a = config.drm) == null ? void 0 : _a.enabled) {
-      await this.setupDrm(config.drm);
+      const drmController = await this.runWithAbortSignal(this.setupDrm(config.drm), signal, () => {
+        this.cleanupDrmController();
+      });
+      if (this.isSupersededLoadRequest(requestId)) {
+        drmController.destroy();
+        throw this.createSupersededLoadError();
+      }
+      this.activeEmeController = drmController;
     }
     (_c = (_b = this.events).onLoadStart) == null ? void 0 : _c.call(_b);
     const candidateSources = this.getCandidateSources(config);
-    const totalAttempts = candidateSources.length;
-    const attemptErrors = [];
-    let lastAttemptStrategy;
-    for (let index = 0; index < candidateSources.length; index += 1) {
-      const src = candidateSources[index];
-      const adapterFactory = this.adapterRegistry.resolve({
+    const retryLimit = this.getRetryLimit(config);
+    const retryDelayMs = this.getRetryDelayMs(config);
+    const maxRetryDelayMs = this.getMaxRetryDelayMs(config, retryDelayMs);
+    const backoffMultiplier = this.getBackoffMultiplier(config);
+    const jitterRatio = this.getJitterRatio(config);
+    const resolvedCandidates = candidateSources.map((src) => ({
+      src,
+      adapterFactory: this.adapterRegistry.resolve({
         src,
         capabilities: this.capabilities
-      });
+      })
+    }));
+    const totalAttempts = resolvedCandidates.reduce((count, candidate) => {
+      if (!candidate.adapterFactory) {
+        return count + 1;
+      }
+      return count + retryLimit + 1;
+    }, 0);
+    const attemptErrors = [];
+    let attemptNumber = 0;
+    let lastAttemptStrategy;
+    for (let sourceIndex = 0; sourceIndex < resolvedCandidates.length; sourceIndex += 1) {
+      const candidate = resolvedCandidates[sourceIndex];
+      this.assertActiveLoadRequest(requestId);
+      this.assertNotAborted(signal);
+      const src = candidate.src;
+      const adapterFactory = candidate.adapterFactory;
       const strategy = (_d = adapterFactory == null ? void 0 : adapterFactory.id) != null ? _d : "unresolved";
       lastAttemptStrategy = strategy;
       const payload = {
@@ -1959,53 +1805,124 @@ var VideoEngine = class {
       };
       this.pluginManager.onSourceLoadStart(payload);
       if (!adapterFactory) {
+        attemptNumber += 1;
         const unsupportedError = new Error(`Unsupported video format. This browser cannot play: ${src}`);
         attemptErrors.push(unsupportedError);
         this.pluginManager.onSourceLoadFailed({
           src,
           strategy,
           error: unsupportedError,
-          attempt: index + 1,
+          attempt: attemptNumber,
           totalAttempts
         });
+        const nextCandidate = resolvedCandidates[sourceIndex + 1];
+        if (nextCandidate) {
+          this.pluginManager.onFailover({
+            fromSrc: src,
+            fromStrategy: strategy,
+            toSrc: nextCandidate.src,
+            toStrategy: (_f = (_e = nextCandidate.adapterFactory) == null ? void 0 : _e.id) != null ? _f : "unresolved",
+            error: unsupportedError,
+            attempt: attemptNumber,
+            totalAttempts
+          });
+        }
         continue;
       }
-      const adapter = adapterFactory.create();
-      try {
-        await adapter.load({
-          src,
-          capabilities: this.capabilities,
-          videoElement: this.videoElement,
-          onQualityChange: (quality) => {
-            var _a2, _b2;
-            (_b2 = (_a2 = this.events).onQualityChange) == null ? void 0 : _b2.call(_a2, quality);
-            this.pluginManager.onQualityChange(quality);
+      for (let retryIndex = 0; retryIndex <= retryLimit; retryIndex += 1) {
+        this.assertActiveLoadRequest(requestId);
+        this.assertNotAborted(signal);
+        attemptNumber += 1;
+        const adapter = adapterFactory.create();
+        let adapterDestroyedByAbort = false;
+        try {
+          await this.runWithAbortSignal(
+            adapter.load({
+              src,
+              capabilities: this.capabilities,
+              videoElement: this.videoElement,
+              signal,
+              onQualityChange: (quality) => {
+                var _a2, _b2;
+                (_b2 = (_a2 = this.events).onQualityChange) == null ? void 0 : _b2.call(_a2, quality);
+                this.pluginManager.onQualityChange(quality);
+              }
+            }),
+            signal,
+            () => {
+              adapter.destroy();
+              adapterDestroyedByAbort = true;
+            }
+          );
+          this.assertActiveLoadRequest(requestId);
+          this.assertNotAborted(signal);
+          this.activeAdapter = adapter;
+          this.currentStrategy = adapterFactory.id;
+          this.currentSource = src;
+          this.pluginManager.onSourceLoaded(payload);
+          (_h = (_g = this.events).onLoadEnd) == null ? void 0 : _h.call(_g);
+          return;
+        } catch (error) {
+          const runtimeError = error;
+          if (!adapterDestroyedByAbort) {
+            adapter.destroy();
           }
-        });
-        this.activeAdapter = adapter;
-        this.currentStrategy = adapterFactory.id;
-        this.currentSource = src;
-        this.pluginManager.onSourceLoaded(payload);
-        (_f = (_e = this.events).onLoadEnd) == null ? void 0 : _f.call(_e);
-        return;
-      } catch (error) {
-        const runtimeError = error;
-        adapter.destroy();
-        attemptErrors.push(runtimeError);
-        this.pluginManager.onSourceLoadFailed({
-          src,
-          strategy: adapterFactory.id,
-          error: runtimeError,
-          attempt: index + 1,
-          totalAttempts
-        });
+          if (this.isAbortedLoadError(runtimeError)) {
+            throw runtimeError;
+          }
+          if (this.isSupersededLoadRequest(requestId)) {
+            throw this.createSupersededLoadError();
+          }
+          const canRetry = retryIndex < retryLimit && this.isRetriableLoadError(runtimeError, (_i = config.retryPolicy) == null ? void 0 : _i.retryOn);
+          this.pluginManager.onSourceLoadFailed({
+            src,
+            strategy: adapterFactory.id,
+            error: runtimeError,
+            attempt: attemptNumber,
+            totalAttempts
+          });
+          if (canRetry) {
+            const delayMs = this.calculateRetryDelay({
+              retryAttempt: retryIndex,
+              baseDelayMs: retryDelayMs,
+              maxDelayMs: maxRetryDelayMs,
+              backoffMultiplier,
+              jitterRatio
+            });
+            this.pluginManager.onRetry({
+              src,
+              strategy: adapterFactory.id,
+              error: runtimeError,
+              attempt: attemptNumber,
+              retryAttempt: retryIndex + 1,
+              maxRetries: retryLimit,
+              retryDelayMs: delayMs
+            });
+            await this.waitForRetryDelay(delayMs, signal);
+            continue;
+          }
+          attemptErrors.push(runtimeError);
+          const nextCandidate = resolvedCandidates[sourceIndex + 1];
+          if (nextCandidate) {
+            this.pluginManager.onFailover({
+              fromSrc: src,
+              fromStrategy: adapterFactory.id,
+              toSrc: nextCandidate.src,
+              toStrategy: (_k = (_j = nextCandidate.adapterFactory) == null ? void 0 : _j.id) != null ? _k : "unresolved",
+              error: runtimeError,
+              attempt: attemptNumber,
+              totalAttempts
+            });
+          }
+          break;
+        }
       }
     }
-    const lastError = (_g = attemptErrors[attemptErrors.length - 1]) != null ? _g : new Error("Unknown playback failure");
+    const lastError = (_l = attemptErrors[attemptErrors.length - 1]) != null ? _l : new Error("Unknown playback failure");
     const failureSummary = new Error(
       `All playback sources failed (${totalAttempts} attempts). Last error: ${lastError.message}`
     );
-    (_i = (_h = this.events).onError) == null ? void 0 : _i.call(_h, failureSummary);
+    (_n = (_m = this.events).onError) == null ? void 0 : _n.call(_m, failureSummary);
     this.pluginManager.onError({
       error: failureSummary,
       src: candidateSources[candidateSources.length - 1],
@@ -2019,13 +1936,25 @@ var VideoEngine = class {
   }
   setQuality(qualityId) {
     var _a;
+    this.assertNotDisposed("setQuality");
     (_a = this.activeAdapter) == null ? void 0 : _a.setQuality(qualityId);
   }
   cleanup() {
+    if (this.isDisposed) {
+      return;
+    }
+    this.loadRequestId += 1;
     this.cleanupActiveAdapter();
     this.cleanupDrmController();
   }
   dispose() {
+    if (this.isDisposed) {
+      return;
+    }
+    this.isDisposed = true;
+    this.loadRequestId += 1;
+    this.cancelPendingFrames();
+    this.removeVideoElementEvents();
     this.cleanupActiveAdapter();
     this.cleanupDrmController();
     this.pluginManager.dispose();
@@ -2050,41 +1979,20 @@ var VideoEngine = class {
     }
   }
   setupVideoElementEvents() {
-    this.videoElement.addEventListener("play", () => {
-      var _a, _b;
-      (_b = (_a = this.events).onPlay) == null ? void 0 : _b.call(_a);
-      this.pluginManager.onPlay();
-    });
-    this.videoElement.addEventListener("pause", () => {
-      var _a, _b;
-      (_b = (_a = this.events).onPause) == null ? void 0 : _b.call(_a);
-      this.pluginManager.onPause();
-    });
-    this.videoElement.addEventListener("timeupdate", () => {
-      var _a, _b;
-      const currentTime = this.videoElement.currentTime;
-      const duration = this.videoElement.duration || 0;
-      (_b = (_a = this.events).onTimeUpdate) == null ? void 0 : _b.call(_a, currentTime, duration);
-      this.pluginManager.onTimeUpdate({ currentTime, duration });
-    });
-    this.videoElement.addEventListener("progress", () => {
-      var _a, _b;
-      const buffered = this.getBufferedPercentage();
-      (_b = (_a = this.events).onProgress) == null ? void 0 : _b.call(_a, buffered);
-    });
-    this.videoElement.addEventListener("volumechange", () => {
-      var _a, _b;
-      const volume = this.videoElement.volume;
-      const muted = this.videoElement.muted;
-      (_b = (_a = this.events).onVolumeChange) == null ? void 0 : _b.call(_a, volume, muted);
-      this.pluginManager.onVolumeChange({ volume, muted });
-    });
-    this.videoElement.addEventListener("error", () => {
-      var _a, _b;
-      const error = new Error("Video element error");
-      (_b = (_a = this.events).onError) == null ? void 0 : _b.call(_a, error);
-      this.pluginManager.onError({ error, src: this.currentSource, strategy: this.currentStrategy });
-    });
+    this.videoElement.addEventListener("play", this.onPlayListener);
+    this.videoElement.addEventListener("pause", this.onPauseListener);
+    this.videoElement.addEventListener("timeupdate", this.onTimeUpdateListener);
+    this.videoElement.addEventListener("progress", this.onProgressListener);
+    this.videoElement.addEventListener("volumechange", this.onVolumeChangeListener);
+    this.videoElement.addEventListener("error", this.onErrorListener);
+  }
+  removeVideoElementEvents() {
+    this.videoElement.removeEventListener("play", this.onPlayListener);
+    this.videoElement.removeEventListener("pause", this.onPauseListener);
+    this.videoElement.removeEventListener("timeupdate", this.onTimeUpdateListener);
+    this.videoElement.removeEventListener("progress", this.onProgressListener);
+    this.videoElement.removeEventListener("volumechange", this.onVolumeChangeListener);
+    this.videoElement.removeEventListener("error", this.onErrorListener);
   }
   getBufferedPercentage() {
     const buffered = this.videoElement.buffered;
@@ -2093,18 +2001,42 @@ var VideoEngine = class {
       return 0;
     }
     const bufferedEnd = buffered.end(buffered.length - 1);
-    return bufferedEnd / duration * 100;
+    return Math.min(100, bufferedEnd / duration * 100);
+  }
+  requestFrame(callback) {
+    if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
+      return window.requestAnimationFrame(callback);
+    }
+    return setTimeout(callback, 16);
+  }
+  cancelFrame(id) {
+    if (typeof window !== "undefined" && typeof window.cancelAnimationFrame === "function") {
+      window.cancelAnimationFrame(id);
+      return;
+    }
+    clearTimeout(id);
+  }
+  cancelPendingFrames() {
+    if (this.timeUpdateFrameId !== null) {
+      this.cancelFrame(this.timeUpdateFrameId);
+      this.timeUpdateFrameId = null;
+    }
+    if (this.progressFrameId !== null) {
+      this.cancelFrame(this.progressFrameId);
+      this.progressFrameId = null;
+    }
   }
   cleanupActiveAdapter() {
     var _a;
     (_a = this.activeAdapter) == null ? void 0 : _a.destroy();
     this.activeAdapter = void 0;
     this.currentStrategy = void 0;
+    this.currentSource = void 0;
   }
   async setupDrm(configuration) {
     var _a, _b;
     try {
-      this.activeEmeController = await createEmeController(this.videoElement, configuration, this.emeEnvironment);
+      return await createEmeController(this.videoElement, configuration, this.emeEnvironment);
     } catch (error) {
       const drmError = new Error(`Failed to initialize DRM: ${error.message}`);
       (_b = (_a = this.events).onError) == null ? void 0 : _b.call(_a, drmError);
@@ -2124,12 +2056,160 @@ var VideoEngine = class {
     const sources = [config.src, ...(_a = config.fallbackSources) != null ? _a : []].map((source) => source.trim()).filter((source) => source.length > 0);
     return Array.from(new Set(sources));
   }
+  getRetryLimit(config) {
+    var _a, _b;
+    const configuredLimit = (_b = (_a = config.retryPolicy) == null ? void 0 : _a.maxRetries) != null ? _b : 0;
+    return Math.max(0, Math.min(5, Math.floor(configuredLimit)));
+  }
+  getRetryDelayMs(config) {
+    var _a, _b;
+    const configuredDelayMs = (_b = (_a = config.retryPolicy) == null ? void 0 : _a.retryDelayMs) != null ? _b : 0;
+    return Math.max(0, Math.min(5e3, Math.floor(configuredDelayMs)));
+  }
+  getMaxRetryDelayMs(config, fallbackDelayMs) {
+    var _a, _b;
+    const configuredMaxDelayMs = (_b = (_a = config.retryPolicy) == null ? void 0 : _a.maxRetryDelayMs) != null ? _b : fallbackDelayMs;
+    return Math.max(0, Math.min(3e4, Math.floor(configuredMaxDelayMs)));
+  }
+  getBackoffMultiplier(config) {
+    var _a, _b;
+    const configuredMultiplier = (_b = (_a = config.retryPolicy) == null ? void 0 : _a.backoffMultiplier) != null ? _b : 1;
+    return Math.max(1, Math.min(4, configuredMultiplier));
+  }
+  getJitterRatio(config) {
+    var _a, _b;
+    const configuredJitterRatio = (_b = (_a = config.retryPolicy) == null ? void 0 : _a.jitterRatio) != null ? _b : 0;
+    return Math.max(0, Math.min(1, configuredJitterRatio));
+  }
+  isSupersededLoadRequest(requestId) {
+    return requestId !== this.loadRequestId;
+  }
+  assertActiveLoadRequest(requestId) {
+    if (this.isSupersededLoadRequest(requestId)) {
+      throw this.createSupersededLoadError();
+    }
+  }
+  createSupersededLoadError() {
+    return new Error("VideoEngine.loadSource() superseded by a newer load request");
+  }
+  assertNotAborted(signal) {
+    if (!(signal == null ? void 0 : signal.aborted)) {
+      return;
+    }
+    throw this.createAbortedLoadError();
+  }
+  createAbortedLoadError() {
+    const error = new Error("VideoEngine.loadSource() aborted");
+    error.name = "AbortError";
+    return error;
+  }
+  isAbortedLoadError(error) {
+    return error.name === "AbortError" || error.message === "VideoEngine.loadSource() aborted";
+  }
+  isRetriableLoadError(error, retryOn) {
+    if (this.isAbortedLoadError(error)) {
+      return false;
+    }
+    const retryRules = retryOn != null ? retryOn : ["network", "timeout", "server"];
+    if (retryRules.includes("all")) {
+      return true;
+    }
+    const category = this.classifyLoadError(error);
+    return retryRules.includes(category);
+  }
+  classifyLoadError(error) {
+    const message = error.message.toLowerCase();
+    if (message.includes("timeout")) {
+      return "timeout";
+    }
+    if (message.includes("network") || message.includes("failed to fetch") || message.includes("ecconn") || message.includes("econn") || message.includes("err_network")) {
+      return "network";
+    }
+    if (/(status|http)\s*5\d\d/.test(message) || /\b50\d\b/.test(message)) {
+      return "server";
+    }
+    if (message.includes("unsupported") || message.includes("not supported") || message.includes("cannot play") || message.includes("codec")) {
+      return "unsupported";
+    }
+    return "unknown";
+  }
+  async waitForRetryDelay(delayMs, signal) {
+    if (delayMs <= 0) {
+      this.assertNotAborted(signal);
+      return;
+    }
+    await this.runWithAbortSignal(
+      new Promise((resolve) => {
+        globalThis.setTimeout(resolve, delayMs);
+      }),
+      signal
+    );
+  }
+  calculateRetryDelay(options) {
+    const {
+      retryAttempt,
+      baseDelayMs,
+      maxDelayMs,
+      backoffMultiplier,
+      jitterRatio
+    } = options;
+    if (baseDelayMs <= 0) {
+      return 0;
+    }
+    const exponentialDelay = baseDelayMs * Math.pow(backoffMultiplier, retryAttempt);
+    const cappedDelay = Math.min(maxDelayMs, exponentialDelay);
+    if (jitterRatio <= 0) {
+      return Math.floor(cappedDelay);
+    }
+    const jitterDelta = cappedDelay * jitterRatio;
+    const randomOffset = (Math.random() * 2 - 1) * jitterDelta;
+    return Math.max(0, Math.floor(cappedDelay + randomOffset));
+  }
+  runWithAbortSignal(task, signal, onAbort) {
+    if (!signal) {
+      return task;
+    }
+    if (signal.aborted) {
+      onAbort == null ? void 0 : onAbort();
+      return Promise.reject(this.createAbortedLoadError());
+    }
+    return new Promise((resolve, reject) => {
+      const cleanup = () => {
+        signal.removeEventListener("abort", handleAbort);
+      };
+      const handleAbort = () => {
+        cleanup();
+        onAbort == null ? void 0 : onAbort();
+        reject(this.createAbortedLoadError());
+      };
+      signal.addEventListener("abort", handleAbort, { once: true });
+      task.then(
+        (value) => {
+          cleanup();
+          resolve(value);
+        },
+        (error) => {
+          cleanup();
+          reject(error);
+        }
+      );
+    });
+  }
+  assertNotDisposed(methodName) {
+    if (this.isDisposed) {
+      throw new Error(`VideoEngine.${methodName}() called after dispose`);
+    }
+  }
 };
 
 // src/hooks/use-video-player.ts
-var useVideoPlayer = (videoRef, options = {}) => {
+var TIME_EPSILON = 0.05;
+var DURATION_EPSILON = 0.01;
+var BUFFER_EPSILON = 0.25;
+var VOLUME_EPSILON = 0.01;
+var createInitialState = (options) => {
   var _a, _b;
-  const [state, setState] = useState4({
+  return {
     isPlaying: false,
     isPaused: true,
     isLoading: false,
@@ -2144,124 +2224,212 @@ var useVideoPlayer = (videoRef, options = {}) => {
     isPictureInPicture: false,
     isTheaterMode: false,
     error: null,
-    // Analytics data
     playCount: 0,
     totalWatchTime: 0,
     bufferingTime: 0,
     averageBitrate: 0,
     qualityChanges: 0
-  });
-  const [engine, setEngine] = useState4(null);
-  const [isEngineReady, setIsEngineReady] = useState4(false);
-  const [pendingConfig, setPendingConfig] = useState4(null);
-  const [isPlayPending, setIsPlayPending] = useState4(false);
-  const [qualityLevels, setQualityLevels] = useState4([]);
-  const [initialEnginePlugins] = useState4(() => options.enginePlugins);
-  const [lastPlayTime, setLastPlayTime] = useState4(0);
-  const [bufferingStartTime, setBufferingStartTime] = useState4(0);
-  useEffect4(() => {
+  };
+};
+var videoPlayerReducer = (state, action) => {
+  switch (action.type) {
+    case "ready": {
+      return state.isLoading ? __spreadProps(__spreadValues({}, state), { isLoading: false }) : state;
+    }
+    case "play": {
+      if (state.isPlaying && !state.isPaused) {
+        return state;
+      }
+      return __spreadProps(__spreadValues({}, state), {
+        isPlaying: true,
+        isPaused: false,
+        error: null,
+        playCount: state.playCount + 1
+      });
+    }
+    case "pause": {
+      if (!state.isPlaying && state.isPaused) {
+        return state;
+      }
+      return __spreadProps(__spreadValues({}, state), {
+        isPlaying: false,
+        isPaused: true,
+        totalWatchTime: state.totalWatchTime + action.watchTime
+      });
+    }
+    case "time_update": {
+      const currentTimeDelta = Math.abs(state.currentTime - action.currentTime);
+      const durationDelta = Math.abs(state.duration - action.duration);
+      if (currentTimeDelta < TIME_EPSILON && durationDelta < DURATION_EPSILON) {
+        return state;
+      }
+      return __spreadProps(__spreadValues({}, state), {
+        currentTime: action.currentTime,
+        duration: action.duration,
+        error: action.currentTime > 0 ? null : state.error
+      });
+    }
+    case "progress": {
+      if (Math.abs(state.buffered - action.buffered) < BUFFER_EPSILON) {
+        return state;
+      }
+      return __spreadProps(__spreadValues({}, state), { buffered: action.buffered });
+    }
+    case "volume_change": {
+      if (Math.abs(state.volume - action.volume) < VOLUME_EPSILON && state.isMuted === action.isMuted) {
+        return state;
+      }
+      return __spreadProps(__spreadValues({}, state), { volume: action.volume, isMuted: action.isMuted });
+    }
+    case "quality_change": {
+      if (state.quality === action.quality) {
+        return state;
+      }
+      return __spreadProps(__spreadValues({}, state), {
+        quality: action.quality,
+        qualityChanges: state.qualityChanges + 1
+      });
+    }
+    case "error": {
+      if (state.error === action.message && !state.isLoading) {
+        return state;
+      }
+      return __spreadProps(__spreadValues({}, state), { error: action.message, isLoading: false });
+    }
+    case "load_start": {
+      if (state.isLoading && state.error === null) {
+        return state;
+      }
+      return __spreadProps(__spreadValues({}, state), { isLoading: true, error: null });
+    }
+    case "load_end": {
+      if (!state.isLoading && action.bufferingTime <= 0) {
+        return state;
+      }
+      return __spreadProps(__spreadValues({}, state), {
+        isLoading: false,
+        bufferingTime: state.bufferingTime + action.bufferingTime
+      });
+    }
+    case "fullscreen_change": {
+      return state.isFullscreen === action.isFullscreen ? state : __spreadProps(__spreadValues({}, state), { isFullscreen: action.isFullscreen });
+    }
+    case "pip_change": {
+      return state.isPictureInPicture === action.isPictureInPicture ? state : __spreadProps(__spreadValues({}, state), { isPictureInPicture: action.isPictureInPicture });
+    }
+    case "playback_rate_change": {
+      return state.playbackRate === action.playbackRate ? state : __spreadProps(__spreadValues({}, state), { playbackRate: action.playbackRate });
+    }
+    case "toggle_theater_mode": {
+      return __spreadProps(__spreadValues({}, state), { isTheaterMode: !state.isTheaterMode });
+    }
+    default: {
+      return state;
+    }
+  }
+};
+var calculateElapsedSeconds = (startedAt, now) => {
+  if (startedAt <= 0) {
+    return 0;
+  }
+  return Math.max(0, (now - startedAt) / 1e3);
+};
+var isExpectedLoadInterruption = (error) => {
+  const message = error.message.toLowerCase();
+  return error.name === "AbortError" || message.includes("loadsource() aborted") || message.includes("superseded by a newer load request");
+};
+var useVideoPlayer = (videoRef, options = {}) => {
+  const [state, dispatch] = useReducer(videoPlayerReducer, options, createInitialState);
+  const [engine, setEngine] = useState2(null);
+  const [isEngineReady, setIsEngineReady] = useState2(false);
+  const [pendingConfig, setPendingConfig] = useState2(null);
+  const [isPlayPending, setIsPlayPending] = useState2(false);
+  const [qualityLevels, setQualityLevels] = useState2([]);
+  const [initialEnginePlugins] = useState2(() => options.enginePlugins);
+  const lastPlayTimeRef = useRef2(0);
+  const bufferingStartTimeRef = useRef2(0);
+  useEffect2(() => {
     if (!videoRef.current) return;
     const videoElement = videoRef.current;
     const events = {
       onReady: () => {
-        console.log("VideoEngine: onReady event fired");
-        setState((prev) => __spreadProps(__spreadValues({}, prev), { isLoading: false }));
+        dispatch({ type: "ready" });
         setIsEngineReady(true);
       },
       onPlay: () => {
-        setState((prev) => __spreadProps(__spreadValues({}, prev), {
-          isPlaying: true,
-          isPaused: false,
-          playCount: prev.playCount + 1
-        }));
-        setLastPlayTime(Date.now());
+        dispatch({ type: "play" });
+        lastPlayTimeRef.current = Date.now();
       },
       onPause: () => {
-        setState((prev) => {
-          const watchTime = lastPlayTime > 0 ? (Date.now() - lastPlayTime) / 1e3 : 0;
-          return __spreadProps(__spreadValues({}, prev), {
-            isPlaying: false,
-            isPaused: true,
-            totalWatchTime: prev.totalWatchTime + watchTime
-          });
-        });
+        const watchTime = calculateElapsedSeconds(lastPlayTimeRef.current, Date.now());
+        dispatch({ type: "pause", watchTime });
+        lastPlayTimeRef.current = 0;
       },
       onTimeUpdate: (currentTime, duration) => {
-        setState((prev) => __spreadProps(__spreadValues({}, prev), { currentTime, duration }));
+        const safeCurrentTime = Number.isFinite(currentTime) ? currentTime : 0;
+        const safeDuration = Number.isFinite(duration) ? duration : 0;
+        dispatch({ type: "time_update", currentTime: safeCurrentTime, duration: safeDuration });
       },
       onProgress: (buffered) => {
-        setState((prev) => __spreadProps(__spreadValues({}, prev), { buffered }));
+        const safeBuffered = Number.isFinite(buffered) ? buffered : 0;
+        dispatch({ type: "progress", buffered: safeBuffered });
       },
       onVolumeChange: (volume, muted) => {
-        setState((prev) => __spreadProps(__spreadValues({}, prev), { volume, isMuted: muted }));
+        const safeVolume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 1;
+        dispatch({ type: "volume_change", volume: safeVolume, isMuted: muted });
       },
       onQualityChange: (quality) => {
-        setState((prev) => __spreadProps(__spreadValues({}, prev), {
-          quality,
-          qualityChanges: prev.qualityChanges + 1
-        }));
+        dispatch({ type: "quality_change", quality });
       },
       onError: (error) => {
-        setState((prev) => __spreadProps(__spreadValues({}, prev), { error: error.message, isLoading: false }));
+        dispatch({ type: "error", message: error.message });
       },
       onLoadStart: () => {
-        setState((prev) => __spreadProps(__spreadValues({}, prev), { isLoading: true, error: null }));
-        setBufferingStartTime(Date.now());
+        dispatch({ type: "load_start" });
+        bufferingStartTimeRef.current = Date.now();
       },
       onLoadEnd: () => {
-        setState((prev) => {
-          const bufferingTime = bufferingStartTime > 0 ? (Date.now() - bufferingStartTime) / 1e3 : 0;
-          return __spreadProps(__spreadValues({}, prev), {
-            isLoading: false,
-            bufferingTime: prev.bufferingTime + bufferingTime
-          });
-        });
+        const bufferingTime = calculateElapsedSeconds(bufferingStartTimeRef.current, Date.now());
+        dispatch({ type: "load_end", bufferingTime });
+        bufferingStartTimeRef.current = 0;
       }
     };
     const videoEngine = new VideoEngine(videoElement, events, {
       plugins: initialEnginePlugins
     });
     setEngine(videoEngine);
-    console.log("Initializing video engine...");
-    videoEngine.initialize().then(() => {
-      console.log("Video engine initialized successfully");
-    }).catch((error) => {
-      console.error("Video engine initialization failed:", error);
-      setState((prev) => __spreadProps(__spreadValues({}, prev), { error: error.message }));
+    videoEngine.initialize().catch((error) => {
+      dispatch({ type: "error", message: error.message });
     });
     return () => {
       videoEngine.dispose();
     };
   }, [videoRef, initialEnginePlugins]);
-  useEffect4(() => {
+  useEffect2(() => {
     if (isEngineReady && engine && pendingConfig) {
-      console.log("Engine is ready, loading pending config:", pendingConfig.src);
       engine.loadSource(pendingConfig).then(() => {
-        console.log("Pending video loaded successfully");
-        const levels = engine.getQualityLevels();
-        setQualityLevels(levels);
+        setQualityLevels(engine.getQualityLevels());
         setPendingConfig(null);
       }).catch((error) => {
-        console.error("Pending video load error:", error);
-        setState((prev) => __spreadProps(__spreadValues({}, prev), {
-          error: `Failed to load video: ${error.message}`
-        }));
+        if (isExpectedLoadInterruption(error)) {
+          setPendingConfig(null);
+          return;
+        }
+        dispatch({ type: "error", message: `Failed to load video: ${error.message}` });
         setPendingConfig(null);
       });
     }
   }, [isEngineReady, engine, pendingConfig]);
-  useEffect4(() => {
+  useEffect2(() => {
     if (typeof document === "undefined") return;
     const handleFullscreenChange = () => {
-      setState((prev) => __spreadProps(__spreadValues({}, prev), {
-        isFullscreen: Boolean(document.fullscreenElement)
-      }));
+      dispatch({ type: "fullscreen_change", isFullscreen: Boolean(document.fullscreenElement) });
     };
     const handleEnterPiP = () => {
-      setState((prev) => __spreadProps(__spreadValues({}, prev), { isPictureInPicture: true }));
+      dispatch({ type: "pip_change", isPictureInPicture: true });
     };
     const handleLeavePiP = () => {
-      setState((prev) => __spreadProps(__spreadValues({}, prev), { isPictureInPicture: false }));
+      dispatch({ type: "pip_change", isPictureInPicture: false });
     };
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     if (videoRef.current) {
@@ -2276,112 +2444,117 @@ var useVideoPlayer = (videoRef, options = {}) => {
       }
     };
   }, [videoRef]);
-  const controls = {
-    play: useCallback2(async () => {
-      if (!videoRef.current || isPlayPending) return;
-      try {
-        setIsPlayPending(true);
-        if (!videoRef.current.paused) {
-          setIsPlayPending(false);
-          return;
-        }
-        await videoRef.current.play();
-        setIsPlayPending(false);
-      } catch (error) {
-        setIsPlayPending(false);
-        console.error("Play failed:", error);
-        const errorMessage = error.message;
-        if (!errorMessage.includes("user didn't interact") && !errorMessage.includes("autoplay") && !errorMessage.includes("gesture")) {
-          setState((prev) => __spreadProps(__spreadValues({}, prev), {
-            error: `Playback failed: ${errorMessage}`
-          }));
-        }
-      }
-    }, [videoRef, isPlayPending]),
-    pause: useCallback2(() => {
-      if (!videoRef.current || isPlayPending) return;
+  const play = useCallback2(async () => {
+    if (!videoRef.current || isPlayPending) return;
+    try {
+      setIsPlayPending(true);
       if (!videoRef.current.paused) {
-        videoRef.current.pause();
-      }
-    }, [videoRef, isPlayPending]),
-    seek: useCallback2((time) => {
-      if (!videoRef.current) return;
-      videoRef.current.currentTime = time;
-    }, [videoRef]),
-    setVolume: useCallback2((volume) => {
-      if (!videoRef.current) return;
-      videoRef.current.volume = Math.max(0, Math.min(1, volume));
-    }, [videoRef]),
-    toggleMute: useCallback2(() => {
-      if (!videoRef.current) return;
-      videoRef.current.muted = !videoRef.current.muted;
-    }, [videoRef]),
-    toggleFullscreen: useCallback2(async () => {
-      if (!videoRef.current) return;
-      try {
-        if (document.fullscreenElement) {
-          await document.exitFullscreen();
-        } else {
-          await videoRef.current.requestFullscreen();
-        }
-      } catch (error) {
-        setState((prev) => __spreadProps(__spreadValues({}, prev), {
-          error: `Fullscreen failed: ${error.message}`
-        }));
-      }
-    }, [videoRef]),
-    setQuality: useCallback2((qualityId) => {
-      if (!engine) return;
-      engine.setQuality(qualityId);
-    }, [engine]),
-    setPlaybackRate: useCallback2((rate) => {
-      if (!videoRef.current) return;
-      videoRef.current.playbackRate = rate;
-      setState((prev) => __spreadProps(__spreadValues({}, prev), { playbackRate: rate }));
-    }, [videoRef]),
-    togglePictureInPicture: useCallback2(async () => {
-      if (!videoRef.current) return;
-      try {
-        if (state.isPictureInPicture) {
-          await document.exitPictureInPicture();
-        } else {
-          await videoRef.current.requestPictureInPicture();
-        }
-      } catch (error) {
-        console.error("Picture-in-Picture error:", error);
-      }
-    }, [videoRef, state.isPictureInPicture]),
-    toggleTheaterMode: useCallback2(() => {
-      setState((prev) => __spreadProps(__spreadValues({}, prev), {
-        isTheaterMode: !prev.isTheaterMode
-      }));
-    }, []),
-    load: useCallback2(async (config) => {
-      if (!engine) {
-        console.log("Engine not available yet, storing config as pending");
-        setPendingConfig(config);
         return;
       }
-      if (!isEngineReady) {
-        console.log("Engine not ready yet, storing config as pending");
-        setPendingConfig(config);
+      await videoRef.current.play();
+    } catch (error) {
+      const errorMessage = error.message;
+      if (!errorMessage.includes("user didn't interact") && !errorMessage.includes("autoplay") && !errorMessage.includes("gesture")) {
+        dispatch({ type: "error", message: `Playback failed: ${errorMessage}` });
+      }
+    } finally {
+      setIsPlayPending(false);
+    }
+  }, [videoRef, isPlayPending]);
+  const pause = useCallback2(() => {
+    if (!videoRef.current || isPlayPending) return;
+    if (!videoRef.current.paused) {
+      videoRef.current.pause();
+    }
+  }, [videoRef, isPlayPending]);
+  const seek = useCallback2((time) => {
+    if (!videoRef.current) return;
+    videoRef.current.currentTime = time;
+  }, [videoRef]);
+  const setVolume = useCallback2((volume) => {
+    if (!videoRef.current || !Number.isFinite(volume)) return;
+    videoRef.current.volume = Math.max(0, Math.min(1, volume));
+  }, [videoRef]);
+  const toggleMute = useCallback2(() => {
+    if (!videoRef.current) return;
+    videoRef.current.muted = !videoRef.current.muted;
+  }, [videoRef]);
+  const toggleFullscreen = useCallback2(async () => {
+    if (!videoRef.current) return;
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await videoRef.current.requestFullscreen();
+      }
+    } catch (error) {
+      dispatch({ type: "error", message: `Fullscreen failed: ${error.message}` });
+    }
+  }, [videoRef]);
+  const setQuality = useCallback2((qualityId) => {
+    if (!engine) return;
+    engine.setQuality(qualityId);
+  }, [engine]);
+  const setPlaybackRate = useCallback2((rate) => {
+    if (!videoRef.current) return;
+    videoRef.current.playbackRate = rate;
+    dispatch({ type: "playback_rate_change", playbackRate: rate });
+  }, [videoRef]);
+  const togglePictureInPicture = useCallback2(async () => {
+    if (!videoRef.current) return;
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else {
+        await videoRef.current.requestPictureInPicture();
+      }
+    } catch (e) {
+    }
+  }, [videoRef]);
+  const toggleTheaterMode = useCallback2(() => {
+    dispatch({ type: "toggle_theater_mode" });
+  }, []);
+  const load = useCallback2(async (config) => {
+    if (!engine || !isEngineReady) {
+      setPendingConfig(config);
+      return;
+    }
+    try {
+      await engine.loadSource(config);
+      setQualityLevels(engine.getQualityLevels());
+    } catch (error) {
+      if (isExpectedLoadInterruption(error)) {
         return;
       }
-      try {
-        console.log("Loading video source:", config.src);
-        await engine.loadSource(config);
-        const levels = engine.getQualityLevels();
-        setQualityLevels(levels);
-        console.log("Video loaded successfully");
-      } catch (error) {
-        console.error("Video load error:", error);
-        setState((prev) => __spreadProps(__spreadValues({}, prev), {
-          error: `Failed to load video: ${error.message}`
-        }));
-      }
-    }, [engine, isEngineReady])
-  };
-  useEffect4(() => {
+      dispatch({ type: "error", message: `Failed to load video: ${error.message}` });
+    }
+  }, [engine, isEngineReady]);
+  const controls = useMemo(() => ({
+    play,
+    pause,
+    seek,
+    setVolume,
+    toggleMute,
+    toggleFullscreen,
+    togglePictureInPicture,
+    toggleTheaterMode,
+    setPlaybackRate,
+    setQuality,
+    load
+  }), [
+    play,
+    pause,
+    seek,
+    setVolume,
+    toggleMute,
+    toggleFullscreen,
+    togglePictureInPicture,
+    toggleTheaterMode,
+    setPlaybackRate,
+    setQuality,
+    load
+  ]);
+  useEffect2(() => {
     if (typeof window === "undefined") return;
     const handleKeyPress = (e) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
@@ -2394,7 +2567,7 @@ var useVideoPlayer = (videoRef, options = {}) => {
           if (state.isPlaying && !state.isPaused) {
             controls.pause();
           } else {
-            controls.play();
+            void controls.play();
           }
           break;
         case "ArrowLeft":
@@ -2419,7 +2592,7 @@ var useVideoPlayer = (videoRef, options = {}) => {
           break;
         case "f":
           e.preventDefault();
-          controls.toggleFullscreen();
+          void controls.toggleFullscreen();
           break;
         case "0":
         case "1":
@@ -2430,18 +2603,19 @@ var useVideoPlayer = (videoRef, options = {}) => {
         case "6":
         case "7":
         case "8":
-        case "9":
+        case "9": {
           e.preventDefault();
-          const percentage = parseInt(e.key) / 10;
+          const percentage = Number.parseInt(e.key, 10) / 10;
           controls.seek(state.duration * percentage);
           break;
+        }
       }
     };
     window.addEventListener("keydown", handleKeyPress);
     return () => {
       window.removeEventListener("keydown", handleKeyPress);
     };
-  }, [state.isPlaying, state.currentTime, state.duration, state.volume, controls]);
+  }, [state.isPlaying, state.isPaused, state.currentTime, state.duration, state.volume, controls]);
   return {
     state,
     controls,
@@ -2451,7 +2625,7 @@ var useVideoPlayer = (videoRef, options = {}) => {
 };
 
 // src/hooks/use-video-gestures.ts
-import { useCallback as useCallback3, useRef as useRef3, useState as useState5, useEffect as useEffect5 } from "react";
+import { useCallback as useCallback3, useRef as useRef3, useState as useState3, useEffect as useEffect3 } from "react";
 var DEFAULT_CONFIG = {
   enableTapToPlay: true,
   enableDoubleTapSeek: true,
@@ -2471,7 +2645,7 @@ var useVideoGestures = (elementRef, callbacks, config = {}) => {
     tapCount: 0,
     isActive: false
   });
-  const [isGestureActive, setIsGestureActive] = useState5(false);
+  const [isGestureActive, setIsGestureActive] = useState3(false);
   const handleTouchStart = useCallback3((event) => {
     if (event.touches.length === 1) {
       const touch = event.touches[0];
@@ -2567,7 +2741,7 @@ var useVideoGestures = (elementRef, callbacks, config = {}) => {
     }
     touchState.current.lastTapTime = now;
   }, [elementRef, callbacks, mergedConfig]);
-  useEffect5(() => {
+  useEffect3(() => {
     const element = elementRef.current;
     if (!element) return;
     element.addEventListener("touchstart", handleTouchStart, { passive: false });
@@ -2588,12 +2762,12 @@ var useVideoGestures = (elementRef, callbacks, config = {}) => {
 };
 
 // src/contexts/player-config-context.tsx
-import { createContext, useContext, useState as useState6, useEffect as useEffect6 } from "react";
+import { createContext, useContext, useState as useState4, useEffect as useEffect4 } from "react";
 
 // src/types/player-config.ts
 var PlayerPresets = {
-  // YouTube-like experience
-  youtube: {
+  // Default full experience
+  default: {
     controls: {
       show: true,
       visibility: {
@@ -2609,103 +2783,12 @@ var PlayerPresets = {
         settings: true,
         time: true
       },
-      style: "youtube",
       position: "bottom"
     },
     keyboard: { enabled: true },
     gestures: { enabled: true, tapToPlay: true, doubleTapSeek: true },
     auto: { autoHideControls: true, autoHideDelay: 3e3 },
     features: { thumbnailPreview: true, chapters: true }
-  },
-  // Minimal player
-  minimal: {
-    controls: {
-      show: true,
-      visibility: {
-        playPause: true,
-        progress: true,
-        fullscreen: true
-      },
-      style: "minimal"
-    },
-    keyboard: { enabled: false },
-    gestures: { enabled: true, tapToPlay: true },
-    auto: { autoHideControls: true, autoHideDelay: 2e3 }
-  },
-  // No controls (video background)
-  background: {
-    controls: { show: false },
-    keyboard: { enabled: false },
-    gestures: { enabled: false },
-    auto: { autoPlay: true }
-  },
-  // Netflix-style
-  netflix: {
-    controls: {
-      show: true,
-      visibility: {
-        playPause: true,
-        progress: true,
-        volume: true,
-        fullscreen: true,
-        playbackRate: true,
-        time: true
-      },
-      style: "netflix"
-    },
-    theme: {
-      primary: "#e50914",
-      controlsBackground: "rgba(0,0,0,0.7)"
-    },
-    auto: { autoHideControls: true, autoHideDelay: 4e3 }
-  },
-  // Mobile-optimized
-  mobile: {
-    controls: {
-      show: true,
-      visibility: {
-        playPause: true,
-        progress: true,
-        fullscreen: true,
-        volume: false,
-        // Hidden on mobile
-        quality: true
-      },
-      size: "large"
-    },
-    gestures: {
-      enabled: true,
-      tapToPlay: true,
-      doubleTapSeek: true,
-      swipeVolume: true
-    },
-    responsive: {
-      enabled: true,
-      adaptiveControls: true,
-      hideControlsOnMobile: ["volume", "keyboardShortcuts"]
-    }
-  },
-  // Custom minimal with only play/pause
-  playOnly: {
-    controls: {
-      show: true,
-      visibility: {
-        playPause: true,
-        progress: false,
-        volume: false,
-        quality: false,
-        fullscreen: false,
-        pictureInPicture: false,
-        theaterMode: false,
-        playbackRate: false,
-        keyboardShortcuts: false,
-        settings: false,
-        time: false
-      },
-      style: "minimal"
-    },
-    keyboard: { enabled: false },
-    gestures: { enabled: true, tapToPlay: true }
   }
 };
 var mergePlayerConfig = (base = {}, override = {}) => {
@@ -2727,15 +2810,15 @@ var mergePlayerConfig = (base = {}, override = {}) => {
 };
 
 // src/contexts/player-config-context.tsx
-import { jsx as jsx12 } from "react/jsx-runtime";
+import { jsx as jsx7 } from "react/jsx-runtime";
 var PlayerConfigContext = createContext(void 0);
 var PlayerConfigProvider = ({
   children,
-  defaultConfig = PlayerPresets.youtube,
+  defaultConfig = PlayerPresets.default,
   storageKey = "nextjs-videoplayer-config"
 }) => {
-  const [config, setConfig] = useState6(defaultConfig);
-  useEffect6(() => {
+  const [config, setConfig] = useState4(defaultConfig);
+  useEffect4(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
@@ -2743,7 +2826,7 @@ var PlayerConfigProvider = ({
           const savedConfig = JSON.parse(saved);
           setConfig(mergePlayerConfig(defaultConfig, savedConfig));
         } catch (error) {
-          console.warn("Failed to load saved player config:", error);
+          getPlayerLogger().warn("Failed to load saved player config:", error);
         }
       }
     }
@@ -2761,15 +2844,6 @@ var PlayerConfigProvider = ({
   const resetConfig = () => {
     setConfig(defaultConfig);
     saveConfigToStorage(defaultConfig);
-  };
-  const loadPreset = (presetName) => {
-    const preset = PlayerPresets[presetName];
-    if (preset) {
-      setConfig(preset);
-      saveConfigToStorage(preset);
-    } else {
-      console.warn(`Preset "${presetName}" not found`);
-    }
   };
   const saveConfig = (name) => {
     if (typeof window !== "undefined") {
@@ -2794,14 +2868,13 @@ var PlayerConfigProvider = ({
     }
     return [];
   };
-  return /* @__PURE__ */ jsx12(
+  return /* @__PURE__ */ jsx7(
     PlayerConfigContext.Provider,
     {
       value: {
         config,
         updateConfig,
         resetConfig,
-        loadPreset,
         saveConfig,
         loadSavedConfig,
         getSavedConfigs
@@ -2817,17 +2890,9 @@ var usePlayerConfig = () => {
   }
   return context;
 };
-var usePlayerPresets = () => {
-  const { loadPreset } = usePlayerConfig();
-  return {
-    presets: Object.keys(PlayerPresets),
-    loadPreset,
-    getPresetConfig: (name) => PlayerPresets[name]
-  };
-};
 
 // src/components/player/configurable-video-player.tsx
-import { Fragment, jsx as jsx13, jsxs as jsxs10 } from "react/jsx-runtime";
+import { jsx as jsx8, jsxs as jsxs6 } from "react/jsx-runtime";
 var ConfigurableVideoPlayer = forwardRef(({
   src,
   fallbackSources,
@@ -2850,24 +2915,12 @@ var ConfigurableVideoPlayer = forwardRef(({
   onTimeUpdate,
   onStateChange
 }, ref) => {
-  var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k;
+  var _a, _b, _c, _d;
   const videoRef = useRef4(null);
   const containerRef = useRef4(null);
-  const [showControls, setShowControls] = React6.useState(true);
-  const [isMobile, setIsMobile] = React6.useState(false);
-  const controlsTimeoutRef = useRef4(null);
-  useEffect7(() => {
-    const checkMobile = () => {
-      const userAgent = navigator.userAgent;
-      const isMobileDevice2 = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-      const isSmallScreen = window.innerWidth < 768;
-      const isTouchDevice = "ontouchstart" in window;
-      setIsMobile(isMobileDevice2 || isSmallScreen && isTouchDevice);
-    };
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
+  const lastStateSignatureRef = useRef4(null);
+  const onReadyRef = useRef4(onReady);
+  const readySignalRef = useRef4(null);
   const { config: contextConfig } = usePlayerConfig();
   const config = configOverride ? __spreadValues(__spreadValues({}, contextConfig), configOverride) : contextConfig;
   const { state, controls: playerControls, qualityLevels, engine } = useVideoPlayer(videoRef, {
@@ -2876,14 +2929,9 @@ var ConfigurableVideoPlayer = forwardRef(({
     volume: 1,
     enginePlugins
   });
-  const gesturesConfig = config.gestures || {};
   const gestureCallbacks = {
     onTap: () => {
-      if (isMobile) {
-        setShowControls(!showControls);
-      } else {
-        state.isPlaying ? playerControls.pause() : playerControls.play();
-      }
+      state.isPlaying ? playerControls.pause() : playerControls.play();
     },
     onDoubleTap: (direction) => {
       const seekAmount = 10;
@@ -2899,15 +2947,12 @@ var ConfigurableVideoPlayer = forwardRef(({
     }
   };
   useVideoGestures(videoRef, gestureCallbacks, {
-    enableTapToPlay: isMobile ? false : true,
-    // On mobile, tap shows controls
+    enableTapToPlay: true,
     enableDoubleTapSeek: true,
-    enableSwipeVolume: isMobile,
+    enableSwipeVolume: false,
     seekAmount: 10,
     volumeSensitivity: 0.02
   });
-  const autoHideControls = (_d = (_c = config.auto) == null ? void 0 : _c.autoHideControls) != null ? _d : true;
-  const autoHideDelay = (_f = (_e = config.auto) == null ? void 0 : _e.autoHideDelay) != null ? _f : 3e3;
   const getAspectRatio = () => {
     if (aspectRatio === "custom" && customAspectRatio) {
       return customAspectRatio;
@@ -2919,7 +2964,10 @@ var ConfigurableVideoPlayer = forwardRef(({
   };
   const isVerticalFormat = aspectRatio === "9/16" || aspectRatio === "3/4";
   const isSquareFormat = aspectRatio === "1/1";
-  useEffect7(() => {
+  useEffect5(() => {
+    onReadyRef.current = onReady;
+  }, [onReady]);
+  useEffect5(() => {
     var _a2, _b2;
     if (!src || !engine) return;
     const videoConfig = {
@@ -2936,95 +2984,80 @@ var ConfigurableVideoPlayer = forwardRef(({
       playerControls.load(videoConfig);
     }, 50);
     return () => clearTimeout(timer);
-  }, [src, fallbackSources, drmConfig, poster, autoPlay, muted, loop, playsInline, engine, (_g = config.auto) == null ? void 0 : _g.autoPlay]);
-  useEffect7(() => {
+  }, [src, fallbackSources, drmConfig, poster, autoPlay, muted, loop, playsInline, engine, (_c = config.auto) == null ? void 0 : _c.autoPlay]);
+  useEffect5(() => {
     if (state.isPlaying) {
       onPlay == null ? void 0 : onPlay();
     } else if (state.isPaused) {
       onPause == null ? void 0 : onPause();
     }
   }, [state.isPlaying, state.isPaused, onPlay, onPause]);
-  useEffect7(() => {
+  useEffect5(() => {
     if (state.error) {
       onError == null ? void 0 : onError(state.error);
     }
   }, [state.error, onError]);
-  useEffect7(() => {
+  useEffect5(() => {
     onTimeUpdate == null ? void 0 : onTimeUpdate(state.currentTime, state.duration);
   }, [state.currentTime, state.duration, onTimeUpdate]);
-  useEffect7(() => {
-    onStateChange == null ? void 0 : onStateChange(state);
+  useEffect5(() => {
+    if (!onStateChange) {
+      return;
+    }
+    const signature = JSON.stringify({
+      isPlaying: state.isPlaying,
+      isPaused: state.isPaused,
+      isLoading: state.isLoading,
+      isMuted: state.isMuted,
+      currentTime: Number(state.currentTime.toFixed(2)),
+      duration: Number(state.duration.toFixed(2)),
+      volume: Number(state.volume.toFixed(2)),
+      buffered: Number(state.buffered.toFixed(2)),
+      quality: state.quality,
+      playbackRate: state.playbackRate,
+      isFullscreen: state.isFullscreen,
+      isPictureInPicture: state.isPictureInPicture,
+      isTheaterMode: state.isTheaterMode,
+      error: state.error,
+      playCount: state.playCount,
+      totalWatchTime: Number(state.totalWatchTime.toFixed(2)),
+      bufferingTime: Number(state.bufferingTime.toFixed(2)),
+      qualityChanges: state.qualityChanges
+    });
+    if (lastStateSignatureRef.current === signature) {
+      return;
+    }
+    lastStateSignatureRef.current = signature;
+    onStateChange(state);
   }, [state, onStateChange]);
-  useEffect7(() => {
-    if (!state.isLoading && state.duration > 0) {
-      onReady == null ? void 0 : onReady();
+  useEffect5(() => {
+    var _a2;
+    if (state.isLoading || state.duration <= 0) {
+      return;
     }
-  }, [state.isLoading, state.duration, onReady]);
-  const showControlsTemporarily = useCallback4(() => {
-    if (!autoHideControls) return;
-    setShowControls(true);
-    if (controlsTimeoutRef.current) {
-      clearTimeout(controlsTimeoutRef.current);
+    const readySignal = `${src != null ? src : "no-src"}|${state.duration}`;
+    if (readySignalRef.current === readySignal) {
+      return;
     }
-    if (state.isPlaying) {
-      controlsTimeoutRef.current = setTimeout(() => {
-        setShowControls(false);
-      }, autoHideDelay);
-    }
-  }, [state.isPlaying, autoHideControls, autoHideDelay]);
-  useEffect7(() => {
-    const container = containerRef.current;
-    if (!container || !autoHideControls) return;
-    const handleMouseMove = () => {
-      showControlsTemporarily();
-    };
-    const handleMouseLeave = () => {
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
-      if (state.isPlaying) {
-        setShowControls(false);
-      }
-    };
-    container.addEventListener("mousemove", handleMouseMove);
-    container.addEventListener("mouseleave", handleMouseLeave);
-    return () => {
-      container.removeEventListener("mousemove", handleMouseMove);
-      container.removeEventListener("mouseleave", handleMouseLeave);
-    };
-  }, [showControlsTemporarily, state.isPlaying, autoHideControls]);
-  useEffect7(() => {
-    if (!autoHideControls || !state.isPlaying) {
-      setShowControls(true);
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
-    }
-  }, [state.isPlaying, autoHideControls]);
-  useEffect7(() => {
-    return () => {
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
-    };
-  }, []);
-  React6.useImperativeHandle(ref, () => videoRef.current);
+    readySignalRef.current = readySignal;
+    (_a2 = onReadyRef.current) == null ? void 0 : _a2.call(onReadyRef);
+  }, [state.isLoading, state.duration, src]);
+  React3.useImperativeHandle(ref, () => videoRef.current);
   const themeStyles = config.theme ? {
-    "--player-primary": config.theme.primary || "#3b82f6",
+    "--player-primary": config.theme.primary || "#dc2626",
     "--player-secondary": config.theme.secondary || "#64748b",
-    "--player-accent": config.theme.accent || "#ef4444",
-    "--player-progress": config.theme.progressColor || "#3b82f6",
-    "--player-buffer": config.theme.bufferColor || "#64748b"
+    "--player-accent": config.theme.accent || "#dc2626",
+    "--player-progress": config.theme.progressColor || "#dc2626",
+    "--player-buffer": config.theme.bufferColor || "rgba(255,255,255,0.4)"
   } : {};
-  const controlsVisibility = ((_h = config.controls) == null ? void 0 : _h.visibility) || {};
-  const shouldShowControls = ((_i = config.controls) == null ? void 0 : _i.show) !== false;
-  return /* @__PURE__ */ jsxs10(
+  const shouldShowControls = true;
+  return /* @__PURE__ */ jsxs6(
     "div",
     {
       ref: containerRef,
       className: cn(
         "relative bg-black overflow-hidden group transition-all duration-300",
-        "focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500",
+        "focus-within:outline-none focus-within:ring-2 focus-within:ring-white/30",
         state.isFullscreen && "fixed inset-0 z-50",
         state.isTheaterMode && "mx-auto max-w-none",
         // Format specific styles
@@ -3038,19 +3071,20 @@ var ConfigurableVideoPlayer = forwardRef(({
         width: isVerticalFormat ? "min(400px, 90vw)" : isSquareFormat ? "min(500px, 90vw)" : "100%"
       }, themeStyles),
       children: [
-        /* @__PURE__ */ jsx13(
+        /* @__PURE__ */ jsx8(
           "video",
           __spreadProps(__spreadValues({
             ref: videoRef,
             className: "w-full h-full object-contain",
+            controls: false,
             playsInline
           }, playsInline && { "webkit-playsinline": "" }), {
             poster,
             preload: "metadata"
           })
         ),
-        state.isLoading && /* @__PURE__ */ jsx13("div", { className: "absolute inset-0 flex items-center justify-center bg-black/50", children: /* @__PURE__ */ jsx13(LoadingSpinner, {}) }),
-        state.error && /* @__PURE__ */ jsx13(
+        state.isLoading && /* @__PURE__ */ jsx8("div", { className: "absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[1px]", children: /* @__PURE__ */ jsx8(LoadingSpinner, {}) }),
+        state.error && /* @__PURE__ */ jsx8(
           ErrorDisplay,
           {
             error: state.error,
@@ -3071,50 +3105,31 @@ var ConfigurableVideoPlayer = forwardRef(({
             }
           }
         ),
-        shouldShowControls && /* @__PURE__ */ jsx13(Fragment, { children: isMobile ? /* @__PURE__ */ jsx13(
-          MobileVideoControls,
-          {
-            state,
-            controls: playerControls,
-            qualityLevels,
-            thumbnailPreview: (_j = config.features) == null ? void 0 : _j.thumbnailPreview,
-            thumbnailUrl,
-            className: cn(
-              "transition-opacity duration-300",
-              showControls ? "opacity-100" : "opacity-0",
-              "hover:opacity-100"
-            ),
-            onShow: () => setShowControls(true),
-            onHide: () => setShowControls(false)
-          }
-        ) : /* @__PURE__ */ jsx13(
+        shouldShowControls && /* @__PURE__ */ jsx8(
           VideoControls,
           {
             state,
             controls: playerControls,
             qualityLevels,
             controlsConfig: {
-              fullscreen: controlsVisibility.fullscreen !== false,
-              volume: controlsVisibility.volume !== false,
-              quality: controlsVisibility.quality !== false,
-              progress: controlsVisibility.progress !== false,
-              playPause: controlsVisibility.playPause !== false,
-              playbackRate: controlsVisibility.playbackRate !== false,
-              pictureInPicture: controlsVisibility.pictureInPicture !== false,
-              theaterMode: controlsVisibility.theaterMode !== false,
-              settings: controlsVisibility.settings !== false,
-              time: controlsVisibility.time !== false
+              fullscreen: true,
+              volume: true,
+              quality: true,
+              progress: true,
+              playPause: true,
+              playbackRate: true,
+              pictureInPicture: true,
+              theaterMode: true,
+              settings: true,
+              time: true
             },
             className: cn(
               "transition-opacity duration-300",
-              showControls ? "opacity-100" : "opacity-0",
-              "hover:opacity-100"
-            ),
-            onShow: () => setShowControls(true),
-            onHide: () => setShowControls(false)
+              "opacity-100 z-30 pointer-events-auto"
+            )
           }
-        ) }),
-        ((_k = config.analytics) == null ? void 0 : _k.enabled) && /* @__PURE__ */ jsx13("div", { className: "hidden", "data-analytics": "true" })
+        ),
+        ((_d = config.analytics) == null ? void 0 : _d.enabled) && /* @__PURE__ */ jsx8("div", { className: "hidden", "data-analytics": "true" })
       ]
     }
   );
@@ -3122,8 +3137,8 @@ var ConfigurableVideoPlayer = forwardRef(({
 ConfigurableVideoPlayer.displayName = "ConfigurableVideoPlayer";
 
 // src/components/player/video-player.tsx
-import React7, { useRef as useRef5, useEffect as useEffect8, forwardRef as forwardRef2, useCallback as useCallback5 } from "react";
-import { jsx as jsx14, jsxs as jsxs11 } from "react/jsx-runtime";
+import React4, { useRef as useRef5, useEffect as useEffect6, forwardRef as forwardRef2, useCallback as useCallback4 } from "react";
+import { jsx as jsx9, jsxs as jsxs7 } from "react/jsx-runtime";
 var VideoPlayer = forwardRef2(({
   src,
   fallbackSources,
@@ -3162,7 +3177,7 @@ var VideoPlayer = forwardRef2(({
 }, ref) => {
   const videoRef = useRef5(null);
   const containerRef = useRef5(null);
-  const [showControls, setShowControls] = React7.useState(true);
+  const [showControls, setShowControls] = React4.useState(true);
   const controlsTimeoutRef = useRef5(null);
   const legacyPluginsInitializedRef = useRef5(false);
   const { state, controls: playerControls, qualityLevels, engine } = useVideoPlayer(videoRef, {
@@ -3171,22 +3186,22 @@ var VideoPlayer = forwardRef2(({
     volume: 1,
     enginePlugins
   });
-  const handlePlay = useCallback5(() => {
+  const handlePlay = useCallback4(() => {
     onPlay == null ? void 0 : onPlay();
   }, [onPlay]);
-  const handlePause = useCallback5(() => {
+  const handlePause = useCallback4(() => {
     onPause == null ? void 0 : onPause();
   }, [onPause]);
-  const handleError = useCallback5((error) => {
+  const handleError = useCallback4((error) => {
     onError == null ? void 0 : onError(error);
   }, [onError]);
-  const handleTimeUpdate = useCallback5((currentTime, duration) => {
+  const handleTimeUpdate = useCallback4((currentTime, duration) => {
     onTimeUpdate == null ? void 0 : onTimeUpdate(currentTime, duration);
   }, [onTimeUpdate]);
-  const handleStateChange = useCallback5((newState) => {
+  const handleStateChange = useCallback4((newState) => {
     onStateChange == null ? void 0 : onStateChange(newState);
   }, [onStateChange]);
-  const handleReady = useCallback5(() => {
+  const handleReady = useCallback4(() => {
     onReady == null ? void 0 : onReady();
   }, [onReady]);
   const { isGestureActive } = useVideoGestures(
@@ -3222,7 +3237,7 @@ var VideoPlayer = forwardRef2(({
       enableSwipeVolume: gestures.swipeVolume
     }
   );
-  useEffect8(() => {
+  useEffect6(() => {
     if (!src || !engine) return;
     const config = {
       src,
@@ -3239,33 +3254,33 @@ var VideoPlayer = forwardRef2(({
     }, 50);
     return () => clearTimeout(timer);
   }, [src, fallbackSources, drmConfig, poster, autoPlay, muted, loop, playsInline, engine]);
-  useEffect8(() => {
+  useEffect6(() => {
     if (state.isPlaying) {
       handlePlay();
     } else if (state.isPaused) {
       handlePause();
     }
   }, [state.isPlaying, state.isPaused, handlePlay, handlePause]);
-  useEffect8(() => {
+  useEffect6(() => {
     if (state.error) {
       handleError(state.error);
     }
   }, [state.error, handleError]);
-  useEffect8(() => {
+  useEffect6(() => {
     handleTimeUpdate(state.currentTime, state.duration);
   }, [state.currentTime, state.duration, handleTimeUpdate]);
-  useEffect8(() => {
+  useEffect6(() => {
     handleStateChange(state);
   }, [state, handleStateChange]);
-  useEffect8(() => {
+  useEffect6(() => {
     if (!state.isLoading && state.duration > 0) {
       handleReady();
     }
   }, [state.isLoading, state.duration, handleReady]);
-  useEffect8(() => {
+  useEffect6(() => {
     legacyPluginsInitializedRef.current = false;
   }, [engine]);
-  useEffect8(() => {
+  useEffect6(() => {
     if (!engine || plugins.length === 0 || legacyPluginsInitializedRef.current) {
       return;
     }
@@ -3273,12 +3288,12 @@ var VideoPlayer = forwardRef2(({
       try {
         plugin({ engine, state, controls: playerControls });
       } catch (error) {
-        console.warn("Plugin initialization failed:", error);
+        getPlayerLogger().warn("Plugin initialization failed:", error);
       }
     });
     legacyPluginsInitializedRef.current = true;
   }, [engine, plugins, playerControls, state]);
-  const showControlsTemporarily = React7.useCallback(() => {
+  const showControlsTemporarily = React4.useCallback(() => {
     setShowControls(true);
     if (controlsTimeoutRef.current) {
       clearTimeout(controlsTimeoutRef.current);
@@ -3289,7 +3304,7 @@ var VideoPlayer = forwardRef2(({
       }, 3e3);
     }
   }, [state.isPlaying]);
-  useEffect8(() => {
+  useEffect6(() => {
     const container = containerRef.current;
     if (!container) return;
     const handleMouseMove = () => {
@@ -3307,21 +3322,21 @@ var VideoPlayer = forwardRef2(({
       container.removeEventListener("mouseleave", handleMouseLeave);
     };
   }, [showControlsTemporarily, state.isPlaying]);
-  useEffect8(() => {
+  useEffect6(() => {
     return () => {
       if (controlsTimeoutRef.current) {
         clearTimeout(controlsTimeoutRef.current);
       }
     };
   }, []);
-  React7.useImperativeHandle(ref, () => videoRef.current);
-  return /* @__PURE__ */ jsxs11(
+  React4.useImperativeHandle(ref, () => videoRef.current);
+  return /* @__PURE__ */ jsxs7(
     "div",
     {
       ref: containerRef,
       className: cn(
         "relative w-full bg-black overflow-hidden group transition-all duration-300",
-        "focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500",
+        "focus-within:outline-none focus-within:ring-2 focus-within:ring-white/30",
         state.isFullscreen && "fixed inset-0 z-50",
         state.isTheaterMode && "mx-auto max-w-none",
         className
@@ -3331,7 +3346,7 @@ var VideoPlayer = forwardRef2(({
         height: state.isTheaterMode ? "70vh" : "auto"
       },
       children: [
-        /* @__PURE__ */ jsx14(
+        /* @__PURE__ */ jsx9(
           "video",
           __spreadProps(__spreadValues({
             ref: videoRef,
@@ -3342,10 +3357,10 @@ var VideoPlayer = forwardRef2(({
             preload: "metadata"
           })
         ),
-        state.isLoading && /* @__PURE__ */ jsx14("div", { className: "absolute inset-0 flex items-center justify-center bg-black/50", children: /* @__PURE__ */ jsx14(LoadingSpinner, {}) }),
-        state.error && /* @__PURE__ */ jsx14("div", { className: "absolute inset-0 flex items-center justify-center bg-black/80", children: /* @__PURE__ */ jsx14(ErrorDisplay, { error: state.error, onRetry: () => playerControls.load({ src, fallbackSources, drm: drmConfig }) }) }),
-        isGestureActive && gestures.enabled && /* @__PURE__ */ jsx14("div", { className: "absolute inset-0 pointer-events-none", children: /* @__PURE__ */ jsx14("div", { className: "absolute inset-0 bg-white/10 animate-pulse" }) }),
-        controls.show && (showControls || state.isPaused || !state.duration) && /* @__PURE__ */ jsx14(
+        state.isLoading && /* @__PURE__ */ jsx9("div", { className: "absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[1px]", children: /* @__PURE__ */ jsx9(LoadingSpinner, {}) }),
+        state.error && /* @__PURE__ */ jsx9("div", { className: "absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm", children: /* @__PURE__ */ jsx9(ErrorDisplay, { error: state.error, onRetry: () => playerControls.load({ src, fallbackSources, drm: drmConfig }) }) }),
+        isGestureActive && gestures.enabled && /* @__PURE__ */ jsx9("div", { className: "absolute inset-0 pointer-events-none", children: /* @__PURE__ */ jsx9("div", { className: "absolute inset-0 bg-white/5 animate-pulse" }) }),
+        controls.show && (showControls || state.isPaused || !state.duration) && /* @__PURE__ */ jsx9(
           VideoControls,
           {
             state,
@@ -3362,6 +3377,608 @@ var VideoPlayer = forwardRef2(({
 });
 VideoPlayer.displayName = "VideoPlayer";
 
+// src/components/controls/mobile-video-controls.tsx
+import { useState as useState6, useEffect as useEffect8, useRef as useRef7, useCallback as useCallback5 } from "react";
+import {
+  Play as Play2,
+  Pause as Pause2,
+  Volume1 as Volume12,
+  Volume2 as Volume22,
+  VolumeX as VolumeX2,
+  Maximize as Maximize2,
+  Minimize as Minimize2,
+  Settings as Settings2,
+  Loader2 as Loader22,
+  PictureInPicture as PictureInPicture3,
+  Gauge as Gauge2,
+  SkipBack,
+  SkipForward,
+  Check as Check2,
+  ChevronRight as ChevronRight2,
+  X
+} from "lucide-react";
+
+// src/components/player/video-thumbnail.tsx
+import { useState as useState5, useEffect as useEffect7, useRef as useRef6 } from "react";
+import { jsx as jsx10, jsxs as jsxs8 } from "react/jsx-runtime";
+var formatTime2 = (seconds) => {
+  if (!isFinite(seconds)) return "0:00";
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+};
+var VideoThumbnail = ({
+  duration,
+  currentTime,
+  thumbnailUrl,
+  thumbnailCount = 100,
+  thumbnailSize = { width: 160, height: 90 },
+  className,
+  showTime = true,
+  isMobile = false
+}) => {
+  const [thumbnailSrc, setThumbnailSrc] = useState5("");
+  const [spritePosition, setSpritePosition] = useState5({ x: 0, y: 0 });
+  const canvasRef = useRef6(null);
+  useEffect7(() => {
+    if (!thumbnailUrl || !duration) return;
+    const progress = Math.max(0, Math.min(1, currentTime / duration));
+    const thumbnailIndex = Math.floor(progress * (thumbnailCount - 1));
+    if (thumbnailUrl.includes("sprite")) {
+      const spriteCols = 10;
+      const spriteRows = Math.ceil(thumbnailCount / spriteCols);
+      const col = thumbnailIndex % spriteCols;
+      const row = Math.floor(thumbnailIndex / spriteCols);
+      setSpritePosition({
+        x: col * thumbnailSize.width,
+        y: row * thumbnailSize.height
+      });
+      setThumbnailSrc(thumbnailUrl);
+    } else {
+      const paddedIndex = thumbnailIndex.toString().padStart(3, "0");
+      setThumbnailSrc(`${thumbnailUrl}/thumb_${paddedIndex}.jpg`);
+    }
+  }, [currentTime, duration, thumbnailUrl, thumbnailCount, thumbnailSize]);
+  const generateFallbackThumbnail = async (videoSrc, time) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const video = document.createElement("video");
+    video.crossOrigin = "anonymous";
+    video.muted = true;
+    return new Promise((resolve) => {
+      video.onloadeddata = () => {
+        video.currentTime = time;
+      };
+      video.onseeked = () => {
+        canvas.width = thumbnailSize.width;
+        canvas.height = thumbnailSize.height;
+        ctx.drawImage(video, 0, 0, thumbnailSize.width, thumbnailSize.height);
+        const dataURL = canvas.toDataURL("image/jpeg", 0.8);
+        resolve(dataURL);
+      };
+      video.src = videoSrc;
+    });
+  };
+  if (!thumbnailSrc && !thumbnailUrl) {
+    return null;
+  }
+  return /* @__PURE__ */ jsxs8(
+    "div",
+    {
+      className: cn(
+        "absolute bottom-6 transform -translate-x-1/2 pointer-events-none z-20",
+        "bg-black/90 backdrop-blur-sm rounded-lg overflow-hidden shadow-lg border border-white/20",
+        isMobile ? "bottom-12" : "bottom-6",
+        className
+      ),
+      style: {
+        width: thumbnailSize.width + 16,
+        height: thumbnailSize.height + (showTime ? 40 : 16)
+      },
+      children: [
+        /* @__PURE__ */ jsxs8(
+          "div",
+          {
+            className: "relative bg-gray-800",
+            style: {
+              width: thumbnailSize.width,
+              height: thumbnailSize.height,
+              margin: "8px 8px 0 8px"
+            },
+            children: [
+              thumbnailSrc ? /* @__PURE__ */ jsx10(
+                "img",
+                {
+                  src: thumbnailSrc,
+                  alt: `Preview at ${formatTime2(currentTime)}`,
+                  className: "w-full h-full object-cover rounded",
+                  style: (thumbnailUrl == null ? void 0 : thumbnailUrl.includes("sprite")) ? {
+                    objectPosition: `-${spritePosition.x}px -${spritePosition.y}px`,
+                    width: thumbnailSize.width * 10,
+                    // Sprite sheet width
+                    height: thumbnailSize.height * 10
+                    // Sprite sheet height
+                  } : void 0,
+                  onError: () => {
+                    setThumbnailSrc(`/api/placeholder/${thumbnailSize.width}/${thumbnailSize.height}`);
+                  }
+                }
+              ) : /* @__PURE__ */ jsx10("div", { className: "w-full h-full bg-gray-700 flex items-center justify-center rounded", children: /* @__PURE__ */ jsx10("div", { className: "text-white/60 text-xs", children: "Loading..." }) }),
+              /* @__PURE__ */ jsx10("div", { className: "absolute inset-0 bg-black/20 rounded" })
+            ]
+          }
+        ),
+        showTime && /* @__PURE__ */ jsx10("div", { className: "px-3 py-2 text-center", children: /* @__PURE__ */ jsx10("span", { className: "text-white text-sm font-medium", children: formatTime2(currentTime) }) }),
+        /* @__PURE__ */ jsx10("div", { className: "absolute -bottom-1 left-1/2 transform -translate-x-1/2", children: /* @__PURE__ */ jsx10("div", { className: "w-3 h-3 bg-black/90 rotate-45 border-r border-b border-white/20" }) }),
+        /* @__PURE__ */ jsx10("canvas", { ref: canvasRef, className: "hidden" })
+      ]
+    }
+  );
+};
+
+// src/components/controls/mobile-video-controls.tsx
+import { jsx as jsx11, jsxs as jsxs9 } from "react/jsx-runtime";
+var formatTime3 = (seconds) => {
+  if (!isFinite(seconds)) return "0:00";
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor(seconds % 3600 / 60);
+  const secs = Math.floor(seconds % 60);
+  if (hrs > 0) return `${hrs}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+};
+var playbackRateOptions2 = [
+  { value: 0.5, label: "0.5x" },
+  { value: 0.75, label: "0.75x" },
+  { value: 1, label: "Normal" },
+  { value: 1.25, label: "1.25x" },
+  { value: 1.5, label: "1.5x" },
+  { value: 2, label: "2x" }
+];
+var iconBtnClass2 = "flex items-center justify-center w-11 h-11 rounded-full text-white hover:bg-white/10 active:bg-white/20 transition-colors duration-200 touch-manipulation";
+var iconClass2 = "w-[22px] h-[22px]";
+var MobileVideoControls = ({
+  state,
+  controls,
+  qualityLevels,
+  className,
+  onShow,
+  onHide,
+  thumbnailPreview = false,
+  thumbnailUrl
+}) => {
+  const [showSettings, setShowSettings] = useState6(false);
+  const [settingsPage, setSettingsPage] = useState6("main");
+  const [isDragging, setIsDragging] = useState6(false);
+  const [seekingTime, setSeekingTime] = useState6(null);
+  const [isMounted, setIsMounted] = useState6(false);
+  const [isVisible, setIsVisible] = useState6(true);
+  const [hoverTime, setHoverTime] = useState6(null);
+  const [hoverX, setHoverX] = useState6(0);
+  const hideTimeoutRef = useRef7(null);
+  const progressRef = useRef7(null);
+  const rafRef = useRef7(0);
+  useEffect8(() => {
+    setIsMounted(true);
+  }, []);
+  const showControlsTemporarily = useCallback5(() => {
+    setIsVisible(true);
+    onShow == null ? void 0 : onShow();
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = null;
+    }
+    if (state.isPlaying && !showSettings) {
+      hideTimeoutRef.current = setTimeout(() => {
+        setIsVisible(false);
+        onHide == null ? void 0 : onHide();
+      }, 3e3);
+    }
+  }, [state.isPlaying, showSettings, onShow, onHide]);
+  useEffect8(() => {
+    if (!state.isPlaying || showSettings) {
+      setIsVisible(true);
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+        hideTimeoutRef.current = null;
+      }
+    }
+  }, [state.isPlaying, showSettings]);
+  const handleContainerTap = useCallback5((e) => {
+    if (!isVisible) {
+      e.preventDefault();
+      e.stopPropagation();
+      showControlsTemporarily();
+      return;
+    }
+    if (e.target === e.currentTarget) {
+      if (showSettings) {
+        setShowSettings(false);
+        return;
+      }
+      setIsVisible(false);
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+        hideTimeoutRef.current = null;
+      }
+    }
+  }, [isVisible, showControlsTemporarily, showSettings]);
+  useEffect8(() => {
+    return () => {
+      if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+    };
+  }, []);
+  const displayTime = seekingTime !== null ? seekingTime : state.currentTime;
+  const progressPercentage = state.duration > 0 ? displayTime / state.duration * 100 : 0;
+  const bufferedPercentage = state.buffered;
+  const positionFromClient = useCallback5((clientX) => {
+    if (!progressRef.current) return 0;
+    const rect = progressRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
+    return x / rect.width * state.duration;
+  }, [state.duration]);
+  const updateHover = useCallback5((clientX) => {
+    if (!progressRef.current) return;
+    const rect = progressRef.current.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const pct = Math.max(0, Math.min(x / rect.width, 1));
+    setHoverTime(pct * state.duration);
+    setHoverX(pct * 100);
+  }, [state.duration]);
+  const handleProgressClick = (e) => {
+    if (isDragging) return;
+    const time = positionFromClient(e.clientX);
+    setSeekingTime(time);
+    controls.seek(time);
+    requestAnimationFrame(() => {
+      setTimeout(() => setSeekingTime(null), 150);
+    });
+  };
+  const handleProgressHover = (e) => updateHover(e.clientX);
+  const handleProgressMouseDown = useCallback5((e) => {
+    e.preventDefault();
+    setIsDragging(true);
+    setSeekingTime(positionFromClient(e.clientX));
+  }, [positionFromClient]);
+  const handleProgressTouchStart = useCallback5((e) => {
+    setIsDragging(true);
+    setSeekingTime(positionFromClient(e.touches[0].clientX));
+  }, [positionFromClient]);
+  useEffect8(() => {
+    if (!isDragging) return;
+    const onMove = (clientX) => {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(() => {
+        setSeekingTime(positionFromClient(clientX));
+        updateHover(clientX);
+      });
+    };
+    const onMouseMove = (e) => onMove(e.clientX);
+    const onTouchMove = (e) => onMove(e.touches[0].clientX);
+    const onEnd = () => {
+      cancelAnimationFrame(rafRef.current);
+      setIsDragging(false);
+      setHoverTime(null);
+      if (seekingTime !== null) controls.seek(seekingTime);
+      setTimeout(() => setSeekingTime(null), 150);
+    };
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onEnd);
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchend", onEnd);
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onEnd);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onEnd);
+    };
+  }, [isDragging, positionFromClient, updateHover, seekingTime, controls]);
+  const handleSeek = (direction) => {
+    const amt = 10;
+    controls.seek(direction === "backward" ? Math.max(0, state.currentTime - amt) : Math.min(state.duration, state.currentTime + amt));
+    showControlsTemporarily();
+  };
+  const VolumeIcon = state.isMuted || state.volume === 0 ? VolumeX2 : state.volume < 0.5 ? Volume12 : Volume22;
+  if (!isMounted) return null;
+  return /* @__PURE__ */ jsxs9(
+    "div",
+    {
+      className: cn(
+        "absolute inset-0 flex flex-col text-white z-10 transition-opacity duration-300",
+        isVisible ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-auto",
+        className
+      ),
+      onClickCapture: handleContainerTap,
+      style: { paddingBottom: "env(safe-area-inset-bottom)" },
+      children: [
+        /* @__PURE__ */ jsxs9("div", { className: cn("flex items-center gap-1.5 p-2 transition-opacity duration-300", isVisible ? "opacity-100" : "opacity-0"), children: [
+          state.isLoading && /* @__PURE__ */ jsx11("div", { className: "rounded-full bg-black/60 backdrop-blur-md p-2", children: /* @__PURE__ */ jsx11(Loader22, { className: "h-4 w-4 animate-spin" }) }),
+          state.playbackRate !== 1 && /* @__PURE__ */ jsx11("div", { className: "rounded-full bg-black/60 backdrop-blur-md px-2.5 py-1", children: /* @__PURE__ */ jsxs9("span", { className: "text-xs font-medium", children: [
+            state.playbackRate,
+            "x"
+          ] }) })
+        ] }),
+        /* @__PURE__ */ jsx11("div", { className: "flex-1 flex items-center justify-center", children: /* @__PURE__ */ jsxs9("div", { className: cn("flex items-center gap-8 sm:gap-10 transition-opacity duration-300", isVisible ? "opacity-100" : "opacity-0"), children: [
+          /* @__PURE__ */ jsx11(
+            "button",
+            {
+              type: "button",
+              className: "flex items-center justify-center w-14 h-14 rounded-full bg-black/50 backdrop-blur-md text-white active:scale-95 transition-all duration-200 touch-manipulation",
+              onClick: () => handleSeek("backward"),
+              disabled: !state.duration,
+              children: /* @__PURE__ */ jsx11(SkipBack, { className: "h-6 w-6" })
+            }
+          ),
+          /* @__PURE__ */ jsx11(
+            "button",
+            {
+              type: "button",
+              className: "flex items-center justify-center w-[72px] h-[72px] rounded-full bg-black/60 backdrop-blur-md text-white active:scale-90 transition-all duration-200 touch-manipulation",
+              onClick: () => {
+                state.isPlaying ? controls.pause() : controls.play();
+                showControlsTemporarily();
+              },
+              disabled: !state.duration && !state.isLoading,
+              children: state.isLoading ? /* @__PURE__ */ jsx11(Loader22, { className: "h-9 w-9 animate-spin" }) : state.isPlaying ? /* @__PURE__ */ jsx11(Pause2, { className: "h-9 w-9" }) : /* @__PURE__ */ jsx11(Play2, { className: "h-9 w-9 ml-0.5" })
+            }
+          ),
+          /* @__PURE__ */ jsx11(
+            "button",
+            {
+              type: "button",
+              className: "flex items-center justify-center w-14 h-14 rounded-full bg-black/50 backdrop-blur-md text-white active:scale-95 transition-all duration-200 touch-manipulation",
+              onClick: () => handleSeek("forward"),
+              disabled: !state.duration,
+              children: /* @__PURE__ */ jsx11(SkipForward, { className: "h-6 w-6" })
+            }
+          )
+        ] }) }),
+        /* @__PURE__ */ jsxs9("div", { className: cn("transition-opacity duration-300", isVisible ? "opacity-100" : "opacity-0"), children: [
+          /* @__PURE__ */ jsxs9(
+            "div",
+            {
+              ref: progressRef,
+              className: "group/progress relative w-full cursor-pointer touch-manipulation",
+              onClick: handleProgressClick,
+              onMouseMove: handleProgressHover,
+              onMouseDown: handleProgressMouseDown,
+              onMouseLeave: () => {
+                if (!isDragging) setHoverTime(null);
+              },
+              onTouchStart: handleProgressTouchStart,
+              role: "slider",
+              "aria-valuemin": 0,
+              "aria-valuemax": state.duration || 0,
+              "aria-valuenow": displayTime,
+              "aria-valuetext": `${formatTime3(displayTime)} of ${formatTime3(state.duration)}`,
+              tabIndex: 0,
+              children: [
+                hoverTime !== null && !thumbnailPreview && /* @__PURE__ */ jsx11(
+                  "div",
+                  {
+                    className: "absolute bottom-full mb-3 -translate-x-1/2 bg-black/90 backdrop-blur-sm text-white px-2.5 py-1 rounded-md text-xs font-medium pointer-events-none z-10 whitespace-nowrap shadow-lg",
+                    style: { left: `${hoverX}%` },
+                    children: formatTime3(hoverTime)
+                  }
+                ),
+                thumbnailPreview && hoverTime !== null && /* @__PURE__ */ jsx11("div", { className: "absolute bottom-full mb-2", style: { left: `${hoverX}%`, transform: "translateX(-50%)" }, children: /* @__PURE__ */ jsx11(
+                  VideoThumbnail,
+                  {
+                    duration: state.duration,
+                    currentTime: hoverTime,
+                    thumbnailUrl,
+                    isMobile: true,
+                    thumbnailSize: { width: 120, height: 68 }
+                  }
+                ) }),
+                /* @__PURE__ */ jsx11("div", { className: "h-5 flex items-end", children: /* @__PURE__ */ jsxs9("div", { className: cn(
+                  "relative w-full transition-all duration-150",
+                  isDragging ? "h-[5px]" : "h-[3px] group-hover/progress:h-[5px]"
+                ), children: [
+                  /* @__PURE__ */ jsx11("div", { className: "absolute inset-0 bg-white/20" }),
+                  /* @__PURE__ */ jsx11("div", { className: "absolute left-0 top-0 h-full bg-white/40", style: { width: `${bufferedPercentage}%` } }),
+                  /* @__PURE__ */ jsx11("div", { className: "absolute left-0 top-0 h-full bg-red-600", style: { width: `${progressPercentage}%` } }),
+                  hoverTime !== null && /* @__PURE__ */ jsx11("div", { className: "absolute top-0 h-full w-[2px] bg-white/60 pointer-events-none", style: { left: `${hoverX}%` } }),
+                  /* @__PURE__ */ jsx11("div", { className: cn(
+                    "absolute top-1/2 w-[14px] h-[14px] bg-red-600 rounded-full -translate-y-1/2 transition-all duration-150 shadow-md",
+                    isDragging ? "opacity-100 scale-110" : "opacity-0 group-hover/progress:opacity-100 group-hover/progress:scale-100"
+                  ), style: { left: `calc(${progressPercentage}% - 7px)` } })
+                ] }) })
+              ]
+            }
+          ),
+          /* @__PURE__ */ jsxs9("div", { className: "flex items-center gap-1.5 px-2 pb-2 pt-0.5", children: [
+            /* @__PURE__ */ jsx11("div", { className: "flex items-center rounded-full bg-black/60 backdrop-blur-md px-3 h-10 sm:h-11", children: /* @__PURE__ */ jsxs9("span", { className: "text-white text-[11px] sm:text-xs tabular-nums whitespace-nowrap", children: [
+              formatTime3(displayTime),
+              " ",
+              /* @__PURE__ */ jsx11("span", { className: "text-white/50", children: "/" }),
+              " ",
+              formatTime3(state.duration)
+            ] }) }),
+            /* @__PURE__ */ jsx11("div", { className: "flex-1 min-w-0" }),
+            /* @__PURE__ */ jsxs9("div", { className: "flex items-center rounded-full bg-black/60 backdrop-blur-md", children: [
+              /* @__PURE__ */ jsx11(
+                "button",
+                {
+                  type: "button",
+                  onClick: controls.toggleMute,
+                  title: state.isMuted ? "Unmute" : "Mute",
+                  className: iconBtnClass2,
+                  children: /* @__PURE__ */ jsx11(VolumeIcon, { className: iconClass2 })
+                }
+              ),
+              /* @__PURE__ */ jsx11(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => {
+                    setShowSettings(!showSettings);
+                    setSettingsPage("main");
+                  },
+                  title: "Settings",
+                  className: cn(iconBtnClass2, showSettings && "bg-white/10"),
+                  children: /* @__PURE__ */ jsx11(Settings2, { className: cn(iconClass2, "transition-transform duration-300", showSettings && "rotate-45") })
+                }
+              ),
+              /* @__PURE__ */ jsx11(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => controls.toggleFullscreen(),
+                  title: state.isFullscreen ? "Exit Fullscreen" : "Fullscreen",
+                  className: iconBtnClass2,
+                  children: state.isFullscreen ? /* @__PURE__ */ jsx11(Minimize2, { className: iconClass2 }) : /* @__PURE__ */ jsx11(Maximize2, { className: iconClass2 })
+                }
+              )
+            ] })
+          ] })
+        ] }),
+        showSettings && /* @__PURE__ */ jsx11(
+          "div",
+          {
+            className: "absolute bottom-0 left-0 right-0 z-50 animate-in slide-in-from-bottom duration-200",
+            onClick: (e) => e.stopPropagation(),
+            children: /* @__PURE__ */ jsxs9(
+              "div",
+              {
+                className: "bg-neutral-900/95 backdrop-blur-lg rounded-t-2xl overflow-hidden",
+                style: { paddingBottom: "max(1rem, env(safe-area-inset-bottom))" },
+                children: [
+                  /* @__PURE__ */ jsxs9("div", { className: "flex items-center justify-between px-4 py-3 border-b border-white/10", children: [
+                    /* @__PURE__ */ jsxs9("h3", { className: "text-sm font-medium text-white", children: [
+                      settingsPage === "main" && "Settings",
+                      settingsPage === "quality" && "Quality",
+                      settingsPage === "speed" && "Playback Speed"
+                    ] }),
+                    /* @__PURE__ */ jsx11(
+                      "button",
+                      {
+                        type: "button",
+                        onClick: () => {
+                          settingsPage === "main" ? setShowSettings(false) : setSettingsPage("main");
+                        },
+                        className: "flex items-center justify-center w-8 h-8 rounded-full hover:bg-white/10 text-white/70",
+                        children: settingsPage === "main" ? /* @__PURE__ */ jsx11(X, { className: "w-5 h-5" }) : /* @__PURE__ */ jsx11(ChevronRight2, { className: "w-5 h-5 rotate-180" })
+                      }
+                    )
+                  ] }),
+                  settingsPage === "main" && /* @__PURE__ */ jsxs9("div", { className: "py-1", children: [
+                    qualityLevels.length > 0 && /* @__PURE__ */ jsxs9(
+                      "button",
+                      {
+                        type: "button",
+                        className: "flex items-center justify-between w-full px-4 py-3 hover:bg-white/5 active:bg-white/10 transition-colors touch-manipulation",
+                        onClick: () => setSettingsPage("quality"),
+                        children: [
+                          /* @__PURE__ */ jsxs9("div", { className: "flex items-center gap-3", children: [
+                            /* @__PURE__ */ jsx11(Settings2, { className: "w-5 h-5 text-white/70" }),
+                            /* @__PURE__ */ jsx11("span", { className: "text-sm text-white", children: "Quality" })
+                          ] }),
+                          /* @__PURE__ */ jsxs9("div", { className: "flex items-center gap-1", children: [
+                            /* @__PURE__ */ jsx11("span", { className: "text-sm text-white/50", children: state.quality === "auto" ? "Auto" : state.quality }),
+                            /* @__PURE__ */ jsx11(ChevronRight2, { className: "w-4 h-4 text-white/40" })
+                          ] })
+                        ]
+                      }
+                    ),
+                    /* @__PURE__ */ jsxs9(
+                      "button",
+                      {
+                        type: "button",
+                        className: "flex items-center justify-between w-full px-4 py-3 hover:bg-white/5 active:bg-white/10 transition-colors touch-manipulation",
+                        onClick: () => setSettingsPage("speed"),
+                        children: [
+                          /* @__PURE__ */ jsxs9("div", { className: "flex items-center gap-3", children: [
+                            /* @__PURE__ */ jsx11(Gauge2, { className: "w-5 h-5 text-white/70" }),
+                            /* @__PURE__ */ jsx11("span", { className: "text-sm text-white", children: "Playback speed" })
+                          ] }),
+                          /* @__PURE__ */ jsxs9("div", { className: "flex items-center gap-1", children: [
+                            /* @__PURE__ */ jsx11("span", { className: "text-sm text-white/50", children: state.playbackRate === 1 ? "Normal" : `${state.playbackRate}x` }),
+                            /* @__PURE__ */ jsx11(ChevronRight2, { className: "w-4 h-4 text-white/40" })
+                          ] })
+                        ]
+                      }
+                    ),
+                    /* @__PURE__ */ jsx11("div", { className: "px-4 py-3", children: /* @__PURE__ */ jsxs9("div", { className: "flex items-center gap-3", children: [
+                      /* @__PURE__ */ jsx11("button", { type: "button", onClick: controls.toggleMute, className: "flex-shrink-0", children: /* @__PURE__ */ jsx11(VolumeIcon, { className: "w-5 h-5 text-white/70" }) }),
+                      /* @__PURE__ */ jsx11(
+                        Slider,
+                        {
+                          min: 0,
+                          max: 100,
+                          step: 1,
+                          value: [Math.round((state.isMuted ? 0 : state.volume) * 100)],
+                          onValueChange: (v) => {
+                            if (Number.isFinite(v[0])) controls.setVolume(v[0] / 100);
+                          },
+                          className: "flex-1 [&_[data-slot=slider-track]]:bg-white/20 [&_[data-slot=slider-track]]:h-1 [&_[data-slot=slider-range]]:bg-white [&_[data-slot=slider-thumb]]:bg-white [&_[data-slot=slider-thumb]]:border-white [&_[data-slot=slider-thumb]]:size-4"
+                        }
+                      ),
+                      /* @__PURE__ */ jsxs9("span", { className: "text-xs text-white/50 tabular-nums w-8 text-right", children: [
+                        Math.round((state.isMuted ? 0 : state.volume) * 100),
+                        "%"
+                      ] })
+                    ] }) }),
+                    typeof document !== "undefined" && "pictureInPictureEnabled" in document && /* @__PURE__ */ jsxs9(
+                      "button",
+                      {
+                        type: "button",
+                        className: "flex items-center w-full px-4 py-3 hover:bg-white/5 active:bg-white/10 transition-colors touch-manipulation",
+                        onClick: () => {
+                          controls.togglePictureInPicture();
+                          setShowSettings(false);
+                        },
+                        children: [
+                          /* @__PURE__ */ jsx11(PictureInPicture3, { className: "w-5 h-5 text-white/70 mr-3" }),
+                          /* @__PURE__ */ jsx11("span", { className: "text-sm text-white", children: "Picture-in-Picture" })
+                        ]
+                      }
+                    )
+                  ] }),
+                  settingsPage === "quality" && /* @__PURE__ */ jsx11("div", { className: "py-1 max-h-64 overflow-y-auto animate-in slide-in-from-right-4 duration-200", children: qualityLevels.map((level) => /* @__PURE__ */ jsxs9(
+                    "button",
+                    {
+                      type: "button",
+                      className: "flex items-center w-full px-4 py-3 hover:bg-white/5 active:bg-white/10 transition-colors touch-manipulation",
+                      onClick: () => {
+                        controls.setQuality(level.id);
+                        setSettingsPage("main");
+                      },
+                      children: [
+                        /* @__PURE__ */ jsx11("span", { className: "w-6 flex-shrink-0", children: state.quality === level.label && /* @__PURE__ */ jsx11(Check2, { className: "w-4 h-4 text-white" }) }),
+                        /* @__PURE__ */ jsx11("span", { className: cn("text-sm", state.quality === level.label ? "text-white font-medium" : "text-white/80"), children: level.label })
+                      ]
+                    },
+                    level.id
+                  )) }),
+                  settingsPage === "speed" && /* @__PURE__ */ jsx11("div", { className: "py-1 animate-in slide-in-from-right-4 duration-200", children: playbackRateOptions2.map((opt) => /* @__PURE__ */ jsxs9(
+                    "button",
+                    {
+                      type: "button",
+                      className: "flex items-center w-full px-4 py-3 hover:bg-white/5 active:bg-white/10 transition-colors touch-manipulation",
+                      onClick: () => {
+                        controls.setPlaybackRate(opt.value);
+                        setSettingsPage("main");
+                      },
+                      children: [
+                        /* @__PURE__ */ jsx11("span", { className: "w-6 flex-shrink-0", children: state.playbackRate === opt.value && /* @__PURE__ */ jsx11(Check2, { className: "w-4 h-4 text-white" }) }),
+                        /* @__PURE__ */ jsx11("span", { className: cn("text-sm", state.playbackRate === opt.value ? "text-white font-medium" : "text-white/80"), children: opt.label })
+                      ]
+                    },
+                    opt.value
+                  )) })
+                ]
+              }
+            )
+          }
+        )
+      ]
+    }
+  );
+};
+
 // src/components/demo/video-player-demo.tsx
 import { useState as useState8 } from "react";
 
@@ -3369,11 +3986,11 @@ import { useState as useState8 } from "react";
 import { useState as useState7, useEffect as useEffect9 } from "react";
 
 // src/components/ui/card.tsx
-import * as React8 from "react";
-import { jsx as jsx15 } from "react/jsx-runtime";
-var Card = React8.forwardRef((_a, ref) => {
+import * as React7 from "react";
+import { jsx as jsx12 } from "react/jsx-runtime";
+var Card = React7.forwardRef((_a, ref) => {
   var _b = _a, { className } = _b, props = __objRest(_b, ["className"]);
-  return /* @__PURE__ */ jsx15(
+  return /* @__PURE__ */ jsx12(
     "div",
     __spreadValues({
       ref,
@@ -3385,9 +4002,9 @@ var Card = React8.forwardRef((_a, ref) => {
   );
 });
 Card.displayName = "Card";
-var CardHeader = React8.forwardRef((_a, ref) => {
+var CardHeader = React7.forwardRef((_a, ref) => {
   var _b = _a, { className } = _b, props = __objRest(_b, ["className"]);
-  return /* @__PURE__ */ jsx15(
+  return /* @__PURE__ */ jsx12(
     "div",
     __spreadValues({
       ref,
@@ -3396,9 +4013,9 @@ var CardHeader = React8.forwardRef((_a, ref) => {
   );
 });
 CardHeader.displayName = "CardHeader";
-var CardTitle = React8.forwardRef((_a, ref) => {
+var CardTitle = React7.forwardRef((_a, ref) => {
   var _b = _a, { className } = _b, props = __objRest(_b, ["className"]);
-  return /* @__PURE__ */ jsx15(
+  return /* @__PURE__ */ jsx12(
     "h3",
     __spreadValues({
       ref,
@@ -3410,9 +4027,9 @@ var CardTitle = React8.forwardRef((_a, ref) => {
   );
 });
 CardTitle.displayName = "CardTitle";
-var CardDescription = React8.forwardRef((_a, ref) => {
+var CardDescription = React7.forwardRef((_a, ref) => {
   var _b = _a, { className } = _b, props = __objRest(_b, ["className"]);
-  return /* @__PURE__ */ jsx15(
+  return /* @__PURE__ */ jsx12(
     "p",
     __spreadValues({
       ref,
@@ -3421,14 +4038,14 @@ var CardDescription = React8.forwardRef((_a, ref) => {
   );
 });
 CardDescription.displayName = "CardDescription";
-var CardContent = React8.forwardRef((_a, ref) => {
+var CardContent = React7.forwardRef((_a, ref) => {
   var _b = _a, { className } = _b, props = __objRest(_b, ["className"]);
-  return /* @__PURE__ */ jsx15("div", __spreadValues({ ref, className: cn("p-6 pt-0", className) }, props));
+  return /* @__PURE__ */ jsx12("div", __spreadValues({ ref, className: cn("p-6 pt-0", className) }, props));
 });
 CardContent.displayName = "CardContent";
-var CardFooter = React8.forwardRef((_a, ref) => {
+var CardFooter = React7.forwardRef((_a, ref) => {
   var _b = _a, { className } = _b, props = __objRest(_b, ["className"]);
-  return /* @__PURE__ */ jsx15(
+  return /* @__PURE__ */ jsx12(
     "div",
     __spreadValues({
       ref,
@@ -3439,9 +4056,9 @@ var CardFooter = React8.forwardRef((_a, ref) => {
 CardFooter.displayName = "CardFooter";
 
 // src/components/ui/badge.tsx
-import { cva as cva2 } from "class-variance-authority";
-import { jsx as jsx16 } from "react/jsx-runtime";
-var badgeVariants = cva2(
+import { cva } from "class-variance-authority";
+import { jsx as jsx13 } from "react/jsx-runtime";
+var badgeVariants = cva(
   "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
   {
     variants: {
@@ -3459,12 +4076,56 @@ var badgeVariants = cva2(
 );
 function Badge(_a) {
   var _b = _a, { className, variant } = _b, props = __objRest(_b, ["className", "variant"]);
-  return /* @__PURE__ */ jsx16("div", __spreadValues({ className: cn(badgeVariants({ variant }), className) }, props));
+  return /* @__PURE__ */ jsx13("div", __spreadValues({ className: cn(badgeVariants({ variant }), className) }, props));
 }
+
+// src/components/ui/button.tsx
+import * as React8 from "react";
+import { Slot } from "@radix-ui/react-slot";
+import { cva as cva2 } from "class-variance-authority";
+import { jsx as jsx14 } from "react/jsx-runtime";
+var buttonVariants = cva2(
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
+        destructive: "bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+        outline: "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
+        secondary: "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+        link: "text-primary underline-offset-4 hover:underline"
+      },
+      size: {
+        default: "h-9 px-4 py-2 has-[>svg]:px-3",
+        sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
+        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
+        icon: "size-9"
+      }
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default"
+    }
+  }
+);
+var Button = React8.forwardRef((_a, ref) => {
+  var _b = _a, { className, variant, size, asChild = false } = _b, props = __objRest(_b, ["className", "variant", "size", "asChild"]);
+  const Comp = asChild ? Slot : "button";
+  return /* @__PURE__ */ jsx14(
+    Comp,
+    __spreadValues({
+      ref,
+      "data-slot": "button",
+      className: cn(buttonVariants({ variant, size, className }))
+    }, props)
+  );
+});
+Button.displayName = "Button";
 
 // src/components/demo/video-source-selector.tsx
 import { FileVideo, Play as Play3, Download, Info, AlertTriangle } from "lucide-react";
-import { jsx as jsx17, jsxs as jsxs12 } from "react/jsx-runtime";
+import { jsx as jsx15, jsxs as jsxs10 } from "react/jsx-runtime";
 var isVideoFormatSupportedSimple = (url) => {
   var _a;
   if (typeof window === "undefined") {
@@ -3488,42 +4149,42 @@ var videoSources = [
   {
     id: "sintel-480p",
     name: "MP4 - Sintel (480p)",
-    url: "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+    url: "https://samplelib.com/lib/preview/mp4/sample-5s.mp4",
     format: "MP4",
     quality: "480p",
-    size: "17.2MB",
-    description: "Blender Foundation short film - reliable Google storage",
-    features: ["Blender Foundation", "Good Quality", "Google CDN"]
+    size: "2.8MB",
+    description: "SampleLib short MP4 sample",
+    features: ["Reliable", "HTTPS", "Quick Load"]
   },
   {
     id: "tears-steel-480p",
     name: "MP4 - Tears of Steel (480p)",
-    url: "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+    url: "https://samplelib.com/lib/preview/mp4/sample-10s.mp4",
     format: "MP4",
     quality: "480p",
-    size: "12.3MB",
-    description: "Another Blender Foundation film from Google storage",
-    features: ["Blender Foundation", "Sci-Fi", "Google CDN"]
+    size: "5.3MB",
+    description: "SampleLib medium-length MP4 sample",
+    features: ["Reliable", "HTTPS", "MP4"]
   },
   {
     id: "elephant-dream",
     name: "MP4 - Elephant's Dream",
-    url: "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+    url: "https://samplelib.com/lib/preview/mp4/sample-15s.mp4",
     format: "MP4",
     quality: "720p",
-    size: "18.9MB",
-    description: "First open movie by Blender Foundation",
-    features: ["Open Source", "Creative Commons", "Google CDN"]
+    size: "11.3MB",
+    description: "SampleLib long MP4 sample",
+    features: ["Reliable", "HTTPS", "Longer Clip"]
   },
   {
     id: "mp4-big-buck-bunny",
     name: "MP4 - Big Buck Bunny",
-    url: "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    url: "https://samplelib.com/lib/preview/mp4/sample-20s.mp4",
     format: "MP4",
     quality: "720p",
-    size: "158MB",
-    description: "Classic MP4 video file for compatibility testing",
-    features: ["Direct Download", "Wide Compatibility", "Single Quality"]
+    size: "11.2MB",
+    description: "Longer MP4 test clip for compatibility validation",
+    features: ["Reliable", "HTTPS", "Single Quality"]
   },
   {
     id: "hls-apple-basic",
@@ -3555,7 +4216,7 @@ var VideoSourceSelector = ({
     if (isLoading) {
       return;
     }
-    console.log("Selecting video source:", source.name, source.url);
+    getPlayerLogger().info("Selecting video source:", source.name, source.url);
     setIsLoading(source.id);
     if (erroredSources.has(source.id)) {
       const newErroredSources = new Set(erroredSources);
@@ -3569,7 +4230,7 @@ var VideoSourceSelector = ({
         await onSourceSelect(source);
       }
     } catch (error) {
-      console.error("Error selecting source:", error);
+      getPlayerLogger().error("Error selecting source:", error);
       setErroredSources((prev) => /* @__PURE__ */ new Set([...prev, source.id]));
     } finally {
       setTimeout(() => setIsLoading(null), 1e3);
@@ -3604,34 +4265,34 @@ var VideoSourceSelector = ({
     }
   };
   if (!mounted) {
-    return /* @__PURE__ */ jsx17("div", { className, children: /* @__PURE__ */ jsxs12(Card, { children: [
-      /* @__PURE__ */ jsxs12(CardHeader, { children: [
-        /* @__PURE__ */ jsxs12(CardTitle, { className: "flex items-center gap-2", children: [
-          /* @__PURE__ */ jsx17(FileVideo, { className: "h-5 w-5" }),
+    return /* @__PURE__ */ jsx15("div", { className, children: /* @__PURE__ */ jsxs10(Card, { children: [
+      /* @__PURE__ */ jsxs10(CardHeader, { children: [
+        /* @__PURE__ */ jsxs10(CardTitle, { className: "flex items-center gap-2", children: [
+          /* @__PURE__ */ jsx15(FileVideo, { className: "h-5 w-5" }),
           "Video Format Showcase"
         ] }),
-        /* @__PURE__ */ jsx17("p", { className: "text-sm text-muted-foreground", children: "Loading video formats..." })
+        /* @__PURE__ */ jsx15("p", { className: "text-sm text-muted-foreground", children: "Loading video formats..." })
       ] }),
-      /* @__PURE__ */ jsx17(CardContent, { children: /* @__PURE__ */ jsx17("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4", children: [1, 2, 3, 4, 5, 6].map((i) => /* @__PURE__ */ jsxs12("div", { className: "border rounded-lg p-4 animate-pulse", children: [
-        /* @__PURE__ */ jsx17("div", { className: "h-4 bg-gray-200 rounded mb-2" }),
-        /* @__PURE__ */ jsx17("div", { className: "h-3 bg-gray-200 rounded mb-2" }),
-        /* @__PURE__ */ jsx17("div", { className: "h-3 bg-gray-200 rounded" })
+      /* @__PURE__ */ jsx15(CardContent, { children: /* @__PURE__ */ jsx15("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4", children: [1, 2, 3, 4, 5, 6].map((i) => /* @__PURE__ */ jsxs10("div", { className: "border rounded-lg p-4 animate-pulse", children: [
+        /* @__PURE__ */ jsx15("div", { className: "h-4 bg-gray-200 rounded mb-2" }),
+        /* @__PURE__ */ jsx15("div", { className: "h-3 bg-gray-200 rounded mb-2" }),
+        /* @__PURE__ */ jsx15("div", { className: "h-3 bg-gray-200 rounded" })
       ] }, i)) }) })
     ] }) });
   }
-  return /* @__PURE__ */ jsx17("div", { className, children: /* @__PURE__ */ jsxs12(Card, { children: [
-    /* @__PURE__ */ jsxs12(CardHeader, { children: [
-      /* @__PURE__ */ jsxs12(CardTitle, { className: "flex items-center gap-2", children: [
-        /* @__PURE__ */ jsx17(FileVideo, { className: "h-5 w-5" }),
+  return /* @__PURE__ */ jsx15("div", { className, children: /* @__PURE__ */ jsxs10(Card, { children: [
+    /* @__PURE__ */ jsxs10(CardHeader, { children: [
+      /* @__PURE__ */ jsxs10(CardTitle, { className: "flex items-center gap-2", children: [
+        /* @__PURE__ */ jsx15(FileVideo, { className: "h-5 w-5" }),
         "Video Format Showcase"
       ] }),
-      /* @__PURE__ */ jsx17("p", { className: "text-sm text-muted-foreground", children: "Test different video formats and streaming protocols to explore all features" })
+      /* @__PURE__ */ jsx15("p", { className: "text-sm text-muted-foreground", children: "Test different video formats and streaming protocols to explore all features" })
     ] }),
-    /* @__PURE__ */ jsx17(CardContent, { children: /* @__PURE__ */ jsx17("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4", children: sources.map((source) => {
+    /* @__PURE__ */ jsx15(CardContent, { children: /* @__PURE__ */ jsx15("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4", children: sources.map((source) => {
       const isSupported = isVideoFormatSupportedSimple(source.url);
       const hasError = erroredSources.has(source.id);
       const isSelected = (selectedVideo == null ? void 0 : selectedVideo.id) === source.id || currentSource === source.url;
-      return /* @__PURE__ */ jsx17(
+      return /* @__PURE__ */ jsx15(
         "div",
         {
           className: `border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${isSelected ? "border-blue-500 bg-blue-50 dark:bg-blue-950" : hasError ? "border-red-300 bg-red-50 dark:bg-red-950/30" : isSupported ? "border-gray-200 hover:border-gray-300" : "border-red-200 bg-red-50 dark:bg-red-950 opacity-75"} ${isLoading === source.id ? "opacity-50 pointer-events-none" : ""}`,
@@ -3642,45 +4303,45 @@ var VideoSourceSelector = ({
               handleSourceSelect(source);
             }
           },
-          children: /* @__PURE__ */ jsxs12("div", { className: "space-y-3", children: [
-            /* @__PURE__ */ jsxs12("div", { className: "flex items-start justify-between", children: [
-              /* @__PURE__ */ jsx17("h3", { className: "font-medium text-sm leading-tight", children: source.name }),
-              /* @__PURE__ */ jsxs12("div", { className: "flex items-center gap-1", children: [
-                currentSource === source.url && /* @__PURE__ */ jsx17(Play3, { className: "h-4 w-4 text-blue-500 flex-shrink-0" }),
-                hasError && /* @__PURE__ */ jsx17(AlertTriangle, { className: "h-4 w-4 text-red-500 flex-shrink-0" }),
-                !isSupported && !hasError && /* @__PURE__ */ jsx17(AlertTriangle, { className: "h-4 w-4 text-red-500 flex-shrink-0" })
+          children: /* @__PURE__ */ jsxs10("div", { className: "space-y-3", children: [
+            /* @__PURE__ */ jsxs10("div", { className: "flex items-start justify-between", children: [
+              /* @__PURE__ */ jsx15("h3", { className: "font-medium text-sm leading-tight", children: source.name }),
+              /* @__PURE__ */ jsxs10("div", { className: "flex items-center gap-1", children: [
+                currentSource === source.url && /* @__PURE__ */ jsx15(Play3, { className: "h-4 w-4 text-blue-500 flex-shrink-0" }),
+                hasError && /* @__PURE__ */ jsx15(AlertTriangle, { className: "h-4 w-4 text-red-500 flex-shrink-0" }),
+                !isSupported && !hasError && /* @__PURE__ */ jsx15(AlertTriangle, { className: "h-4 w-4 text-red-500 flex-shrink-0" })
               ] })
             ] }),
-            /* @__PURE__ */ jsxs12("div", { className: "flex gap-2 flex-wrap", children: [
-              /* @__PURE__ */ jsx17(Badge, { className: `text-xs ${getFormatColor(source.format)}`, children: source.format }),
-              /* @__PURE__ */ jsx17(Badge, { className: `text-xs ${getQualityColor(source.quality)}`, children: source.quality }),
-              source.fallbackUrls && source.fallbackUrls.length > 0 && /* @__PURE__ */ jsx17(Badge, { variant: "outline", className: "text-xs", children: "Failover" }),
-              source.aspectRatio && /* @__PURE__ */ jsx17(Badge, { variant: "outline", className: "text-xs", children: source.aspectRatio === "16/9" ? "\u{1F4FA} Landscape" : source.aspectRatio === "9/16" ? "\u{1F4F1} Vertical" : source.aspectRatio === "1/1" ? "\u2B1C Square" : source.aspectRatio })
+            /* @__PURE__ */ jsxs10("div", { className: "flex gap-2 flex-wrap", children: [
+              /* @__PURE__ */ jsx15(Badge, { className: `text-xs ${getFormatColor(source.format)}`, children: source.format }),
+              /* @__PURE__ */ jsx15(Badge, { className: `text-xs ${getQualityColor(source.quality)}`, children: source.quality }),
+              source.fallbackUrls && source.fallbackUrls.length > 0 && /* @__PURE__ */ jsx15(Badge, { variant: "outline", className: "text-xs", children: "Failover" }),
+              source.aspectRatio && /* @__PURE__ */ jsx15(Badge, { variant: "outline", className: "text-xs", children: source.aspectRatio === "16/9" ? "\u{1F4FA} Landscape" : source.aspectRatio === "9/16" ? "\u{1F4F1} Vertical" : source.aspectRatio === "1/1" ? "\u2B1C Square" : source.aspectRatio })
             ] }),
-            /* @__PURE__ */ jsx17("p", { className: "text-xs text-muted-foreground line-clamp-2", children: hasError ? "\u26A0\uFE0F This video failed to load. Click 'Retry' to try again." : source.description }),
-            /* @__PURE__ */ jsxs12("div", { className: "flex items-center gap-4 text-xs text-muted-foreground", children: [
-              source.size && /* @__PURE__ */ jsxs12("div", { className: "flex items-center gap-1", children: [
-                /* @__PURE__ */ jsx17(Download, { className: "h-3 w-3" }),
+            /* @__PURE__ */ jsx15("p", { className: "text-xs text-muted-foreground line-clamp-2", children: hasError ? "\u26A0\uFE0F This video failed to load. Click 'Retry' to try again." : source.description }),
+            /* @__PURE__ */ jsxs10("div", { className: "flex items-center gap-4 text-xs text-muted-foreground", children: [
+              source.size && /* @__PURE__ */ jsxs10("div", { className: "flex items-center gap-1", children: [
+                /* @__PURE__ */ jsx15(Download, { className: "h-3 w-3" }),
                 source.size
               ] }),
-              /* @__PURE__ */ jsxs12("div", { className: "flex items-center gap-1", children: [
-                /* @__PURE__ */ jsx17(Info, { className: "h-3 w-3" }),
+              /* @__PURE__ */ jsxs10("div", { className: "flex items-center gap-1", children: [
+                /* @__PURE__ */ jsx15(Info, { className: "h-3 w-3" }),
                 source.features.length,
                 " features"
               ] })
             ] }),
-            /* @__PURE__ */ jsxs12("div", { className: "space-y-1", children: [
-              source.features.slice(0, 2).map((feature, index) => /* @__PURE__ */ jsxs12("div", { className: "flex items-center gap-1", children: [
-                /* @__PURE__ */ jsx17("div", { className: "w-1.5 h-1.5 bg-green-500 rounded-full" }),
-                /* @__PURE__ */ jsx17("span", { className: "text-xs text-muted-foreground", children: feature })
+            /* @__PURE__ */ jsxs10("div", { className: "space-y-1", children: [
+              source.features.slice(0, 2).map((feature, index) => /* @__PURE__ */ jsxs10("div", { className: "flex items-center gap-1", children: [
+                /* @__PURE__ */ jsx15("div", { className: "w-1.5 h-1.5 bg-green-500 rounded-full" }),
+                /* @__PURE__ */ jsx15("span", { className: "text-xs text-muted-foreground", children: feature })
               ] }, index)),
-              source.features.length > 2 && /* @__PURE__ */ jsxs12("div", { className: "text-xs text-muted-foreground", children: [
+              source.features.length > 2 && /* @__PURE__ */ jsxs10("div", { className: "text-xs text-muted-foreground", children: [
                 "+",
                 source.features.length - 2,
                 " more features"
               ] })
             ] }),
-            /* @__PURE__ */ jsx17(
+            /* @__PURE__ */ jsx15(
               Button,
               {
                 size: "sm",
@@ -3706,46 +4367,46 @@ var VideoSourceSelector = ({
 };
 
 // src/components/demo/player-stats.tsx
-import { jsx as jsx18, jsxs as jsxs13 } from "react/jsx-runtime";
+import { jsx as jsx16, jsxs as jsxs11 } from "react/jsx-runtime";
 var PlayerStats = ({ state }) => {
-  return /* @__PURE__ */ jsxs13("div", { className: "bg-gray-100 dark:bg-gray-800 rounded-lg p-4 space-y-2", children: [
-    /* @__PURE__ */ jsx18("h3", { className: "font-semibold text-gray-900 dark:text-white", children: "Player Statistics" }),
-    /* @__PURE__ */ jsxs13("div", { className: "grid grid-cols-2 gap-4 text-sm", children: [
-      /* @__PURE__ */ jsxs13("div", { children: [
-        /* @__PURE__ */ jsx18("span", { className: "text-gray-600 dark:text-gray-400", children: "Current Time:" }),
-        /* @__PURE__ */ jsxs13("span", { className: "ml-2 font-mono", children: [
+  return /* @__PURE__ */ jsxs11("div", { className: "bg-gray-100 dark:bg-gray-800 rounded-lg p-4 space-y-2", children: [
+    /* @__PURE__ */ jsx16("h3", { className: "font-semibold text-gray-900 dark:text-white", children: "Player Statistics" }),
+    /* @__PURE__ */ jsxs11("div", { className: "grid grid-cols-2 gap-4 text-sm", children: [
+      /* @__PURE__ */ jsxs11("div", { children: [
+        /* @__PURE__ */ jsx16("span", { className: "text-gray-600 dark:text-gray-400", children: "Current Time:" }),
+        /* @__PURE__ */ jsxs11("span", { className: "ml-2 font-mono", children: [
           state.currentTime.toFixed(2),
           "s"
         ] })
       ] }),
-      /* @__PURE__ */ jsxs13("div", { children: [
-        /* @__PURE__ */ jsx18("span", { className: "text-gray-600 dark:text-gray-400", children: "Duration:" }),
-        /* @__PURE__ */ jsxs13("span", { className: "ml-2 font-mono", children: [
+      /* @__PURE__ */ jsxs11("div", { children: [
+        /* @__PURE__ */ jsx16("span", { className: "text-gray-600 dark:text-gray-400", children: "Duration:" }),
+        /* @__PURE__ */ jsxs11("span", { className: "ml-2 font-mono", children: [
           state.duration.toFixed(2),
           "s"
         ] })
       ] }),
-      /* @__PURE__ */ jsxs13("div", { children: [
-        /* @__PURE__ */ jsx18("span", { className: "text-gray-600 dark:text-gray-400", children: "Volume:" }),
-        /* @__PURE__ */ jsxs13("span", { className: "ml-2 font-mono", children: [
+      /* @__PURE__ */ jsxs11("div", { children: [
+        /* @__PURE__ */ jsx16("span", { className: "text-gray-600 dark:text-gray-400", children: "Volume:" }),
+        /* @__PURE__ */ jsxs11("span", { className: "ml-2 font-mono", children: [
           Math.round(state.volume * 100),
           "%"
         ] })
       ] }),
-      /* @__PURE__ */ jsxs13("div", { children: [
-        /* @__PURE__ */ jsx18("span", { className: "text-gray-600 dark:text-gray-400", children: "Quality:" }),
-        /* @__PURE__ */ jsx18("span", { className: "ml-2 font-mono", children: state.quality })
+      /* @__PURE__ */ jsxs11("div", { children: [
+        /* @__PURE__ */ jsx16("span", { className: "text-gray-600 dark:text-gray-400", children: "Quality:" }),
+        /* @__PURE__ */ jsx16("span", { className: "ml-2 font-mono", children: state.quality })
       ] }),
-      /* @__PURE__ */ jsxs13("div", { children: [
-        /* @__PURE__ */ jsx18("span", { className: "text-gray-600 dark:text-gray-400", children: "Buffered:" }),
-        /* @__PURE__ */ jsxs13("span", { className: "ml-2 font-mono", children: [
+      /* @__PURE__ */ jsxs11("div", { children: [
+        /* @__PURE__ */ jsx16("span", { className: "text-gray-600 dark:text-gray-400", children: "Buffered:" }),
+        /* @__PURE__ */ jsxs11("span", { className: "ml-2 font-mono", children: [
           Math.round(state.buffered * 100),
           "%"
         ] })
       ] }),
-      /* @__PURE__ */ jsxs13("div", { children: [
-        /* @__PURE__ */ jsx18("span", { className: "text-gray-600 dark:text-gray-400", children: "Playback Rate:" }),
-        /* @__PURE__ */ jsxs13("span", { className: "ml-2 font-mono", children: [
+      /* @__PURE__ */ jsxs11("div", { children: [
+        /* @__PURE__ */ jsx16("span", { className: "text-gray-600 dark:text-gray-400", children: "Playback Rate:" }),
+        /* @__PURE__ */ jsxs11("span", { className: "ml-2 font-mono", children: [
           state.playbackRate,
           "x"
         ] })
@@ -3755,8 +4416,8 @@ var PlayerStats = ({ state }) => {
 };
 
 // src/components/demo/feature-list.tsx
-import { Check } from "lucide-react";
-import { jsx as jsx19, jsxs as jsxs14 } from "react/jsx-runtime";
+import { Check as Check3 } from "lucide-react";
+import { jsx as jsx17, jsxs as jsxs12 } from "react/jsx-runtime";
 var features = [
   { name: "HLS Streaming", description: "HTTP Live Streaming support", enabled: true },
   { name: "DASH Streaming", description: "Dynamic Adaptive Streaming", enabled: true },
@@ -3770,54 +4431,54 @@ var features = [
   { name: "Auto-hide Controls", description: "Clean viewing experience", enabled: true }
 ];
 var FeatureList = () => {
-  return /* @__PURE__ */ jsxs14("div", { className: "bg-gray-100 dark:bg-gray-800 rounded-lg p-4", children: [
-    /* @__PURE__ */ jsx19("h3", { className: "font-semibold text-gray-900 dark:text-white mb-4", children: "Features" }),
-    /* @__PURE__ */ jsx19("div", { className: "grid gap-2", children: features.map((feature, index) => /* @__PURE__ */ jsxs14("div", { className: "flex items-center space-x-3", children: [
-      /* @__PURE__ */ jsx19("div", { className: `w-4 h-4 rounded-full flex items-center justify-center ${feature.enabled ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400"}`, children: feature.enabled && /* @__PURE__ */ jsx19(Check, { className: "w-3 h-3" }) }),
-      /* @__PURE__ */ jsxs14("div", { className: "flex-1", children: [
-        /* @__PURE__ */ jsx19("div", { className: "text-sm font-medium text-gray-900 dark:text-white", children: feature.name }),
-        /* @__PURE__ */ jsx19("div", { className: "text-xs text-gray-600 dark:text-gray-400", children: feature.description })
+  return /* @__PURE__ */ jsxs12("div", { className: "bg-gray-100 dark:bg-gray-800 rounded-lg p-4", children: [
+    /* @__PURE__ */ jsx17("h3", { className: "font-semibold text-gray-900 dark:text-white mb-4", children: "Features" }),
+    /* @__PURE__ */ jsx17("div", { className: "grid gap-2", children: features.map((feature, index) => /* @__PURE__ */ jsxs12("div", { className: "flex items-center space-x-3", children: [
+      /* @__PURE__ */ jsx17("div", { className: `w-4 h-4 rounded-full flex items-center justify-center ${feature.enabled ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400"}`, children: feature.enabled && /* @__PURE__ */ jsx17(Check3, { className: "w-3 h-3" }) }),
+      /* @__PURE__ */ jsxs12("div", { className: "flex-1", children: [
+        /* @__PURE__ */ jsx17("div", { className: "text-sm font-medium text-gray-900 dark:text-white", children: feature.name }),
+        /* @__PURE__ */ jsx17("div", { className: "text-xs text-gray-600 dark:text-gray-400", children: feature.description })
       ] })
     ] }, index)) })
   ] });
 };
 
 // src/components/demo/video-player-demo.tsx
-import { jsx as jsx20, jsxs as jsxs15 } from "react/jsx-runtime";
+import { jsx as jsx18, jsxs as jsxs13 } from "react/jsx-runtime";
 var VideoPlayerDemo = () => {
   const videoSources2 = [
     {
       id: "bigbuck",
       name: "Big Buck Bunny (MP4)",
-      url: "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+      url: "https://samplelib.com/lib/preview/mp4/sample-10s.mp4",
       format: "MP4",
       quality: "HD",
-      size: "158MB",
+      size: "5.3MB",
       description: "High quality demo video",
       features: ["MP4", "HD Quality"],
-      poster: "https://storage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg"
+      poster: "/api/placeholder/1280/720"
     },
     {
       id: "elephant",
       name: "Elephant Dream (MP4)",
-      url: "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+      url: "https://samplelib.com/lib/preview/mp4/sample-15s.mp4",
       format: "MP4",
       quality: "HD",
-      size: "120MB",
+      size: "11.3MB",
       description: "Animation showcase",
       features: ["MP4", "Animation"],
-      poster: "https://storage.googleapis.com/gtv-videos-bucket/sample/images/ElephantsDream.jpg"
+      poster: "/api/placeholder/1280/720"
     },
     {
       id: "sintel",
       name: "Sintel (MP4)",
-      url: "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+      url: "https://samplelib.com/lib/preview/mp4/sample-20s.mp4",
       format: "MP4",
       quality: "HD",
-      size: "90MB",
+      size: "11.2MB",
       description: "Blender Foundation movie",
       features: ["MP4", "Short Film"],
-      poster: "https://storage.googleapis.com/gtv-videos-bucket/sample/images/Sintel.jpg"
+      poster: "/api/placeholder/1280/720"
     }
   ];
   const [selectedVideo, setSelectedVideo] = useState8(videoSources2[0]);
@@ -3844,9 +4505,9 @@ var VideoPlayerDemo = () => {
     averageBitrate: 0,
     qualityChanges: 0
   });
-  return /* @__PURE__ */ jsx20(PlayerConfigProvider, { children: /* @__PURE__ */ jsxs15("div", { className: "grid lg:grid-cols-3 gap-8", children: [
-    /* @__PURE__ */ jsxs15("div", { className: "lg:col-span-2", children: [
-      /* @__PURE__ */ jsx20(
+  return /* @__PURE__ */ jsx18(PlayerConfigProvider, { children: /* @__PURE__ */ jsxs13("div", { className: "grid lg:grid-cols-3 gap-8", children: [
+    /* @__PURE__ */ jsxs13("div", { className: "lg:col-span-2", children: [
+      /* @__PURE__ */ jsx18(
         VideoSourceSelector,
         {
           sources: videoSources2,
@@ -3855,7 +4516,7 @@ var VideoPlayerDemo = () => {
           className: "mb-6"
         }
       ),
-      /* @__PURE__ */ jsx20(
+      /* @__PURE__ */ jsx18(
         ConfigurableVideoPlayer,
         {
           src: selectedVideo.url,
@@ -3868,9 +4529,9 @@ var VideoPlayerDemo = () => {
         }
       )
     ] }),
-    /* @__PURE__ */ jsxs15("div", { className: "space-y-6", children: [
-      /* @__PURE__ */ jsx20(PlayerStats, { state: playerState }),
-      /* @__PURE__ */ jsx20(FeatureList, {})
+    /* @__PURE__ */ jsxs13("div", { className: "space-y-6", children: [
+      /* @__PURE__ */ jsx18(PlayerStats, { state: playerState }),
+      /* @__PURE__ */ jsx18(FeatureList, {})
     ] })
   ] }) });
 };
@@ -3880,14 +4541,14 @@ import { useState as useState9 } from "react";
 
 // src/components/ui/switch.tsx
 import * as SwitchPrimitive from "@radix-ui/react-switch";
-import { jsx as jsx21 } from "react/jsx-runtime";
+import { jsx as jsx19 } from "react/jsx-runtime";
 function Switch(_a) {
   var _b = _a, {
     className
   } = _b, props = __objRest(_b, [
     "className"
   ]);
-  return /* @__PURE__ */ jsx21(
+  return /* @__PURE__ */ jsx19(
     SwitchPrimitive.Root,
     __spreadProps(__spreadValues({
       "data-slot": "switch",
@@ -3896,7 +4557,7 @@ function Switch(_a) {
         className
       )
     }, props), {
-      children: /* @__PURE__ */ jsx21(
+      children: /* @__PURE__ */ jsx19(
         SwitchPrimitive.Thumb,
         {
           "data-slot": "switch-thumb",
@@ -3911,15 +4572,15 @@ function Switch(_a) {
 
 // src/components/ui/select.tsx
 import * as SelectPrimitive from "@radix-ui/react-select";
-import { CheckIcon as CheckIcon2, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
-import { jsx as jsx22, jsxs as jsxs16 } from "react/jsx-runtime";
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
+import { jsx as jsx20, jsxs as jsxs14 } from "react/jsx-runtime";
 function Select(_a) {
   var props = __objRest(_a, []);
-  return /* @__PURE__ */ jsx22(SelectPrimitive.Root, __spreadValues({ "data-slot": "select" }, props));
+  return /* @__PURE__ */ jsx20(SelectPrimitive.Root, __spreadValues({ "data-slot": "select" }, props));
 }
 function SelectValue(_a) {
   var props = __objRest(_a, []);
-  return /* @__PURE__ */ jsx22(SelectPrimitive.Value, __spreadValues({ "data-slot": "select-value" }, props));
+  return /* @__PURE__ */ jsx20(SelectPrimitive.Value, __spreadValues({ "data-slot": "select-value" }, props));
 }
 function SelectTrigger(_a) {
   var _b = _a, {
@@ -3931,7 +4592,7 @@ function SelectTrigger(_a) {
     "size",
     "children"
   ]);
-  return /* @__PURE__ */ jsxs16(
+  return /* @__PURE__ */ jsxs14(
     SelectPrimitive.Trigger,
     __spreadProps(__spreadValues({
       "data-slot": "select-trigger",
@@ -3943,7 +4604,7 @@ function SelectTrigger(_a) {
     }, props), {
       children: [
         children,
-        /* @__PURE__ */ jsx22(SelectPrimitive.Icon, { asChild: true, children: /* @__PURE__ */ jsx22(ChevronDownIcon, { className: "size-4 opacity-50" }) })
+        /* @__PURE__ */ jsx20(SelectPrimitive.Icon, { asChild: true, children: /* @__PURE__ */ jsx20(ChevronDownIcon, { className: "size-4 opacity-50" }) })
       ]
     })
   );
@@ -3958,7 +4619,7 @@ function SelectContent(_a) {
     "children",
     "position"
   ]);
-  return /* @__PURE__ */ jsx22(SelectPrimitive.Portal, { children: /* @__PURE__ */ jsxs16(
+  return /* @__PURE__ */ jsx20(SelectPrimitive.Portal, { children: /* @__PURE__ */ jsxs14(
     SelectPrimitive.Content,
     __spreadProps(__spreadValues({
       "data-slot": "select-content",
@@ -3970,8 +4631,8 @@ function SelectContent(_a) {
       position
     }, props), {
       children: [
-        /* @__PURE__ */ jsx22(SelectScrollUpButton, {}),
-        /* @__PURE__ */ jsx22(
+        /* @__PURE__ */ jsx20(SelectScrollUpButton, {}),
+        /* @__PURE__ */ jsx20(
           SelectPrimitive.Viewport,
           {
             className: cn(
@@ -3981,7 +4642,7 @@ function SelectContent(_a) {
             children
           }
         ),
-        /* @__PURE__ */ jsx22(SelectScrollDownButton, {})
+        /* @__PURE__ */ jsx20(SelectScrollDownButton, {})
       ]
     })
   ) });
@@ -3994,7 +4655,7 @@ function SelectItem(_a) {
     "className",
     "children"
   ]);
-  return /* @__PURE__ */ jsxs16(
+  return /* @__PURE__ */ jsxs14(
     SelectPrimitive.Item,
     __spreadProps(__spreadValues({
       "data-slot": "select-item",
@@ -4004,8 +4665,8 @@ function SelectItem(_a) {
       )
     }, props), {
       children: [
-        /* @__PURE__ */ jsx22("span", { className: "absolute right-2 flex size-3.5 items-center justify-center", children: /* @__PURE__ */ jsx22(SelectPrimitive.ItemIndicator, { children: /* @__PURE__ */ jsx22(CheckIcon2, { className: "size-4" }) }) }),
-        /* @__PURE__ */ jsx22(SelectPrimitive.ItemText, { children })
+        /* @__PURE__ */ jsx20("span", { className: "absolute right-2 flex size-3.5 items-center justify-center", children: /* @__PURE__ */ jsx20(SelectPrimitive.ItemIndicator, { children: /* @__PURE__ */ jsx20(CheckIcon, { className: "size-4" }) }) }),
+        /* @__PURE__ */ jsx20(SelectPrimitive.ItemText, { children })
       ]
     })
   );
@@ -4016,7 +4677,7 @@ function SelectScrollUpButton(_a) {
   } = _b, props = __objRest(_b, [
     "className"
   ]);
-  return /* @__PURE__ */ jsx22(
+  return /* @__PURE__ */ jsx20(
     SelectPrimitive.ScrollUpButton,
     __spreadProps(__spreadValues({
       "data-slot": "select-scroll-up-button",
@@ -4025,7 +4686,7 @@ function SelectScrollUpButton(_a) {
         className
       )
     }, props), {
-      children: /* @__PURE__ */ jsx22(ChevronUpIcon, { className: "size-4" })
+      children: /* @__PURE__ */ jsx20(ChevronUpIcon, { className: "size-4" })
     })
   );
 }
@@ -4035,7 +4696,7 @@ function SelectScrollDownButton(_a) {
   } = _b, props = __objRest(_b, [
     "className"
   ]);
-  return /* @__PURE__ */ jsx22(
+  return /* @__PURE__ */ jsx20(
     SelectPrimitive.ScrollDownButton,
     __spreadProps(__spreadValues({
       "data-slot": "select-scroll-down-button",
@@ -4044,21 +4705,21 @@ function SelectScrollDownButton(_a) {
         className
       )
     }, props), {
-      children: /* @__PURE__ */ jsx22(ChevronDownIcon, { className: "size-4" })
+      children: /* @__PURE__ */ jsx20(ChevronDownIcon, { className: "size-4" })
     })
   );
 }
 
 // src/components/ui/tabs.tsx
 import * as TabsPrimitive from "@radix-ui/react-tabs";
-import { jsx as jsx23 } from "react/jsx-runtime";
+import { jsx as jsx21 } from "react/jsx-runtime";
 function Tabs(_a) {
   var _b = _a, {
     className
   } = _b, props = __objRest(_b, [
     "className"
   ]);
-  return /* @__PURE__ */ jsx23(
+  return /* @__PURE__ */ jsx21(
     TabsPrimitive.Root,
     __spreadValues({
       "data-slot": "tabs",
@@ -4072,7 +4733,7 @@ function TabsList(_a) {
   } = _b, props = __objRest(_b, [
     "className"
   ]);
-  return /* @__PURE__ */ jsx23(
+  return /* @__PURE__ */ jsx21(
     TabsPrimitive.List,
     __spreadValues({
       "data-slot": "tabs-list",
@@ -4089,7 +4750,7 @@ function TabsTrigger(_a) {
   } = _b, props = __objRest(_b, [
     "className"
   ]);
-  return /* @__PURE__ */ jsx23(
+  return /* @__PURE__ */ jsx21(
     TabsPrimitive.Trigger,
     __spreadValues({
       "data-slot": "tabs-trigger",
@@ -4106,7 +4767,7 @@ function TabsContent(_a) {
   } = _b, props = __objRest(_b, [
     "className"
   ]);
-  return /* @__PURE__ */ jsx23(
+  return /* @__PURE__ */ jsx21(
     TabsPrimitive.Content,
     __spreadValues({
       "data-slot": "tabs-content",
@@ -4116,10 +4777,10 @@ function TabsContent(_a) {
 }
 
 // src/components/ui/input.tsx
-import { jsx as jsx24 } from "react/jsx-runtime";
+import { jsx as jsx22 } from "react/jsx-runtime";
 function Input(_a) {
   var _b = _a, { className, type } = _b, props = __objRest(_b, ["className", "type"]);
-  return /* @__PURE__ */ jsx24(
+  return /* @__PURE__ */ jsx22(
     "input",
     __spreadValues({
       type,
@@ -4136,14 +4797,14 @@ function Input(_a) {
 
 // src/components/ui/label.tsx
 import * as LabelPrimitive from "@radix-ui/react-label";
-import { jsx as jsx25 } from "react/jsx-runtime";
-function Label3(_a) {
+import { jsx as jsx23 } from "react/jsx-runtime";
+function Label2(_a) {
   var _b = _a, {
     className
   } = _b, props = __objRest(_b, [
     "className"
   ]);
-  return /* @__PURE__ */ jsx25(
+  return /* @__PURE__ */ jsx23(
     LabelPrimitive.Root,
     __spreadValues({
       "data-slot": "label",
@@ -4157,11 +4818,11 @@ function Label3(_a) {
 
 // src/components/ui/separator.tsx
 import * as React11 from "react";
-import { jsx as jsx26 } from "react/jsx-runtime";
-var Separator3 = React11.forwardRef(
+import { jsx as jsx24 } from "react/jsx-runtime";
+var Separator2 = React11.forwardRef(
   (_a, ref) => {
     var _b = _a, { className, orientation = "horizontal" } = _b, props = __objRest(_b, ["className", "orientation"]);
-    return /* @__PURE__ */ jsx26(
+    return /* @__PURE__ */ jsx24(
       "div",
       __spreadValues({
         ref,
@@ -4174,15 +4835,14 @@ var Separator3 = React11.forwardRef(
     );
   }
 );
-Separator3.displayName = "Separator";
+Separator2.displayName = "Separator";
 
 // src/components/config/player-config-panel.tsx
-import { Settings as Settings3, Palette, Keyboard as Keyboard2, Smartphone as Smartphone2, Zap, Save, RotateCcw } from "lucide-react";
-import { jsx as jsx27, jsxs as jsxs17 } from "react/jsx-runtime";
+import { Settings as Settings3, Keyboard as Keyboard2, Smartphone as Smartphone2, Zap, Save, RotateCcw } from "lucide-react";
+import { jsx as jsx25, jsxs as jsxs15 } from "react/jsx-runtime";
 var PlayerConfigPanel = () => {
-  var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t, _u;
+  var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t;
   const { config, updateConfig, resetConfig, saveConfig, loadSavedConfig, getSavedConfigs } = usePlayerConfig();
-  const { presets, loadPreset } = usePlayerPresets();
   const [saveConfigName, setSaveConfigName] = useState9("");
   const savedConfigs = getSavedConfigs();
   const handleControlVisibilityChange = (control, enabled) => {
@@ -4192,13 +4852,6 @@ var PlayerConfigPanel = () => {
         visibility: __spreadProps(__spreadValues({}, (_a2 = config.controls) == null ? void 0 : _a2.visibility), {
           [control]: enabled
         })
-      })
-    });
-  };
-  const handleThemeChange = (property, value) => {
-    updateConfig({
-      theme: __spreadProps(__spreadValues({}, config.theme), {
-        [property]: value
       })
     });
   };
@@ -4216,54 +4869,50 @@ var PlayerConfigPanel = () => {
       })
     });
   };
-  return /* @__PURE__ */ jsxs17(Card, { className: "w-full max-w-4xl mx-auto", children: [
-    /* @__PURE__ */ jsxs17(CardHeader, { children: [
-      /* @__PURE__ */ jsxs17(CardTitle, { className: "flex items-center gap-2", children: [
-        /* @__PURE__ */ jsx27(Settings3, { className: "h-5 w-5" }),
+  const controlLabels = {
+    playPause: "Play/Pause Button",
+    progress: "Progress Bar",
+    volume: "Volume Control",
+    quality: "Quality Selector",
+    fullscreen: "Fullscreen Toggle",
+    pictureInPicture: "Picture-in-Picture",
+    theaterMode: "Theater Mode",
+    playbackRate: "Playback Speed",
+    keyboardShortcuts: "Keyboard Shortcuts",
+    settings: "Settings Menu",
+    time: "Time Display"
+  };
+  return /* @__PURE__ */ jsxs15(Card, { className: "w-full max-w-4xl mx-auto", children: [
+    /* @__PURE__ */ jsxs15(CardHeader, { children: [
+      /* @__PURE__ */ jsxs15(CardTitle, { className: "flex items-center gap-2", children: [
+        /* @__PURE__ */ jsx25(Settings3, { className: "h-5 w-5" }),
         "Video Player Configuration"
       ] }),
-      /* @__PURE__ */ jsxs17("div", { className: "flex gap-2 flex-wrap", children: [
-        /* @__PURE__ */ jsxs17(Select, { onValueChange: loadPreset, children: [
-          /* @__PURE__ */ jsx27(SelectTrigger, { className: "w-48", children: /* @__PURE__ */ jsx27(SelectValue, { placeholder: "Load Preset" }) }),
-          /* @__PURE__ */ jsx27(SelectContent, { children: presets.map((preset) => /* @__PURE__ */ jsx27(SelectItem, { value: preset, children: preset.charAt(0).toUpperCase() + preset.slice(1) }, preset)) })
+      /* @__PURE__ */ jsxs15("div", { className: "flex gap-2 flex-wrap", children: [
+        savedConfigs.length > 0 && /* @__PURE__ */ jsxs15(Select, { onValueChange: loadSavedConfig, children: [
+          /* @__PURE__ */ jsx25(SelectTrigger, { className: "w-48", children: /* @__PURE__ */ jsx25(SelectValue, { placeholder: "Load Saved Config" }) }),
+          /* @__PURE__ */ jsx25(SelectContent, { children: savedConfigs.map((name) => /* @__PURE__ */ jsx25(SelectItem, { value: name, children: name }, name)) })
         ] }),
-        savedConfigs.length > 0 && /* @__PURE__ */ jsxs17(Select, { onValueChange: loadSavedConfig, children: [
-          /* @__PURE__ */ jsx27(SelectTrigger, { className: "w-48", children: /* @__PURE__ */ jsx27(SelectValue, { placeholder: "Load Saved Config" }) }),
-          /* @__PURE__ */ jsx27(SelectContent, { children: savedConfigs.map((name) => /* @__PURE__ */ jsx27(SelectItem, { value: name, children: name }, name)) })
-        ] }),
-        /* @__PURE__ */ jsxs17(Button, { variant: "outline", onClick: resetConfig, children: [
-          /* @__PURE__ */ jsx27(RotateCcw, { className: "h-4 w-4 mr-2" }),
+        /* @__PURE__ */ jsxs15(Button, { variant: "outline", onClick: resetConfig, children: [
+          /* @__PURE__ */ jsx25(RotateCcw, { className: "h-4 w-4 mr-2" }),
           "Reset"
         ] })
       ] })
     ] }),
-    /* @__PURE__ */ jsx27(CardContent, { children: /* @__PURE__ */ jsxs17(Tabs, { defaultValue: "controls", className: "w-full", children: [
-      /* @__PURE__ */ jsxs17(TabsList, { className: "grid w-full grid-cols-5", children: [
-        /* @__PURE__ */ jsx27(TabsTrigger, { value: "controls", children: "Controls" }),
-        /* @__PURE__ */ jsx27(TabsTrigger, { value: "theme", children: "Theme" }),
-        /* @__PURE__ */ jsx27(TabsTrigger, { value: "behavior", children: "Behavior" }),
-        /* @__PURE__ */ jsx27(TabsTrigger, { value: "gestures", children: "Gestures" }),
-        /* @__PURE__ */ jsx27(TabsTrigger, { value: "save", children: "Save" })
+    /* @__PURE__ */ jsx25(CardContent, { children: /* @__PURE__ */ jsxs15(Tabs, { defaultValue: "controls", className: "w-full", children: [
+      /* @__PURE__ */ jsxs15(TabsList, { className: "grid w-full grid-cols-4", children: [
+        /* @__PURE__ */ jsx25(TabsTrigger, { value: "controls", children: "Controls" }),
+        /* @__PURE__ */ jsx25(TabsTrigger, { value: "behavior", children: "Behavior" }),
+        /* @__PURE__ */ jsx25(TabsTrigger, { value: "gestures", children: "Gestures" }),
+        /* @__PURE__ */ jsx25(TabsTrigger, { value: "save", children: "Save" })
       ] }),
-      /* @__PURE__ */ jsxs17(TabsContent, { value: "controls", className: "space-y-6", children: [
-        /* @__PURE__ */ jsxs17("div", { children: [
-          /* @__PURE__ */ jsx27("h3", { className: "text-lg font-medium mb-4", children: "Control Visibility" }),
-          /* @__PURE__ */ jsx27("div", { className: "grid grid-cols-2 md:grid-cols-3 gap-4", children: Object.entries({
-            playPause: "Play/Pause Button",
-            progress: "Progress Bar",
-            volume: "Volume Control",
-            quality: "Quality Selector",
-            fullscreen: "Fullscreen Toggle",
-            pictureInPicture: "Picture-in-Picture",
-            theaterMode: "Theater Mode",
-            playbackRate: "Playback Speed",
-            keyboardShortcuts: "Keyboard Shortcuts",
-            settings: "Settings Menu",
-            time: "Time Display"
-          }).map(([key, label]) => {
+      /* @__PURE__ */ jsxs15(TabsContent, { value: "controls", className: "space-y-6", children: [
+        /* @__PURE__ */ jsxs15("div", { children: [
+          /* @__PURE__ */ jsx25("h3", { className: "text-lg font-medium mb-4", children: "Control Visibility" }),
+          /* @__PURE__ */ jsx25("div", { className: "grid grid-cols-2 md:grid-cols-3 gap-4", children: Object.entries(controlLabels).map(([key, label]) => {
             var _a2, _b2, _c2;
-            return /* @__PURE__ */ jsxs17("div", { className: "flex items-center space-x-2", children: [
-              /* @__PURE__ */ jsx27(
+            return /* @__PURE__ */ jsxs15("div", { className: "flex items-center space-x-2", children: [
+              /* @__PURE__ */ jsx25(
                 Switch,
                 {
                   id: key,
@@ -4271,145 +4920,99 @@ var PlayerConfigPanel = () => {
                   onCheckedChange: (checked) => handleControlVisibilityChange(key, checked)
                 }
               ),
-              /* @__PURE__ */ jsx27(Label3, { htmlFor: key, className: "text-sm", children: label })
+              /* @__PURE__ */ jsx25(Label2, { htmlFor: key, className: "text-sm", children: label })
             ] }, key);
           }) })
         ] }),
-        /* @__PURE__ */ jsx27(Separator3, {}),
-        /* @__PURE__ */ jsxs17("div", { children: [
-          /* @__PURE__ */ jsx27("h3", { className: "text-lg font-medium mb-4", children: "Control Style" }),
-          /* @__PURE__ */ jsxs17("div", { className: "grid grid-cols-2 gap-4", children: [
-            /* @__PURE__ */ jsxs17("div", { children: [
-              /* @__PURE__ */ jsx27(Label3, { htmlFor: "style", children: "Style" }),
-              /* @__PURE__ */ jsxs17(
-                Select,
-                {
-                  value: ((_a = config.controls) == null ? void 0 : _a.style) || "youtube",
-                  onValueChange: (value) => updateConfig({
-                    controls: __spreadProps(__spreadValues({}, config.controls), { style: value })
-                  }),
-                  children: [
-                    /* @__PURE__ */ jsx27(SelectTrigger, { children: /* @__PURE__ */ jsx27(SelectValue, {}) }),
-                    /* @__PURE__ */ jsxs17(SelectContent, { children: [
-                      /* @__PURE__ */ jsx27(SelectItem, { value: "youtube", children: "YouTube" }),
-                      /* @__PURE__ */ jsx27(SelectItem, { value: "vimeo", children: "Vimeo" }),
-                      /* @__PURE__ */ jsx27(SelectItem, { value: "netflix", children: "Netflix" }),
-                      /* @__PURE__ */ jsx27(SelectItem, { value: "minimal", children: "Minimal" })
-                    ] })
-                  ]
-                }
-              )
-            ] }),
-            /* @__PURE__ */ jsxs17("div", { children: [
-              /* @__PURE__ */ jsx27(Label3, { htmlFor: "size", children: "Size" }),
-              /* @__PURE__ */ jsxs17(
-                Select,
-                {
-                  value: ((_b = config.controls) == null ? void 0 : _b.size) || "medium",
-                  onValueChange: (value) => updateConfig({
-                    controls: __spreadProps(__spreadValues({}, config.controls), { size: value })
-                  }),
-                  children: [
-                    /* @__PURE__ */ jsx27(SelectTrigger, { children: /* @__PURE__ */ jsx27(SelectValue, {}) }),
-                    /* @__PURE__ */ jsxs17(SelectContent, { children: [
-                      /* @__PURE__ */ jsx27(SelectItem, { value: "small", children: "Small" }),
-                      /* @__PURE__ */ jsx27(SelectItem, { value: "medium", children: "Medium" }),
-                      /* @__PURE__ */ jsx27(SelectItem, { value: "large", children: "Large" })
-                    ] })
-                  ]
-                }
-              )
-            ] })
-          ] })
-        ] })
-      ] }),
-      /* @__PURE__ */ jsx27(TabsContent, { value: "theme", className: "space-y-6", children: /* @__PURE__ */ jsxs17("div", { children: [
-        /* @__PURE__ */ jsxs17("h3", { className: "text-lg font-medium mb-4 flex items-center gap-2", children: [
-          /* @__PURE__ */ jsx27(Palette, { className: "h-5 w-5" }),
-          "Color Theme"
-        ] }),
-        /* @__PURE__ */ jsx27("div", { className: "grid grid-cols-2 gap-4", children: Object.entries({
-          primary: "Primary Color",
-          secondary: "Secondary Color",
-          accent: "Accent Color",
-          progressColor: "Progress Color",
-          bufferColor: "Buffer Color"
-        }).map(([key, label]) => {
-          var _a2;
-          return /* @__PURE__ */ jsxs17("div", { children: [
-            /* @__PURE__ */ jsx27(Label3, { htmlFor: key, children: label }),
-            /* @__PURE__ */ jsx27(
-              Input,
+        /* @__PURE__ */ jsx25(Separator2, {}),
+        /* @__PURE__ */ jsxs15("div", { children: [
+          /* @__PURE__ */ jsx25("h3", { className: "text-lg font-medium mb-4", children: "Control Layout" }),
+          /* @__PURE__ */ jsx25("div", { className: "grid grid-cols-1 gap-4", children: /* @__PURE__ */ jsxs15("div", { children: [
+            /* @__PURE__ */ jsx25(Label2, { htmlFor: "size", children: "Size" }),
+            /* @__PURE__ */ jsxs15(
+              Select,
               {
-                id: key,
-                type: "color",
-                value: ((_a2 = config.theme) == null ? void 0 : _a2[key]) || "#3b82f6",
-                onChange: (e) => handleThemeChange(key, e.target.value),
-                className: "h-10"
+                value: ((_a = config.controls) == null ? void 0 : _a.size) || "medium",
+                onValueChange: (value) => updateConfig({
+                  controls: __spreadProps(__spreadValues({}, config.controls), { size: value })
+                }),
+                children: [
+                  /* @__PURE__ */ jsx25(SelectTrigger, { children: /* @__PURE__ */ jsx25(SelectValue, {}) }),
+                  /* @__PURE__ */ jsxs15(SelectContent, { children: [
+                    /* @__PURE__ */ jsx25(SelectItem, { value: "small", children: "Small" }),
+                    /* @__PURE__ */ jsx25(SelectItem, { value: "medium", children: "Medium" }),
+                    /* @__PURE__ */ jsx25(SelectItem, { value: "large", children: "Large" })
+                  ] })
+                ]
               }
             )
-          ] }, key);
-        }) })
-      ] }) }),
-      /* @__PURE__ */ jsx27(TabsContent, { value: "behavior", className: "space-y-6", children: /* @__PURE__ */ jsxs17("div", { children: [
-        /* @__PURE__ */ jsxs17("h3", { className: "text-lg font-medium mb-4 flex items-center gap-2", children: [
-          /* @__PURE__ */ jsx27(Zap, { className: "h-5 w-5" }),
+          ] }) })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsx25(TabsContent, { value: "behavior", className: "space-y-6", children: /* @__PURE__ */ jsxs15("div", { children: [
+        /* @__PURE__ */ jsxs15("h3", { className: "text-lg font-medium mb-4 flex items-center gap-2", children: [
+          /* @__PURE__ */ jsx25(Zap, { className: "h-5 w-5" }),
           "Auto Behaviors"
         ] }),
-        /* @__PURE__ */ jsxs17("div", { className: "space-y-4", children: [
-          /* @__PURE__ */ jsxs17("div", { className: "flex items-center space-x-2", children: [
-            /* @__PURE__ */ jsx27(
+        /* @__PURE__ */ jsxs15("div", { className: "space-y-4", children: [
+          /* @__PURE__ */ jsxs15("div", { className: "flex items-center space-x-2", children: [
+            /* @__PURE__ */ jsx25(
               Switch,
               {
                 id: "autoPlay",
-                checked: (_d = (_c = config.auto) == null ? void 0 : _c.autoPlay) != null ? _d : false,
+                checked: (_c = (_b = config.auto) == null ? void 0 : _b.autoPlay) != null ? _c : false,
                 onCheckedChange: (checked) => handleAutoChange("autoPlay", checked)
               }
             ),
-            /* @__PURE__ */ jsx27(Label3, { htmlFor: "autoPlay", children: "Auto Play" })
+            /* @__PURE__ */ jsx25(Label2, { htmlFor: "autoPlay", children: "Auto Play" })
           ] }),
-          /* @__PURE__ */ jsxs17("div", { className: "flex items-center space-x-2", children: [
-            /* @__PURE__ */ jsx27(
+          /* @__PURE__ */ jsxs15("div", { className: "flex items-center space-x-2", children: [
+            /* @__PURE__ */ jsx25(
               Switch,
               {
                 id: "autoHideControls",
-                checked: (_f = (_e = config.auto) == null ? void 0 : _e.autoHideControls) != null ? _f : true,
+                checked: (_e = (_d = config.auto) == null ? void 0 : _d.autoHideControls) != null ? _e : true,
                 onCheckedChange: (checked) => handleAutoChange("autoHideControls", checked)
               }
             ),
-            /* @__PURE__ */ jsx27(Label3, { htmlFor: "autoHideControls", children: "Auto Hide Controls" })
+            /* @__PURE__ */ jsx25(Label2, { htmlFor: "autoHideControls", children: "Auto Hide Controls" })
           ] }),
-          /* @__PURE__ */ jsxs17("div", { className: "flex items-center space-x-2", children: [
-            /* @__PURE__ */ jsx27(
+          /* @__PURE__ */ jsxs15("div", { className: "flex items-center space-x-2", children: [
+            /* @__PURE__ */ jsx25(
               Switch,
               {
                 id: "rememberVolume",
-                checked: (_h = (_g = config.auto) == null ? void 0 : _g.rememberVolume) != null ? _h : true,
+                checked: (_g = (_f = config.auto) == null ? void 0 : _f.rememberVolume) != null ? _g : true,
                 onCheckedChange: (checked) => handleAutoChange("rememberVolume", checked)
               }
             ),
-            /* @__PURE__ */ jsx27(Label3, { htmlFor: "rememberVolume", children: "Remember Volume" })
+            /* @__PURE__ */ jsx25(Label2, { htmlFor: "rememberVolume", children: "Remember Volume" })
           ] }),
-          /* @__PURE__ */ jsxs17("div", { className: "flex items-center space-x-2", children: [
-            /* @__PURE__ */ jsx27(
+          /* @__PURE__ */ jsxs15("div", { className: "flex items-center space-x-2", children: [
+            /* @__PURE__ */ jsx25(
               Switch,
               {
                 id: "rememberPlaybackRate",
-                checked: (_j = (_i = config.auto) == null ? void 0 : _i.rememberPlaybackRate) != null ? _j : true,
+                checked: (_i = (_h = config.auto) == null ? void 0 : _h.rememberPlaybackRate) != null ? _i : true,
                 onCheckedChange: (checked) => handleAutoChange("rememberPlaybackRate", checked)
               }
             ),
-            /* @__PURE__ */ jsx27(Label3, { htmlFor: "rememberPlaybackRate", children: "Remember Playback Rate" })
+            /* @__PURE__ */ jsx25(Label2, { htmlFor: "rememberPlaybackRate", children: "Remember Playback Rate" })
           ] }),
-          /* @__PURE__ */ jsxs17("div", { children: [
-            /* @__PURE__ */ jsx27(Label3, { htmlFor: "autoHideDelay", children: "Auto Hide Delay (ms)" }),
-            /* @__PURE__ */ jsx27(
+          /* @__PURE__ */ jsxs15("div", { children: [
+            /* @__PURE__ */ jsx25(Label2, { htmlFor: "autoHideDelay", children: "Auto Hide Delay (ms)" }),
+            /* @__PURE__ */ jsx25(
               Input,
               {
                 id: "autoHideDelay",
                 type: "number",
-                value: ((_k = config.auto) == null ? void 0 : _k.autoHideDelay) || 3e3,
-                onChange: (e) => handleAutoChange("autoHideDelay", parseInt(e.target.value)),
+                value: ((_j = config.auto) == null ? void 0 : _j.autoHideDelay) || 3e3,
+                onChange: (e) => {
+                  const parsed = Number.parseInt(e.target.value, 10);
+                  if (Number.isFinite(parsed)) {
+                    handleAutoChange("autoHideDelay", parsed);
+                  }
+                },
                 min: "1000",
                 max: "10000",
                 step: "500"
@@ -4418,88 +5021,88 @@ var PlayerConfigPanel = () => {
           ] })
         ] })
       ] }) }),
-      /* @__PURE__ */ jsxs17(TabsContent, { value: "gestures", className: "space-y-6", children: [
-        /* @__PURE__ */ jsxs17("div", { children: [
-          /* @__PURE__ */ jsxs17("h3", { className: "text-lg font-medium mb-4 flex items-center gap-2", children: [
-            /* @__PURE__ */ jsx27(Smartphone2, { className: "h-5 w-5" }),
+      /* @__PURE__ */ jsxs15(TabsContent, { value: "gestures", className: "space-y-6", children: [
+        /* @__PURE__ */ jsxs15("div", { children: [
+          /* @__PURE__ */ jsxs15("h3", { className: "text-lg font-medium mb-4 flex items-center gap-2", children: [
+            /* @__PURE__ */ jsx25(Smartphone2, { className: "h-5 w-5" }),
             "Touch Gestures"
           ] }),
-          /* @__PURE__ */ jsxs17("div", { className: "space-y-4", children: [
-            /* @__PURE__ */ jsxs17("div", { className: "flex items-center space-x-2", children: [
-              /* @__PURE__ */ jsx27(
+          /* @__PURE__ */ jsxs15("div", { className: "space-y-4", children: [
+            /* @__PURE__ */ jsxs15("div", { className: "flex items-center space-x-2", children: [
+              /* @__PURE__ */ jsx25(
                 Switch,
                 {
                   id: "gesturesEnabled",
-                  checked: (_m = (_l = config.gestures) == null ? void 0 : _l.enabled) != null ? _m : true,
+                  checked: (_l = (_k = config.gestures) == null ? void 0 : _k.enabled) != null ? _l : true,
                   onCheckedChange: (checked) => handleGestureChange("enabled", checked)
                 }
               ),
-              /* @__PURE__ */ jsx27(Label3, { htmlFor: "gesturesEnabled", children: "Enable Gestures" })
+              /* @__PURE__ */ jsx25(Label2, { htmlFor: "gesturesEnabled", children: "Enable Gestures" })
             ] }),
-            /* @__PURE__ */ jsxs17("div", { className: "flex items-center space-x-2", children: [
-              /* @__PURE__ */ jsx27(
+            /* @__PURE__ */ jsxs15("div", { className: "flex items-center space-x-2", children: [
+              /* @__PURE__ */ jsx25(
                 Switch,
                 {
                   id: "tapToPlay",
-                  checked: (_o = (_n = config.gestures) == null ? void 0 : _n.tapToPlay) != null ? _o : true,
+                  checked: (_n = (_m = config.gestures) == null ? void 0 : _m.tapToPlay) != null ? _n : true,
                   onCheckedChange: (checked) => handleGestureChange("tapToPlay", checked)
                 }
               ),
-              /* @__PURE__ */ jsx27(Label3, { htmlFor: "tapToPlay", children: "Tap to Play/Pause" })
+              /* @__PURE__ */ jsx25(Label2, { htmlFor: "tapToPlay", children: "Tap to Play/Pause" })
             ] }),
-            /* @__PURE__ */ jsxs17("div", { className: "flex items-center space-x-2", children: [
-              /* @__PURE__ */ jsx27(
+            /* @__PURE__ */ jsxs15("div", { className: "flex items-center space-x-2", children: [
+              /* @__PURE__ */ jsx25(
                 Switch,
                 {
                   id: "doubleTapSeek",
-                  checked: (_q = (_p = config.gestures) == null ? void 0 : _p.doubleTapSeek) != null ? _q : true,
+                  checked: (_p = (_o = config.gestures) == null ? void 0 : _o.doubleTapSeek) != null ? _p : true,
                   onCheckedChange: (checked) => handleGestureChange("doubleTapSeek", checked)
                 }
               ),
-              /* @__PURE__ */ jsx27(Label3, { htmlFor: "doubleTapSeek", children: "Double Tap to Seek" })
+              /* @__PURE__ */ jsx25(Label2, { htmlFor: "doubleTapSeek", children: "Double Tap to Seek" })
             ] }),
-            /* @__PURE__ */ jsxs17("div", { className: "flex items-center space-x-2", children: [
-              /* @__PURE__ */ jsx27(
+            /* @__PURE__ */ jsxs15("div", { className: "flex items-center space-x-2", children: [
+              /* @__PURE__ */ jsx25(
                 Switch,
                 {
                   id: "swipeVolume",
-                  checked: (_s = (_r = config.gestures) == null ? void 0 : _r.swipeVolume) != null ? _s : false,
+                  checked: (_r = (_q = config.gestures) == null ? void 0 : _q.swipeVolume) != null ? _r : false,
                   onCheckedChange: (checked) => handleGestureChange("swipeVolume", checked)
                 }
               ),
-              /* @__PURE__ */ jsx27(Label3, { htmlFor: "swipeVolume", children: "Swipe for Volume" })
+              /* @__PURE__ */ jsx25(Label2, { htmlFor: "swipeVolume", children: "Swipe for Volume" })
             ] })
           ] })
         ] }),
-        /* @__PURE__ */ jsx27(Separator3, {}),
-        /* @__PURE__ */ jsxs17("div", { children: [
-          /* @__PURE__ */ jsxs17("h3", { className: "text-lg font-medium mb-4 flex items-center gap-2", children: [
-            /* @__PURE__ */ jsx27(Keyboard2, { className: "h-5 w-5" }),
+        /* @__PURE__ */ jsx25(Separator2, {}),
+        /* @__PURE__ */ jsxs15("div", { children: [
+          /* @__PURE__ */ jsxs15("h3", { className: "text-lg font-medium mb-4 flex items-center gap-2", children: [
+            /* @__PURE__ */ jsx25(Keyboard2, { className: "h-5 w-5" }),
             "Keyboard Shortcuts"
           ] }),
-          /* @__PURE__ */ jsxs17("div", { className: "flex items-center space-x-2", children: [
-            /* @__PURE__ */ jsx27(
+          /* @__PURE__ */ jsxs15("div", { className: "flex items-center space-x-2", children: [
+            /* @__PURE__ */ jsx25(
               Switch,
               {
                 id: "keyboardEnabled",
-                checked: (_u = (_t = config.keyboard) == null ? void 0 : _t.enabled) != null ? _u : true,
+                checked: (_t = (_s = config.keyboard) == null ? void 0 : _s.enabled) != null ? _t : true,
                 onCheckedChange: (checked) => updateConfig({
                   keyboard: __spreadProps(__spreadValues({}, config.keyboard), { enabled: checked })
                 })
               }
             ),
-            /* @__PURE__ */ jsx27(Label3, { htmlFor: "keyboardEnabled", children: "Enable Keyboard Shortcuts" })
+            /* @__PURE__ */ jsx25(Label2, { htmlFor: "keyboardEnabled", children: "Enable Keyboard Shortcuts" })
           ] })
         ] })
       ] }),
-      /* @__PURE__ */ jsxs17(TabsContent, { value: "save", className: "space-y-6", children: [
-        /* @__PURE__ */ jsxs17("div", { children: [
-          /* @__PURE__ */ jsxs17("h3", { className: "text-lg font-medium mb-4 flex items-center gap-2", children: [
-            /* @__PURE__ */ jsx27(Save, { className: "h-5 w-5" }),
+      /* @__PURE__ */ jsxs15(TabsContent, { value: "save", className: "space-y-6", children: [
+        /* @__PURE__ */ jsxs15("div", { children: [
+          /* @__PURE__ */ jsxs15("h3", { className: "text-lg font-medium mb-4 flex items-center gap-2", children: [
+            /* @__PURE__ */ jsx25(Save, { className: "h-5 w-5" }),
             "Save Configuration"
           ] }),
-          /* @__PURE__ */ jsxs17("div", { className: "flex gap-2", children: [
-            /* @__PURE__ */ jsx27(
+          /* @__PURE__ */ jsxs15("div", { className: "flex gap-2", children: [
+            /* @__PURE__ */ jsx25(
               Input,
               {
                 placeholder: "Configuration name...",
@@ -4507,7 +5110,7 @@ var PlayerConfigPanel = () => {
                 onChange: (e) => setSaveConfigName(e.target.value)
               }
             ),
-            /* @__PURE__ */ jsx27(
+            /* @__PURE__ */ jsx25(
               Button,
               {
                 onClick: () => {
@@ -4522,20 +5125,7 @@ var PlayerConfigPanel = () => {
             )
           ] })
         ] }),
-        /* @__PURE__ */ jsx27(Separator3, {}),
-        /* @__PURE__ */ jsxs17("div", { children: [
-          /* @__PURE__ */ jsx27("h3", { className: "text-lg font-medium mb-4", children: "Quick Presets" }),
-          /* @__PURE__ */ jsx27("div", { className: "grid grid-cols-2 md:grid-cols-3 gap-2", children: presets.map((preset) => /* @__PURE__ */ jsx27(
-            Button,
-            {
-              variant: "outline",
-              onClick: () => loadPreset(preset),
-              className: "justify-start",
-              children: /* @__PURE__ */ jsx27(Badge, { variant: "secondary", className: "mr-2", children: preset })
-            },
-            preset
-          )) })
-        ] })
+        /* @__PURE__ */ jsx25(Separator2, {})
       ] })
     ] }) })
   ] });
@@ -4698,7 +5288,7 @@ var AnalyticsPlugin = class {
         body: JSON.stringify(event)
       });
     } catch (error) {
-      console.warn("Failed to send analytics event:", error);
+      getPlayerLogger().warn("Failed to send analytics event:", error);
     }
   }
   generateSessionId() {
@@ -4710,7 +5300,7 @@ var createAnalyticsPlugin = (config) => {
 };
 
 // src/index.ts
-var VERSION = "1.0.0";
+var VERSION = "1.0.4";
 export {
   AdapterRegistry,
   AnalyticsPlugin,
@@ -4731,15 +5321,17 @@ export {
   VideoThumbnail,
   cn,
   createAnalyticsPlugin,
+  createConsoleLogger,
   createEmeController,
   createTokenLicenseRequestHandler,
   defaultStreamingAdapters,
   getBrowserCapabilities,
+  getPlayerLogger,
   getStreamingStrategy,
   isEmeSupported,
   mergePlayerConfig,
+  setPlayerLogger,
   usePlayerConfig,
-  usePlayerPresets,
   useVideoGestures,
   useVideoPlayer
 };

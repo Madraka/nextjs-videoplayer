@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Keyboard } from 'lucide-react';
 
 const shortcuts = [
@@ -23,9 +22,12 @@ export const KeyboardShortcuts: React.FC = () => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
-          <Keyboard className="h-4 w-4" />
-        </Button>
+        <button
+          type="button"
+          className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full text-white hover:bg-white/10 active:bg-white/20 transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:outline-none touch-manipulation"
+        >
+          <Keyboard className="w-5 h-5 sm:w-[22px] sm:h-[22px]" />
+        </button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>

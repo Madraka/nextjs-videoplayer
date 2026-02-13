@@ -8,6 +8,7 @@ import type {
   VideoEnginePluginLoadPayload,
   VideoEnginePluginTimeUpdatePayload,
 } from '@/core/plugins/types';
+import { getPlayerLogger } from '@/lib/logger';
 
 export interface AnalyticsConfig {
   enabled: boolean;
@@ -170,7 +171,7 @@ export class AnalyticsPlugin implements VideoEnginePlugin {
         body: JSON.stringify(event),
       });
     } catch (error) {
-      console.warn('Failed to send analytics event:', error);
+      getPlayerLogger().warn('Failed to send analytics event:', error);
     }
   }
 

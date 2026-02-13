@@ -3,7 +3,7 @@
  * Handles playback state, progress, volume, and player controls
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useReducer, useRef } from 'react';
 import { VideoEngine, type VideoEngineConfig, type VideoEngineEvents } from '@/core/video-engine';
 import type { VideoEnginePlugin } from '@/core/plugins/types';
 
@@ -51,175 +51,290 @@ interface UseVideoPlayerOptions {
   enginePlugins?: VideoEnginePlugin[];
 }
 
+export type VideoPlayerAction =
+  | { type: 'ready' }
+  | { type: 'play' }
+  | { type: 'pause'; watchTime: number }
+  | { type: 'time_update'; currentTime: number; duration: number }
+  | { type: 'progress'; buffered: number }
+  | { type: 'volume_change'; volume: number; isMuted: boolean }
+  | { type: 'quality_change'; quality: string }
+  | { type: 'error'; message: string }
+  | { type: 'load_start' }
+  | { type: 'load_end'; bufferingTime: number }
+  | { type: 'fullscreen_change'; isFullscreen: boolean }
+  | { type: 'pip_change'; isPictureInPicture: boolean }
+  | { type: 'playback_rate_change'; playbackRate: number }
+  | { type: 'toggle_theater_mode' };
+
+const TIME_EPSILON = 0.05;
+const DURATION_EPSILON = 0.01;
+const BUFFER_EPSILON = 0.25;
+const VOLUME_EPSILON = 0.01;
+
+export const createInitialState = (options: UseVideoPlayerOptions): VideoPlayerState => ({
+  isPlaying: false,
+  isPaused: true,
+  isLoading: false,
+  isMuted: options.muted ?? false,
+  currentTime: 0,
+  duration: 0,
+  volume: options.volume ?? 1,
+  buffered: 0,
+  quality: 'auto',
+  playbackRate: 1,
+  isFullscreen: false,
+  isPictureInPicture: false,
+  isTheaterMode: false,
+  error: null,
+  playCount: 0,
+  totalWatchTime: 0,
+  bufferingTime: 0,
+  averageBitrate: 0,
+  qualityChanges: 0,
+});
+
+export const videoPlayerReducer = (state: VideoPlayerState, action: VideoPlayerAction): VideoPlayerState => {
+  switch (action.type) {
+    case 'ready': {
+      return state.isLoading ? { ...state, isLoading: false } : state;
+    }
+    case 'play': {
+      if (state.isPlaying && !state.isPaused) {
+        return state;
+      }
+      return {
+        ...state,
+        isPlaying: true,
+        isPaused: false,
+        error: null,
+        playCount: state.playCount + 1,
+      };
+    }
+    case 'pause': {
+      if (!state.isPlaying && state.isPaused) {
+        return state;
+      }
+      return {
+        ...state,
+        isPlaying: false,
+        isPaused: true,
+        totalWatchTime: state.totalWatchTime + action.watchTime,
+      };
+    }
+    case 'time_update': {
+      const currentTimeDelta = Math.abs(state.currentTime - action.currentTime);
+      const durationDelta = Math.abs(state.duration - action.duration);
+      if (currentTimeDelta < TIME_EPSILON && durationDelta < DURATION_EPSILON) {
+        return state;
+      }
+      return {
+        ...state,
+        currentTime: action.currentTime,
+        duration: action.duration,
+        error: action.currentTime > 0 ? null : state.error,
+      };
+    }
+    case 'progress': {
+      if (Math.abs(state.buffered - action.buffered) < BUFFER_EPSILON) {
+        return state;
+      }
+      return { ...state, buffered: action.buffered };
+    }
+    case 'volume_change': {
+      if (Math.abs(state.volume - action.volume) < VOLUME_EPSILON && state.isMuted === action.isMuted) {
+        return state;
+      }
+      return { ...state, volume: action.volume, isMuted: action.isMuted };
+    }
+    case 'quality_change': {
+      if (state.quality === action.quality) {
+        return state;
+      }
+      return {
+        ...state,
+        quality: action.quality,
+        qualityChanges: state.qualityChanges + 1,
+      };
+    }
+    case 'error': {
+      if (state.error === action.message && !state.isLoading) {
+        return state;
+      }
+      return { ...state, error: action.message, isLoading: false };
+    }
+    case 'load_start': {
+      if (state.isLoading && state.error === null) {
+        return state;
+      }
+      return { ...state, isLoading: true, error: null };
+    }
+    case 'load_end': {
+      if (!state.isLoading && action.bufferingTime <= 0) {
+        return state;
+      }
+      return {
+        ...state,
+        isLoading: false,
+        bufferingTime: state.bufferingTime + action.bufferingTime,
+      };
+    }
+    case 'fullscreen_change': {
+      return state.isFullscreen === action.isFullscreen
+        ? state
+        : { ...state, isFullscreen: action.isFullscreen };
+    }
+    case 'pip_change': {
+      return state.isPictureInPicture === action.isPictureInPicture
+        ? state
+        : { ...state, isPictureInPicture: action.isPictureInPicture };
+    }
+    case 'playback_rate_change': {
+      return state.playbackRate === action.playbackRate
+        ? state
+        : { ...state, playbackRate: action.playbackRate };
+    }
+    case 'toggle_theater_mode': {
+      return { ...state, isTheaterMode: !state.isTheaterMode };
+    }
+    default: {
+      return state;
+    }
+  }
+};
+
+export const calculateElapsedSeconds = (startedAt: number, now: number): number => {
+  if (startedAt <= 0) {
+    return 0;
+  }
+
+  return Math.max(0, (now - startedAt) / 1000);
+};
+
+export const isExpectedLoadInterruption = (error: Error): boolean => {
+  const message = error.message.toLowerCase();
+  return (
+    error.name === 'AbortError' ||
+    message.includes('loadsource() aborted') ||
+    message.includes('superseded by a newer load request')
+  );
+};
+
 export const useVideoPlayer = (
   videoRef: React.RefObject<HTMLVideoElement | null>,
   options: UseVideoPlayerOptions = {}
 ) => {
-  const [state, setState] = useState<VideoPlayerState>({
-    isPlaying: false,
-    isPaused: true,
-    isLoading: false,
-    isMuted: options.muted ?? false,
-    currentTime: 0,
-    duration: 0,
-    volume: options.volume ?? 1,
-    buffered: 0,
-    quality: 'auto',
-    playbackRate: 1,
-    isFullscreen: false,
-    isPictureInPicture: false,
-    isTheaterMode: false,
-    error: null,
-    // Analytics data
-    playCount: 0,
-    totalWatchTime: 0,
-    bufferingTime: 0,
-    averageBitrate: 0,
-    qualityChanges: 0,
-  });
-
+  const [state, dispatch] = useReducer(videoPlayerReducer, options, createInitialState);
   const [engine, setEngine] = useState<VideoEngine | null>(null);
   const [isEngineReady, setIsEngineReady] = useState(false);
   const [pendingConfig, setPendingConfig] = useState<VideoEngineConfig | null>(null);
   const [isPlayPending, setIsPlayPending] = useState(false);
   const [qualityLevels, setQualityLevels] = useState<Array<{ id: string; label: string; height?: number }>>([]);
   const [initialEnginePlugins] = useState<VideoEnginePlugin[] | undefined>(() => options.enginePlugins);
-  
-  // Analytics tracking
-  const [lastPlayTime, setLastPlayTime] = useState<number>(0);
-  const [bufferingStartTime, setBufferingStartTime] = useState<number>(0);
 
-  // Initialize video engine
+  const lastPlayTimeRef = useRef<number>(0);
+  const bufferingStartTimeRef = useRef<number>(0);
+
   useEffect(() => {
     if (!videoRef.current) return;
 
     const videoElement = videoRef.current;
-    
+
     const events: VideoEngineEvents = {
       onReady: () => {
-        console.log('VideoEngine: onReady event fired');
-        setState(prev => ({ ...prev, isLoading: false }));
+        dispatch({ type: 'ready' });
         setIsEngineReady(true);
       },
       onPlay: () => {
-        setState(prev => ({ 
-          ...prev, 
-          isPlaying: true, 
-          isPaused: false,
-          playCount: prev.playCount + 1
-        }));
-        setLastPlayTime(Date.now());
+        dispatch({ type: 'play' });
+        lastPlayTimeRef.current = Date.now();
       },
       onPause: () => {
-        setState(prev => {
-          const watchTime = lastPlayTime > 0 ? (Date.now() - lastPlayTime) / 1000 : 0;
-          return {
-            ...prev, 
-            isPlaying: false, 
-            isPaused: true,
-            totalWatchTime: prev.totalWatchTime + watchTime
-          };
-        });
+        const watchTime = calculateElapsedSeconds(lastPlayTimeRef.current, Date.now());
+        dispatch({ type: 'pause', watchTime });
+        lastPlayTimeRef.current = 0;
       },
       onTimeUpdate: (currentTime, duration) => {
-        setState(prev => ({ ...prev, currentTime, duration }));
+        const safeCurrentTime = Number.isFinite(currentTime) ? currentTime : 0;
+        const safeDuration = Number.isFinite(duration) ? duration : 0;
+        dispatch({ type: 'time_update', currentTime: safeCurrentTime, duration: safeDuration });
       },
       onProgress: (buffered) => {
-        setState(prev => ({ ...prev, buffered }));
+        const safeBuffered = Number.isFinite(buffered) ? buffered : 0;
+        dispatch({ type: 'progress', buffered: safeBuffered });
       },
       onVolumeChange: (volume, muted) => {
-        setState(prev => ({ ...prev, volume, isMuted: muted }));
+        const safeVolume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 1;
+        dispatch({ type: 'volume_change', volume: safeVolume, isMuted: muted });
       },
       onQualityChange: (quality) => {
-        setState(prev => ({ 
-          ...prev, 
-          quality,
-          qualityChanges: prev.qualityChanges + 1
-        }));
+        dispatch({ type: 'quality_change', quality });
       },
       onError: (error) => {
-        setState(prev => ({ ...prev, error: error.message, isLoading: false }));
+        dispatch({ type: 'error', message: error.message });
       },
       onLoadStart: () => {
-        setState(prev => ({ ...prev, isLoading: true, error: null }));
-        setBufferingStartTime(Date.now());
+        dispatch({ type: 'load_start' });
+        bufferingStartTimeRef.current = Date.now();
       },
       onLoadEnd: () => {
-        setState(prev => {
-          const bufferingTime = bufferingStartTime > 0 ? (Date.now() - bufferingStartTime) / 1000 : 0;
-          return {
-            ...prev, 
-            isLoading: false,
-            bufferingTime: prev.bufferingTime + bufferingTime
-          };
-        });
+        const bufferingTime = calculateElapsedSeconds(bufferingStartTimeRef.current, Date.now());
+        dispatch({ type: 'load_end', bufferingTime });
+        bufferingStartTimeRef.current = 0;
       },
     };
 
     const videoEngine = new VideoEngine(videoElement, events, {
       plugins: initialEnginePlugins,
     });
+
     setEngine(videoEngine);
 
-    // Initialize engine
-    console.log('Initializing video engine...');
-    videoEngine.initialize()
-      .then(() => {
-        console.log('Video engine initialized successfully');
-      })
-      .catch(error => {
-        console.error('Video engine initialization failed:', error);
-        setState(prev => ({ ...prev, error: error.message }));
-      });
+    videoEngine.initialize().catch((error) => {
+      dispatch({ type: 'error', message: error.message });
+    });
 
     return () => {
       videoEngine.dispose();
     };
   }, [videoRef, initialEnginePlugins]);
 
-  // Load pending config when engine becomes ready
   useEffect(() => {
     if (isEngineReady && engine && pendingConfig) {
-      console.log('Engine is ready, loading pending config:', pendingConfig.src);
       engine.loadSource(pendingConfig)
         .then(() => {
-          console.log('Pending video loaded successfully');
-          const levels = engine.getQualityLevels();
-          setQualityLevels(levels);
+          setQualityLevels(engine.getQualityLevels());
           setPendingConfig(null);
         })
-        .catch(error => {
-          console.error('Pending video load error:', error);
-          setState(prev => ({ 
-            ...prev, 
-            error: `Failed to load video: ${error.message}` 
-          }));
+        .catch((error) => {
+          if (isExpectedLoadInterruption(error as Error)) {
+            setPendingConfig(null);
+            return;
+          }
+
+          dispatch({ type: 'error', message: `Failed to load video: ${error.message}` });
           setPendingConfig(null);
         });
     }
   }, [isEngineReady, engine, pendingConfig]);
 
-  // Event listeners for fullscreen and PiP changes
   useEffect(() => {
     if (typeof document === 'undefined') return;
 
     const handleFullscreenChange = () => {
-      setState(prev => ({ 
-        ...prev, 
-        isFullscreen: Boolean(document.fullscreenElement) 
-      }));
+      dispatch({ type: 'fullscreen_change', isFullscreen: Boolean(document.fullscreenElement) });
     };
 
     const handleEnterPiP = () => {
-      setState(prev => ({ ...prev, isPictureInPicture: true }));
+      dispatch({ type: 'pip_change', isPictureInPicture: true });
     };
 
     const handleLeavePiP = () => {
-      setState(prev => ({ ...prev, isPictureInPicture: false }));
+      dispatch({ type: 'pip_change', isPictureInPicture: false });
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    
+
     if (videoRef.current) {
       videoRef.current.addEventListener('enterpictureinpicture', handleEnterPiP);
       videoRef.current.addEventListener('leavepictureinpicture', handleLeavePiP);
@@ -234,148 +349,143 @@ export const useVideoPlayer = (
     };
   }, [videoRef]);
 
-  // Controls
-  const controls: VideoPlayerControls = {
-    play: useCallback(async () => {
-      if (!videoRef.current || isPlayPending) return;
-      
-      try {
-        setIsPlayPending(true);
-        
-        // Check if video is already playing
-        if (!videoRef.current.paused) {
-          setIsPlayPending(false);
-          return;
-        }
-        
-        await videoRef.current.play();
-        setIsPlayPending(false);
-      } catch (error) {
-        setIsPlayPending(false);
-        console.error('Play failed:', error);
-        
-        // Don't show error for common autoplay restrictions
-        const errorMessage = (error as Error).message;
-        if (!errorMessage.includes('user didn\'t interact') && 
-            !errorMessage.includes('autoplay') &&
-            !errorMessage.includes('gesture')) {
-          setState(prev => ({ 
-            ...prev, 
-            error: `Playback failed: ${errorMessage}` 
-          }));
-        }
-      }
-    }, [videoRef, isPlayPending]),
+  const play = useCallback(async () => {
+    if (!videoRef.current || isPlayPending) return;
 
-    pause: useCallback(() => {
-      if (!videoRef.current || isPlayPending) return;
-      
-      // Only pause if video is actually playing
+    try {
+      setIsPlayPending(true);
+
       if (!videoRef.current.paused) {
-        videoRef.current.pause();
-      }
-    }, [videoRef, isPlayPending]),
-
-    seek: useCallback((time: number) => {
-      if (!videoRef.current) return;
-      videoRef.current.currentTime = time;
-    }, [videoRef]),
-
-    setVolume: useCallback((volume: number) => {
-      if (!videoRef.current) return;
-      videoRef.current.volume = Math.max(0, Math.min(1, volume));
-    }, [videoRef]),
-
-    toggleMute: useCallback(() => {
-      if (!videoRef.current) return;
-      videoRef.current.muted = !videoRef.current.muted;
-    }, [videoRef]),
-
-    toggleFullscreen: useCallback(async () => {
-      if (!videoRef.current) return;
-      
-      try {
-        if (document.fullscreenElement) {
-          await document.exitFullscreen();
-        } else {
-          await videoRef.current.requestFullscreen();
-        }
-      } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          error: `Fullscreen failed: ${(error as Error).message}` 
-        }));
-      }
-    }, [videoRef]),
-
-    setQuality: useCallback((qualityId: string) => {
-      if (!engine) return;
-      engine.setQuality(qualityId);
-    }, [engine]),
-
-    setPlaybackRate: useCallback((rate: number) => {
-      if (!videoRef.current) return;
-      videoRef.current.playbackRate = rate;
-      setState(prev => ({ ...prev, playbackRate: rate }));
-    }, [videoRef]),
-
-    togglePictureInPicture: useCallback(async () => {
-      if (!videoRef.current) return;
-      
-      try {
-        if (state.isPictureInPicture) {
-          await document.exitPictureInPicture();
-        } else {
-          await videoRef.current.requestPictureInPicture();
-        }
-      } catch (error) {
-        console.error('Picture-in-Picture error:', error);
-      }
-    }, [videoRef, state.isPictureInPicture]),
-
-    toggleTheaterMode: useCallback(() => {
-      setState(prev => ({ 
-        ...prev, 
-        isTheaterMode: !prev.isTheaterMode 
-      }));
-    }, []),
-
-    load: useCallback(async (config: VideoEngineConfig) => {
-      if (!engine) {
-        console.log('Engine not available yet, storing config as pending');
-        setPendingConfig(config);
         return;
       }
-      
-      if (!isEngineReady) {
-        console.log('Engine not ready yet, storing config as pending');
-        setPendingConfig(config);
+
+      await videoRef.current.play();
+    } catch (error) {
+      const errorMessage = (error as Error).message;
+      if (
+        !errorMessage.includes('user didn\'t interact') &&
+        !errorMessage.includes('autoplay') &&
+        !errorMessage.includes('gesture')
+      ) {
+        dispatch({ type: 'error', message: `Playback failed: ${errorMessage}` });
+      }
+    } finally {
+      setIsPlayPending(false);
+    }
+  }, [videoRef, isPlayPending]);
+
+  const pause = useCallback(() => {
+    if (!videoRef.current || isPlayPending) return;
+    if (!videoRef.current.paused) {
+      videoRef.current.pause();
+    }
+  }, [videoRef, isPlayPending]);
+
+  const seek = useCallback((time: number) => {
+    if (!videoRef.current) return;
+    videoRef.current.currentTime = time;
+  }, [videoRef]);
+
+  const setVolume = useCallback((volume: number) => {
+    if (!videoRef.current || !Number.isFinite(volume)) return;
+    videoRef.current.volume = Math.max(0, Math.min(1, volume));
+  }, [videoRef]);
+
+  const toggleMute = useCallback(() => {
+    if (!videoRef.current) return;
+    videoRef.current.muted = !videoRef.current.muted;
+  }, [videoRef]);
+
+  const toggleFullscreen = useCallback(async () => {
+    if (!videoRef.current) return;
+
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await videoRef.current.requestFullscreen();
+      }
+    } catch (error) {
+      dispatch({ type: 'error', message: `Fullscreen failed: ${(error as Error).message}` });
+    }
+  }, [videoRef]);
+
+  const setQuality = useCallback((qualityId: string) => {
+    if (!engine) return;
+    engine.setQuality(qualityId);
+  }, [engine]);
+
+  const setPlaybackRate = useCallback((rate: number) => {
+    if (!videoRef.current) return;
+    videoRef.current.playbackRate = rate;
+    dispatch({ type: 'playback_rate_change', playbackRate: rate });
+  }, [videoRef]);
+
+  const togglePictureInPicture = useCallback(async () => {
+    if (!videoRef.current) return;
+
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else {
+        await videoRef.current.requestPictureInPicture();
+      }
+    } catch {
+      // no-op
+    }
+  }, [videoRef]);
+
+  const toggleTheaterMode = useCallback(() => {
+    dispatch({ type: 'toggle_theater_mode' });
+  }, []);
+
+  const load = useCallback(async (config: VideoEngineConfig) => {
+    if (!engine || !isEngineReady) {
+      setPendingConfig(config);
+      return;
+    }
+
+    try {
+      await engine.loadSource(config);
+      setQualityLevels(engine.getQualityLevels());
+    } catch (error) {
+      if (isExpectedLoadInterruption(error as Error)) {
         return;
       }
-      
-      try {
-        console.log('Loading video source:', config.src);
-        await engine.loadSource(config);
-        // Update quality levels after loading
-        const levels = engine.getQualityLevels();
-        setQualityLevels(levels);
-        console.log('Video loaded successfully');
-      } catch (error) {
-        console.error('Video load error:', error);
-        setState(prev => ({ 
-          ...prev, 
-          error: `Failed to load video: ${(error as Error).message}` 
-        }));
-      }
-    }, [engine, isEngineReady])
-  };
+      dispatch({ type: 'error', message: `Failed to load video: ${(error as Error).message}` });
+    }
+  }, [engine, isEngineReady]);
 
-  // Keyboard controls - must be after controls definition
+  const controls: VideoPlayerControls = useMemo(() => ({
+    play,
+    pause,
+    seek,
+    setVolume,
+    toggleMute,
+    toggleFullscreen,
+    togglePictureInPicture,
+    toggleTheaterMode,
+    setPlaybackRate,
+    setQuality,
+    load,
+  }), [
+    play,
+    pause,
+    seek,
+    setVolume,
+    toggleMute,
+    toggleFullscreen,
+    togglePictureInPicture,
+    toggleTheaterMode,
+    setPlaybackRate,
+    setQuality,
+    load,
+  ]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const handleKeyPress = (e: KeyboardEvent) => {
-      // Only handle keys when video is in focus or no input is focused
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return;
       }
@@ -387,7 +497,7 @@ export const useVideoPlayer = (
           if (state.isPlaying && !state.isPaused) {
             controls.pause();
           } else {
-            controls.play();
+            void controls.play();
           }
           break;
         case 'ArrowLeft':
@@ -412,7 +522,7 @@ export const useVideoPlayer = (
           break;
         case 'f':
           e.preventDefault();
-          controls.toggleFullscreen();
+          void controls.toggleFullscreen();
           break;
         case '0':
         case '1':
@@ -423,11 +533,12 @@ export const useVideoPlayer = (
         case '6':
         case '7':
         case '8':
-        case '9':
+        case '9': {
           e.preventDefault();
-          const percentage = parseInt(e.key) / 10;
+          const percentage = Number.parseInt(e.key, 10) / 10;
           controls.seek(state.duration * percentage);
           break;
+        }
       }
     };
 
@@ -435,7 +546,7 @@ export const useVideoPlayer = (
     return () => {
       window.removeEventListener('keydown', handleKeyPress);
     };
-  }, [state.isPlaying, state.currentTime, state.duration, state.volume, controls]);
+  }, [state.isPlaying, state.isPaused, state.currentTime, state.duration, state.volume, controls]);
 
   return {
     state,

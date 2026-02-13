@@ -4,9 +4,17 @@ import { createHlsJsAdapter } from '@/core/adapters/hlsjs-adapter';
 import { createNativeHlsAdapter } from '@/core/adapters/native-hls-adapter';
 import type { AdapterSelectionContext, StreamingAdapterFactory } from '@/core/adapters/types';
 
-const isHls = (src: string) => src.includes('.m3u8');
-const isDash = (src: string) => src.includes('.mpd');
-const isDirect = (src: string) => /\.(mp4|webm|ogg|avi|mov)(\?|$)/i.test(src);
+const getNormalizedPath = (src: string): string => {
+  try {
+    return new URL(src, 'https://localhost').pathname.toLowerCase();
+  } catch {
+    return src.toLowerCase();
+  }
+};
+
+const isHls = (src: string) => /\.m3u8$/i.test(getNormalizedPath(src));
+const isDash = (src: string) => /\.mpd$/i.test(getNormalizedPath(src));
+const isDirect = (src: string) => /\.(mp4|webm|ogg|avi|mov)$/i.test(getNormalizedPath(src));
 
 export const defaultStreamingAdapters: StreamingAdapterFactory[] = [
   {

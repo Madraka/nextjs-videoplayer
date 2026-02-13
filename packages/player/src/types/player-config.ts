@@ -98,7 +98,6 @@ export interface PlayerConfiguration {
     show?: boolean;
     visibility?: ControlsVisibility;
     position?: 'bottom' | 'top' | 'overlay' | 'external';
-    style?: 'youtube' | 'vimeo' | 'netflix' | 'minimal' | 'custom';
     size?: 'small' | 'medium' | 'large';
   };
   
@@ -148,8 +147,8 @@ export interface PlayerConfiguration {
 
 // Preset configurations for different use cases
 export const PlayerPresets: { [key: string]: PlayerConfiguration } = {
-  // YouTube-like experience
-  youtube: {
+  // Default full experience
+  default: {
     controls: {
       show: true,
       visibility: {
@@ -165,107 +164,12 @@ export const PlayerPresets: { [key: string]: PlayerConfiguration } = {
         settings: true,
         time: true,
       },
-      style: 'youtube',
       position: 'bottom',
     },
     keyboard: { enabled: true },
     gestures: { enabled: true, tapToPlay: true, doubleTapSeek: true },
     auto: { autoHideControls: true, autoHideDelay: 3000 },
     features: { thumbnailPreview: true, chapters: true },
-  },
-
-  // Minimal player
-  minimal: {
-    controls: {
-      show: true,
-      visibility: {
-        playPause: true,
-        progress: true,
-        fullscreen: true,
-      },
-      style: 'minimal',
-    },
-    keyboard: { enabled: false },
-    gestures: { enabled: true, tapToPlay: true },
-    auto: { autoHideControls: true, autoHideDelay: 2000 },
-  },
-
-  // No controls (video background)
-  background: {
-    controls: { show: false },
-    keyboard: { enabled: false },
-    gestures: { enabled: false },
-    auto: { autoPlay: true },
-  },
-
-  // Netflix-style
-  netflix: {
-    controls: {
-      show: true,
-      visibility: {
-        playPause: true,
-        progress: true,
-        volume: true,
-        fullscreen: true,
-        playbackRate: true,
-        time: true,
-      },
-      style: 'netflix',
-    },
-    theme: {
-      primary: '#e50914',
-      controlsBackground: 'rgba(0,0,0,0.7)',
-    },
-    auto: { autoHideControls: true, autoHideDelay: 4000 },
-  },
-
-  // Mobile-optimized
-  mobile: {
-    controls: {
-      show: true,
-      visibility: {
-        playPause: true,
-        progress: true,
-        fullscreen: true,
-        volume: false, // Hidden on mobile
-        quality: true,
-      },
-      size: 'large',
-    },
-    gestures: { 
-      enabled: true, 
-      tapToPlay: true, 
-      doubleTapSeek: true,
-      swipeVolume: true 
-    },
-    responsive: {
-      enabled: true,
-      adaptiveControls: true,
-      hideControlsOnMobile: ['volume', 'keyboardShortcuts'],
-    },
-  },
-
-  // Custom minimal with only play/pause
-  playOnly: {
-    controls: {
-      show: true,
-      visibility: {
-        playPause: true,
-        progress: false,
-        volume: false,
-        quality: false,
-        fullscreen: false,
-        pictureInPicture: false,
-        theaterMode: false,
-        playbackRate: false,
-        keyboardShortcuts: false,
-        settings: false,
-        time: false,
-      },
-      style: 'minimal',
-    },
-    keyboard: { enabled: false },
-    gestures: { enabled: true, tapToPlay: true },
   },
 };
 

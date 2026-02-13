@@ -67,4 +67,19 @@ describe('AdapterRegistry', () => {
 
     expect(adapter).toBeUndefined();
   });
+
+  it('replaces an existing adapter when same id is re-registered', () => {
+    const registry = new AdapterRegistry();
+
+    registry.register(createAdapterFactory('hls', 10, () => false));
+    registry.register(createAdapterFactory('hls', 100, ({ src }) => src.endsWith('.m3u8')));
+
+    const resolved = registry.resolve({
+      src: 'https://cdn.example.com/video.m3u8',
+      capabilities: baseCapabilities,
+    });
+
+    expect(registry.list()).toHaveLength(1);
+    expect(resolved?.id).toBe('hls');
+  });
 });

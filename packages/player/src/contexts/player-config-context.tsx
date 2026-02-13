@@ -2,12 +2,12 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { PlayerConfiguration, PlayerPresets, mergePlayerConfig } from '@/types/player-config';
+import { getPlayerLogger } from '@/lib/logger';
 
 interface PlayerConfigContextType {
   config: PlayerConfiguration;
   updateConfig: (newConfig: Partial<PlayerConfiguration>) => void;
   resetConfig: () => void;
-  loadPreset: (presetName: string) => void;
   saveConfig: (name: string) => void;
   loadSavedConfig: (name: string) => void;
   getSavedConfigs: () => string[];
@@ -23,7 +23,7 @@ interface PlayerConfigProviderProps {
 
 export const PlayerConfigProvider: React.FC<PlayerConfigProviderProps> = ({
   children,
-  defaultConfig = PlayerPresets.youtube,
+  defaultConfig = PlayerPresets.default,
   storageKey = 'nextjs-videoplayer-config',
 }) => {
   const [config, setConfig] = useState<PlayerConfiguration>(defaultConfig);
@@ -37,7 +37,7 @@ export const PlayerConfigProvider: React.FC<PlayerConfigProviderProps> = ({
           const savedConfig = JSON.parse(saved);
           setConfig(mergePlayerConfig(defaultConfig, savedConfig));
         } catch (error) {
-          console.warn('Failed to load saved player config:', error);
+          getPlayerLogger().warn('Failed to load saved player config:', error);
         }
       }
     }
@@ -59,16 +59,6 @@ export const PlayerConfigProvider: React.FC<PlayerConfigProviderProps> = ({
   const resetConfig = () => {
     setConfig(defaultConfig);
     saveConfigToStorage(defaultConfig);
-  };
-
-  const loadPreset = (presetName: string) => {
-    const preset = PlayerPresets[presetName];
-    if (preset) {
-      setConfig(preset);
-      saveConfigToStorage(preset);
-    } else {
-      console.warn(`Preset "${presetName}" not found`);
-    }
   };
 
   const saveConfig = (name: string) => {
@@ -103,7 +93,6 @@ export const PlayerConfigProvider: React.FC<PlayerConfigProviderProps> = ({
         config,
         updateConfig,
         resetConfig,
-        loadPreset,
         saveConfig,
         loadSavedConfig,
         getSavedConfigs,
@@ -120,15 +109,4 @@ export const usePlayerConfig = () => {
     throw new Error('usePlayerConfig must be used within a PlayerConfigProvider');
   }
   return context;
-};
-
-// Hook for easy preset switching
-export const usePlayerPresets = () => {
-  const { loadPreset } = usePlayerConfig();
-  
-  return {
-    presets: Object.keys(PlayerPresets),
-    loadPreset,
-    getPresetConfig: (name: string) => PlayerPresets[name],
-  };
 };

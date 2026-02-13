@@ -8,24 +8,24 @@ interface LoadingSpinnerProps {
   size?: 'small' | 'medium' | 'large';
 }
 
-export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
+export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   className,
-  size = 'medium' 
+  size = 'medium'
 }) => {
   const sizeClasses = {
-    small: 'w-6 h-6',
-    medium: 'w-8 h-8',
-    large: 'w-12 h-12'
+    small: 'w-6 h-6 border-2',
+    medium: 'w-10 h-10 border-[3px]',
+    large: 'w-14 h-14 border-[3px]'
   };
 
   return (
     <div className={cn('flex items-center justify-center', className)}>
-      <div 
+      <div
         className={cn(
-          'animate-spin rounded-full border-2 border-gray-300 border-t-white',
+          'animate-spin rounded-full border-white/20 border-t-white',
           sizeClasses[size]
         )}
-      ></div>
+      />
     </div>
   );
 };

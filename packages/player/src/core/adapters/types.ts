@@ -8,6 +8,7 @@ export interface AdapterSelectionContext {
 export interface AdapterLoadContext extends AdapterSelectionContext {
   videoElement: HTMLVideoElement;
   onQualityChange?: (quality: string) => void;
+  signal?: AbortSignal;
 }
 
 export interface QualityLevel {

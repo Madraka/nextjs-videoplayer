@@ -24,6 +24,26 @@ export interface VideoEnginePluginSourceLoadFailedPayload {
   totalAttempts: number;
 }
 
+export interface VideoEnginePluginRetryPayload {
+  src: string;
+  strategy: string;
+  error: Error;
+  attempt: number;
+  retryAttempt: number;
+  maxRetries: number;
+  retryDelayMs: number;
+}
+
+export interface VideoEnginePluginFailoverPayload {
+  fromSrc: string;
+  fromStrategy: string;
+  toSrc: string;
+  toStrategy: string;
+  error: Error;
+  attempt: number;
+  totalAttempts: number;
+}
+
 export interface VideoEnginePluginTimeUpdatePayload {
   currentTime: number;
   duration: number;
@@ -41,6 +61,8 @@ export interface VideoEnginePlugin {
   onSourceLoadStart?(payload: VideoEnginePluginLoadPayload): void;
   onSourceLoaded?(payload: VideoEnginePluginLoadPayload): void;
   onSourceLoadFailed?(payload: VideoEnginePluginSourceLoadFailedPayload): void;
+  onRetry?(payload: VideoEnginePluginRetryPayload): void;
+  onFailover?(payload: VideoEnginePluginFailoverPayload): void;
   onPlay?(): void;
   onPause?(): void;
   onTimeUpdate?(payload: VideoEnginePluginTimeUpdatePayload): void;

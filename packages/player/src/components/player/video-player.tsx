@@ -15,6 +15,8 @@ import { ErrorDisplay } from '@/components/player/error-display';
 import type { VideoEngineConfig } from '@/core/video-engine';
 import type { DrmConfiguration } from '@/core/drm/types';
 import type { VideoEnginePlugin } from '@/core/plugins/types';
+import type { VideoPlayerState } from '@/hooks/use-video-player';
+import { getPlayerLogger } from '@/lib/logger';
 
 type LegacyPluginContext = {
   engine: unknown;
@@ -58,7 +60,7 @@ export interface VideoPlayerProps {
   onPause?: () => void;
   onError?: (error: string) => void;
   onTimeUpdate?: (currentTime: number, duration: number) => void;
-  onStateChange?: (state: any) => void;
+  onStateChange?: (state: VideoPlayerState) => void;
 }
 
 export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(({
@@ -128,7 +130,7 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(({
     onTimeUpdate?.(currentTime, duration);
   }, [onTimeUpdate]);
 
-  const handleStateChange = useCallback((newState: any) => {
+  const handleStateChange = useCallback((newState: VideoPlayerState) => {
     onStateChange?.(newState);
   }, [onStateChange]);
 
@@ -238,7 +240,7 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(({
       try {
         plugin({ engine, state, controls: playerControls });
       } catch (error) {
-        console.warn('Plugin initialization failed:', error);
+        getPlayerLogger().warn('Plugin initialization failed:', error);
       }
     });
 
@@ -301,7 +303,7 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(({
       ref={containerRef}
       className={cn(
         'relative w-full bg-black overflow-hidden group transition-all duration-300',
-        'focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500',
+        'focus-within:outline-none focus-within:ring-2 focus-within:ring-white/30',
         state.isFullscreen && 'fixed inset-0 z-50',
         state.isTheaterMode && 'mx-auto max-w-none',
         className
@@ -323,14 +325,14 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(({
 
       {/* Loading Spinner */}
       {state.isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[1px]">
           <LoadingSpinner />
         </div>
       )}
 
       {/* Error Display */}
       {state.error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/80">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
           <ErrorDisplay error={state.error} onRetry={() => playerControls.load({ src, fallbackSources, drm: drmConfig })} />
         </div>
       )}
@@ -338,7 +340,7 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(({
       {/* Gesture Feedback */}
       {isGestureActive && gestures.enabled && (
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute inset-0 bg-white/10 animate-pulse" />
+          <div className="absolute inset-0 bg-white/5 animate-pulse" />
         </div>
       )}
 

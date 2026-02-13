@@ -13,7 +13,7 @@ export { VideoSourceSelector } from './components/demo/video-source-selector';
 export type { VideoSource } from './components/demo/video-source-selector';
 
 // Context & Configuration
-export { PlayerConfigProvider, usePlayerConfig, usePlayerPresets } from './contexts/player-config-context';
+export { PlayerConfigProvider, usePlayerConfig } from './contexts/player-config-context';
 export { PlayerConfigPanel } from './components/config/player-config-panel';
 
 // Hooks
@@ -80,7 +80,9 @@ export type {
   VideoEnginePlugin,
   VideoEnginePluginContext,
   VideoEnginePluginErrorPayload,
+  VideoEnginePluginFailoverPayload,
   VideoEnginePluginLoadPayload,
+  VideoEnginePluginRetryPayload,
   VideoEnginePluginSourceLoadFailedPayload,
   VideoEnginePluginTimeUpdatePayload,
   VideoEnginePluginVolumePayload,
@@ -96,6 +98,8 @@ export { PlayerPresets, mergePlayerConfig } from './types/player-config';
 
 // Utilities
 export { cn } from './lib/utils';
+export { createConsoleLogger, getPlayerLogger, setPlayerLogger } from './lib/logger';
+export type { ConsoleLoggerOptions, PlayerLogger } from './lib/logger';
 export { AnalyticsPlugin, createAnalyticsPlugin } from './plugins/analytics';
 export type {
   AnalyticsConfig as EngineAnalyticsConfig,
@@ -103,4 +107,5 @@ export type {
 } from './plugins/analytics';
 
 // Version
-export const VERSION = '1.0.0';
+declare const __PLAYER_VERSION__: string;
+export const VERSION = __PLAYER_VERSION__;

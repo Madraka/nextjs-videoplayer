@@ -16,7 +16,7 @@ Modern, customizable video player for Next.js applications with adaptive streami
 - 🎨 **Highly Customizable** with TypeScript configuration
 - 👆 **Touch Gestures** optimized for mobile
 - ⚡ **Performance Optimized** with lazy loading
-- 🎪 **Multiple Presets** (YouTube, Netflix, Minimal, etc.)
+- 🎪 **Single Official Preset** (`default`) with per-instance overrides
 - 📊 **Built-in Analytics** tracking
 - ♿ **Accessibility** compliant
 
@@ -73,7 +73,7 @@ import {
 
 export default function AdvancedVideoPage() {
   return (
-    <PlayerConfigProvider config={PlayerPresets.youtube}>
+    <PlayerConfigProvider config={PlayerPresets.default}>
       <ConfigurableVideoPlayer
         src="https://example.com/video.m3u8"
         thumbnailUrl="https://example.com/thumbnails/"
@@ -118,27 +118,45 @@ export default function AdvancedVideoPage() {
 />
 ```
 
-### Presets
+### Logging
 
-Choose from pre-configured player styles:
+The package exposes a configurable logger for runtime warnings/errors and optional debug/info output.
+
+```tsx
+import { createConsoleLogger, setPlayerLogger } from '@madraka/nextjs-videoplayer';
+
+// Enable debug logs in development, keep warn/error in all environments
+setPlayerLogger(
+  createConsoleLogger({
+    debug: process.env.NODE_ENV !== 'production',
+    info: false,
+    warn: true,
+    error: true,
+  })
+);
+```
+
+To silence all package logs:
+
+```tsx
+import { setPlayerLogger } from '@madraka/nextjs-videoplayer';
+
+setPlayerLogger({
+  debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+});
+```
+
+### Preset
+
+Use the official default setup:
 
 ```tsx
 import { PlayerPresets } from '@madraka/nextjs-videoplayer';
 
-// YouTube-style player
-<PlayerConfigProvider config={PlayerPresets.youtube}>
-
-// Netflix-style player  
-<PlayerConfigProvider config={PlayerPresets.netflix}>
-
-// Minimal controls
-<PlayerConfigProvider config={PlayerPresets.minimal}>
-
-// Mobile-optimized
-<PlayerConfigProvider config={PlayerPresets.mobile}>
-
-// No controls (background video)
-<PlayerConfigProvider config={PlayerPresets.background}>
+<PlayerConfigProvider config={PlayerPresets.default}>
 ```
 
 ## 🔧 Configuration Options

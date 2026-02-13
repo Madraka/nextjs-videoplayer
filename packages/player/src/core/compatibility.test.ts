@@ -32,4 +32,9 @@ describe('getStreamingStrategy', () => {
     const strategy = getStreamingStrategy(baseCapabilities, 'https://cdn.example.com/video.mpd');
     expect(strategy).toBe('dashjs');
   });
+
+  it('supports uppercase extensions and querystrings', () => {
+    const strategy = getStreamingStrategy(baseCapabilities, 'https://cdn.example.com/VIDEO.M3U8?token=1');
+    expect(strategy).toBe('hlsjs');
+  });
 });

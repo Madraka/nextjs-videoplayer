@@ -8,8 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ConfigurableVideoPlayer } from '@/components/player/configurable-video-player';
 import { PlayerConfigPanel } from '@/components/config/player-config-panel';
 import { PlayerConfigProvider } from '@/contexts/player-config-context';
-import { PlayerPresets } from '@/types/player-config';
-import { Code, Play, Settings, Palette, Smartphone } from 'lucide-react';
+import { PlayerPresets, type PlayerConfiguration } from '@/types/player-config';
+import { Code, Play, Settings } from 'lucide-react';
 
 const videoSources = [
   {
@@ -30,7 +30,7 @@ const videoSources = [
 interface ConfigExampleProps {
   title: string;
   description: string;
-  config: any;
+  config: PlayerConfiguration;
   code: string;
   icon: React.ReactNode;
 }
@@ -85,73 +85,24 @@ const ConfigExample: React.FC<ConfigExampleProps> = ({ title, description, confi
 export default function ConfigurationExamplesPage() {
   const examples = [
     {
-      title: 'YouTube Style (Default)',
-      description: 'Full-featured player with all YouTube-like controls',
+      title: 'Default Style',
+      description: 'Full-featured player with the standard control set',
       icon: <Play className="h-5 w-5" />,
-      config: PlayerPresets.youtube,
+      config: PlayerPresets.default,
       code: `import { ConfigurableVideoPlayer } from '@/components/player/configurable-video-player';
 import { PlayerPresets } from '@/types/player-config';
 
-// YouTube-style player with all features
+// Default player with full controls
 <ConfigurableVideoPlayer
   src="your-video.mp4"
-  configOverride={PlayerPresets.youtube}
-/>`,
-    },
-    {
-      title: 'Minimal Player',
-      description: 'Simple player with only essential controls',
-      icon: <Settings className="h-5 w-5" />,
-      config: PlayerPresets.minimal,
-      code: `// Minimal player with basic controls only
-<ConfigurableVideoPlayer
-  src="your-video.mp4"
-  configOverride={PlayerPresets.minimal}
-/>`,
-    },
-    {
-      title: 'Background Video',
-      description: 'No controls, auto-play for background videos',
-      icon: <Palette className="h-5 w-5" />,
-      config: PlayerPresets.background,
-      code: `// Background video with no controls
-<ConfigurableVideoPlayer
-  src="your-video.mp4"
-  configOverride={PlayerPresets.background}
-/>`,
-    },
-    {
-      title: 'Mobile Optimized',
-      description: 'Optimized for mobile devices with touch gestures',
-      icon: <Smartphone className="h-5 w-5" />,
-      config: PlayerPresets.mobile,
-      code: `// Mobile-optimized player
-<ConfigurableVideoPlayer
-  src="your-video.mp4"
-  configOverride={PlayerPresets.mobile}
-/>`,
-    },
-    {
-      title: 'Play Button Only',
-      description: 'Only play/pause button, no other controls',
-      icon: <Play className="h-5 w-5" />,
-      config: PlayerPresets.playOnly,
-      code: `// Only play/pause button visible
-<ConfigurableVideoPlayer
-  src="your-video.mp4"
-  configOverride={PlayerPresets.playOnly}
+  configOverride={PlayerPresets.default}
 />`,
     },
     {
       title: 'Custom Configuration',
-      description: 'Custom color theme and specific controls',
+      description: 'Custom behavior and specific controls',
       icon: <Settings className="h-5 w-5" />,
       config: {
-        theme: {
-          primary: '#ff6b6b',
-          progressColor: '#ff6b6b',
-          accent: '#4ecdc4',
-        },
         controls: {
           visibility: {
             playPause: true,
@@ -168,15 +119,10 @@ import { PlayerPresets } from '@/types/player-config';
           autoHideControls: false,
         },
       },
-      code: `// Custom themed player
+      code: `// Custom behavior-focused player
 <ConfigurableVideoPlayer
   src="your-video.mp4"
   configOverride={{
-    theme: {
-      primary: '#ff6b6b',
-      progressColor: '#ff6b6b',
-      accent: '#4ecdc4',
-    },
     controls: {
       visibility: {
         playPause: true,
@@ -240,7 +186,7 @@ import { PlayerPresets } from '@/types/player-config';
 
 export default function RootLayout({ children }) {
   return (
-    <PlayerConfigProvider defaultConfig={PlayerPresets.youtube}>
+    <PlayerConfigProvider defaultConfig={PlayerPresets.default}>
       {children}
     </PlayerConfigProvider>
   );

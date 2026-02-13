@@ -25,6 +25,7 @@ Provide a stable core for enterprise use cases where playback transport logic an
 - Hook coverage:
   - `setup`, `onInit`
   - `onSourceLoadStart`, `onSourceLoaded`, `onSourceLoadFailed`
+  - `onRetry`, `onFailover`
   - `onPlay`, `onPause`, `onTimeUpdate`, `onVolumeChange`, `onQualityChange`
   - `onError`, `onDispose`
 
@@ -73,3 +74,4 @@ Provide a stable core for enterprise use cases where playback transport logic an
 - Unit tests for adapter registry ordering and matching.
 - Unit tests for plugin lifecycle delivery and error isolation.
 - CI gates include lint, type-check, tests, API surface check, bundle size check, showcase build.
+- Contract test matrix is defined in `docs/PLAYER_API_CONTRACT_MATRIX.md` and enforced via `pnpm run test:contracts`.

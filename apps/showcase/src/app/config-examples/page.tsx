@@ -10,15 +10,16 @@ import {
   PlayerConfigPanel,
   PlayerConfigProvider,
   PlayerPresets,
+  type PlayerConfiguration,
 } from '@madraka/nextjs-videoplayer';
-import { Code, Play, Settings, Palette, Smartphone } from 'lucide-react';
+import { Code, Play, Settings } from 'lucide-react';
 
 const videoSources = [
   {
     id: 'demo',
     name: 'Demo Video (MP4)',
-    src: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-    poster: 'https://storage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg',
+    src: 'https://samplelib.com/lib/preview/mp4/sample-10s.mp4',
+    poster: '/api/placeholder/1280/720',
     description: 'High quality MP4 demo video',
   },
   {
@@ -32,7 +33,7 @@ const videoSources = [
 interface ConfigExampleProps {
   title: string;
   description: string;
-  config: any;
+  config: PlayerConfiguration;
   code: string;
   icon: React.ReactNode;
 }
@@ -87,72 +88,23 @@ const ConfigExample: React.FC<ConfigExampleProps> = ({ title, description, confi
 export default function ConfigurationExamplesPage() {
   const examples = [
     {
-      title: 'YouTube Style (Default)',
-      description: 'Full-featured player with all YouTube-like controls',
+      title: 'Default Style',
+      description: 'Full-featured player with the standard control set',
       icon: <Play className="h-5 w-5" />,
-      config: PlayerPresets.youtube,
+      config: PlayerPresets.default,
       code: `import { ConfigurableVideoPlayer, PlayerPresets } from '@madraka/nextjs-videoplayer';
 
-// YouTube-style player with all features
+// Default player with full controls
 <ConfigurableVideoPlayer
   src="your-video.mp4"
-  configOverride={PlayerPresets.youtube}
-/>`,
-    },
-    {
-      title: 'Minimal Player',
-      description: 'Simple player with only essential controls',
-      icon: <Settings className="h-5 w-5" />,
-      config: PlayerPresets.minimal,
-      code: `// Minimal player with basic controls only
-<ConfigurableVideoPlayer
-  src="your-video.mp4"
-  configOverride={PlayerPresets.minimal}
-/>`,
-    },
-    {
-      title: 'Background Video',
-      description: 'No controls, auto-play for background videos',
-      icon: <Palette className="h-5 w-5" />,
-      config: PlayerPresets.background,
-      code: `// Background video with no controls
-<ConfigurableVideoPlayer
-  src="your-video.mp4"
-  configOverride={PlayerPresets.background}
-/>`,
-    },
-    {
-      title: 'Mobile Optimized',
-      description: 'Optimized for mobile devices with touch gestures',
-      icon: <Smartphone className="h-5 w-5" />,
-      config: PlayerPresets.mobile,
-      code: `// Mobile-optimized player
-<ConfigurableVideoPlayer
-  src="your-video.mp4"
-  configOverride={PlayerPresets.mobile}
-/>`,
-    },
-    {
-      title: 'Play Button Only',
-      description: 'Only play/pause button, no other controls',
-      icon: <Play className="h-5 w-5" />,
-      config: PlayerPresets.playOnly,
-      code: `// Only play/pause button visible
-<ConfigurableVideoPlayer
-  src="your-video.mp4"
-  configOverride={PlayerPresets.playOnly}
+  configOverride={PlayerPresets.default}
 />`,
     },
     {
       title: 'Custom Configuration',
-      description: 'Custom color theme and specific controls',
+      description: 'Custom behavior and specific controls',
       icon: <Settings className="h-5 w-5" />,
       config: {
-        theme: {
-          primary: '#ff6b6b',
-          progressColor: '#ff6b6b',
-          accent: '#4ecdc4',
-        },
         controls: {
           visibility: {
             playPause: true,
@@ -169,15 +121,10 @@ export default function ConfigurationExamplesPage() {
           autoHideControls: false,
         },
       },
-      code: `// Custom themed player
+      code: `// Custom behavior-focused player
 <ConfigurableVideoPlayer
   src="your-video.mp4"
   configOverride={{
-    theme: {
-      primary: '#ff6b6b',
-      progressColor: '#ff6b6b',
-      accent: '#4ecdc4',
-    },
     controls: {
       visibility: {
         playPause: true,
@@ -200,7 +147,7 @@ export default function ConfigurationExamplesPage() {
   ];
 
   return (
-    <PlayerConfigProvider>
+    <PlayerConfigProvider storageKey="nextjs-videoplayer-showcase-config-v2">
       <div className="container mx-auto py-8 px-4">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-4">Video Player Configuration Examples</h1>
@@ -240,7 +187,10 @@ import { PlayerConfigProvider, PlayerPresets } from '@madraka/nextjs-videoplayer
 
 export default function RootLayout({ children }) {
   return (
-    <PlayerConfigProvider defaultConfig={PlayerPresets.youtube}>
+    <PlayerConfigProvider
+      defaultConfig={PlayerPresets.default}
+      storageKey="nextjs-videoplayer-showcase-config-v2"
+    >
       {children}
     </PlayerConfigProvider>
   );

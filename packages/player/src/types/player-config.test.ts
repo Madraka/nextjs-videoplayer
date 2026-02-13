@@ -3,7 +3,7 @@ import { mergePlayerConfig, PlayerPresets } from './player-config';
 
 describe('mergePlayerConfig', () => {
   it('merges nested controls visibility without dropping base values', () => {
-    const base = PlayerPresets.youtube;
+    const base = PlayerPresets.default;
     const override = {
       controls: {
         visibility: {

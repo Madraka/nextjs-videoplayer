@@ -55,6 +55,8 @@ Definition of done:
 3. Enforce branch protection and required checks.
 4. Add release runbook and rollback playbook.
    Status: release runbook completed in `docs/RELEASE_RUNBOOK.md`.
+5. Add API contract matrix and explicit CI contract gate.
+   Status: completed in `docs/PLAYER_API_CONTRACT_MATRIX.md` + `test:contracts` workflow steps.
 
 Definition of done:
 

@@ -1,9 +1,8 @@
 'use client';
 
-import React, { forwardRef, useRef, useCallback, useEffect } from 'react';
+import React, { forwardRef, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { VideoControls } from '@/components/controls/video-controls';
-import { MobileVideoControls } from '@/components/controls/mobile-video-controls';
 import { LoadingSpinner } from '@/components/player/loading-spinner';
 import { ErrorDisplay } from '@/components/player/error-display';
 import { useVideoPlayer } from '@/hooks/use-video-player';
@@ -13,6 +12,7 @@ import type { VideoEngineConfig } from '@/core/video-engine';
 import type { DrmConfiguration } from '@/core/drm/types';
 import type { VideoEnginePlugin } from '@/core/plugins/types';
 import type { PlayerConfiguration } from '@/types/player-config';
+import type { VideoPlayerState } from '@/hooks/use-video-player';
 
 interface ConfigurableVideoPlayerProps {
   src?: string;
@@ -34,7 +34,7 @@ interface ConfigurableVideoPlayerProps {
   onPause?: () => void;
   onError?: (error: string) => void;
   onTimeUpdate?: (currentTime: number, duration: number) => void;
-  onStateChange?: (state: any) => void;
+  onStateChange?: (state: VideoPlayerState) => void;
 }
 
 export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, ConfigurableVideoPlayerProps>(({
@@ -61,26 +61,9 @@ export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, Configurable
 }, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [showControls, setShowControls] = React.useState(true);
-  const [isMobile, setIsMobile] = React.useState(false);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Mobile detection
-  useEffect(() => {
-    const checkMobile = () => {
-      const userAgent = navigator.userAgent;
-      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-      const isSmallScreen = window.innerWidth < 768;
-      const isTouchDevice = 'ontouchstart' in window;
-      
-      setIsMobile(isMobileDevice || (isSmallScreen && isTouchDevice));
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  const lastStateSignatureRef = useRef<string | null>(null);
+  const onReadyRef = useRef<typeof onReady>(onReady);
+  const readySignalRef = useRef<string | null>(null);
 
   // Get configuration from context and merge with override
   const { config: contextConfig } = usePlayerConfig();
@@ -97,18 +80,9 @@ export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, Configurable
   });
 
   // Apply gesture configuration - Mobile optimized
-  const gesturesConfig = config.gestures || {};
-  
-  // Enhanced gesture callbacks for mobile
   const gestureCallbacks = {
     onTap: () => {
-      if (isMobile) {
-        // On mobile, tap toggles controls visibility
-        setShowControls(!showControls);
-      } else {
-        // On desktop, tap toggles play/pause
-        state.isPlaying ? playerControls.pause() : playerControls.play();
-      }
+      state.isPlaying ? playerControls.pause() : playerControls.play();
     },
     onDoubleTap: (direction: 'left' | 'right') => {
       const seekAmount = 10;
@@ -126,16 +100,12 @@ export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, Configurable
   
   // Use gesture hook with enhanced mobile support
   useVideoGestures(videoRef, gestureCallbacks, {
-    enableTapToPlay: isMobile ? false : true, // On mobile, tap shows controls
+    enableTapToPlay: true,
     enableDoubleTapSeek: true,
-    enableSwipeVolume: isMobile,
+    enableSwipeVolume: false,
     seekAmount: 10,
     volumeSensitivity: 0.02,
   });
-
-  // Auto behaviors from config
-  const autoHideControls = config.auto?.autoHideControls ?? true;
-  const autoHideDelay = config.auto?.autoHideDelay ?? 3000;
 
   // Calculate aspect ratio
   const getAspectRatio = () => {
@@ -153,6 +123,10 @@ export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, Configurable
   const isSquareFormat = aspectRatio === '1/1';
 
   // Load video source when engine is ready
+  useEffect(() => {
+    onReadyRef.current = onReady;
+  }, [onReady]);
+
   useEffect(() => {
     if (!src || !engine) return;
 
@@ -194,100 +168,76 @@ export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, Configurable
   }, [state.currentTime, state.duration, onTimeUpdate]);
 
   useEffect(() => {
-    onStateChange?.(state);
+    if (!onStateChange) {
+      return;
+    }
+
+    const signature = JSON.stringify({
+      isPlaying: state.isPlaying,
+      isPaused: state.isPaused,
+      isLoading: state.isLoading,
+      isMuted: state.isMuted,
+      currentTime: Number(state.currentTime.toFixed(2)),
+      duration: Number(state.duration.toFixed(2)),
+      volume: Number(state.volume.toFixed(2)),
+      buffered: Number(state.buffered.toFixed(2)),
+      quality: state.quality,
+      playbackRate: state.playbackRate,
+      isFullscreen: state.isFullscreen,
+      isPictureInPicture: state.isPictureInPicture,
+      isTheaterMode: state.isTheaterMode,
+      error: state.error,
+      playCount: state.playCount,
+      totalWatchTime: Number(state.totalWatchTime.toFixed(2)),
+      bufferingTime: Number(state.bufferingTime.toFixed(2)),
+      qualityChanges: state.qualityChanges,
+    });
+
+    if (lastStateSignatureRef.current === signature) {
+      return;
+    }
+
+    lastStateSignatureRef.current = signature;
+    onStateChange(state);
   }, [state, onStateChange]);
 
   useEffect(() => {
-    if (!state.isLoading && state.duration > 0) {
-      onReady?.();
+    if (state.isLoading || state.duration <= 0) {
+      return;
     }
-  }, [state.isLoading, state.duration, onReady]);
 
-  // Auto-hide controls based on config
-  const showControlsTemporarily = useCallback(() => {
-    if (!autoHideControls) return;
-    
-    setShowControls(true);
-    
-    if (controlsTimeoutRef.current) {
-      clearTimeout(controlsTimeoutRef.current);
+    // Fire onReady once per loaded source/duration pair to avoid render loops
+    // when parent provides a new callback identity on each render.
+    const readySignal = `${src ?? 'no-src'}|${state.duration}`;
+    if (readySignalRef.current === readySignal) {
+      return;
     }
-    
-    if (state.isPlaying) {
-      controlsTimeoutRef.current = setTimeout(() => {
-        setShowControls(false);
-      }, autoHideDelay);
-    }
-  }, [state.isPlaying, autoHideControls, autoHideDelay]);
 
-  // Mouse movement detection
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || !autoHideControls) return;
-
-    const handleMouseMove = () => {
-      showControlsTemporarily();
-    };
-
-    const handleMouseLeave = () => {
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
-      if (state.isPlaying) {
-        setShowControls(false);
-      }
-    };
-
-    container.addEventListener('mousemove', handleMouseMove);
-    container.addEventListener('mouseleave', handleMouseLeave);
-
-    return () => {
-      container.removeEventListener('mousemove', handleMouseMove);
-      container.removeEventListener('mouseleave', handleMouseLeave);
-    };
-  }, [showControlsTemporarily, state.isPlaying, autoHideControls]);
-
-  // Show controls when paused or not auto-hiding
-  useEffect(() => {
-    if (!autoHideControls || !state.isPlaying) {
-      setShowControls(true);
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
-    }
-  }, [state.isPlaying, autoHideControls]);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
-    };
-  }, []);
+    readySignalRef.current = readySignal;
+    onReadyRef.current?.();
+  }, [state.isLoading, state.duration, src]);
 
   // Forward ref
   React.useImperativeHandle(ref, () => videoRef.current!);
 
   // Apply theme styles
   const themeStyles = config.theme ? {
-    '--player-primary': config.theme.primary || '#3b82f6',
+    '--player-primary': config.theme.primary || '#dc2626',
     '--player-secondary': config.theme.secondary || '#64748b',
-    '--player-accent': config.theme.accent || '#ef4444',
-    '--player-progress': config.theme.progressColor || '#3b82f6',
-    '--player-buffer': config.theme.bufferColor || '#64748b',
+    '--player-accent': config.theme.accent || '#dc2626',
+    '--player-progress': config.theme.progressColor || '#dc2626',
+    '--player-buffer': config.theme.bufferColor || 'rgba(255,255,255,0.4)',
   } as React.CSSProperties : {};
 
-  // Control visibility from config
-  const controlsVisibility = config.controls?.visibility || {};
-  const shouldShowControls = config.controls?.show !== false;
+  // Single official UI: keep the full control set visible.
+  const shouldShowControls = true;
 
   return (
     <div
       ref={containerRef}
       className={cn(
         'relative bg-black overflow-hidden group transition-all duration-300',
-        'focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500',
+        'focus-within:outline-none focus-within:ring-2 focus-within:ring-white/30',
         state.isFullscreen && 'fixed inset-0 z-50',
         state.isTheaterMode && 'mx-auto max-w-none',
         // Format specific styles
@@ -310,6 +260,7 @@ export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, Configurable
       <video
         ref={videoRef}
         className="w-full h-full object-contain"
+        controls={false}
         playsInline={playsInline}
         {...(playsInline && { 'webkit-playsinline': '' })}
         poster={poster}
@@ -318,7 +269,7 @@ export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, Configurable
 
       {/* Loading Spinner */}
       {state.isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[1px]">
           <LoadingSpinner />
         </div>
       )}
@@ -344,51 +295,29 @@ export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, Configurable
         />
       )}
 
-      {/* Video Controls - Adaptive based on device */}
+      {/* Video Controls */}
       {shouldShowControls && (
-        <>
-          {isMobile ? (
-            <MobileVideoControls
-              state={state}
-              controls={playerControls}
-              qualityLevels={qualityLevels}
-              thumbnailPreview={config.features?.thumbnailPreview}
-              thumbnailUrl={thumbnailUrl}
-              className={cn(
-                'transition-opacity duration-300',
-                showControls ? 'opacity-100' : 'opacity-0',
-                'hover:opacity-100'
-              )}
-              onShow={() => setShowControls(true)}
-              onHide={() => setShowControls(false)}
-            />
-          ) : (
-            <VideoControls
-              state={state}
-              controls={playerControls}
-              qualityLevels={qualityLevels}
-              controlsConfig={{
-                fullscreen: controlsVisibility.fullscreen !== false,
-                volume: controlsVisibility.volume !== false,
-                quality: controlsVisibility.quality !== false,
-                progress: controlsVisibility.progress !== false,
-                playPause: controlsVisibility.playPause !== false,
-                playbackRate: controlsVisibility.playbackRate !== false,
-                pictureInPicture: controlsVisibility.pictureInPicture !== false,
-                theaterMode: controlsVisibility.theaterMode !== false,
-                settings: controlsVisibility.settings !== false,
-                time: controlsVisibility.time !== false,
-              }}
-              className={cn(
-                'transition-opacity duration-300',
-                showControls ? 'opacity-100' : 'opacity-0',
-                'hover:opacity-100'
-              )}
-              onShow={() => setShowControls(true)}
-              onHide={() => setShowControls(false)}
-            />
+        <VideoControls
+          state={state}
+          controls={playerControls}
+          qualityLevels={qualityLevels}
+          controlsConfig={{
+            fullscreen: true,
+            volume: true,
+            quality: true,
+            progress: true,
+            playPause: true,
+            playbackRate: true,
+            pictureInPicture: true,
+            theaterMode: true,
+            settings: true,
+            time: true,
+          }}
+          className={cn(
+            'transition-opacity duration-300',
+            'opacity-100 z-30 pointer-events-auto'
           )}
-        </>
+        />
       )}
 
       {/* Analytics tracking */}

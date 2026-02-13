@@ -18,6 +18,8 @@ describe('VideoEnginePluginManager', () => {
       onSourceLoadStart: () => hookOrder.push('loadStart'),
       onSourceLoaded: () => hookOrder.push('loaded'),
       onSourceLoadFailed: () => hookOrder.push('loadFailed'),
+      onRetry: () => hookOrder.push('retry'),
+      onFailover: () => hookOrder.push('failover'),
       onPlay: () => hookOrder.push('play'),
       onPause: () => hookOrder.push('pause'),
       onTimeUpdate: () => hookOrder.push('timeupdate'),
@@ -68,6 +70,24 @@ describe('VideoEnginePluginManager', () => {
       attempt: 1,
       totalAttempts: 2,
     });
+    manager.onRetry({
+      src: 'https://cdn.example.com/video.m3u8',
+      strategy: 'hlsjs',
+      error: new Error('retry'),
+      attempt: 1,
+      retryAttempt: 1,
+      maxRetries: 2,
+      retryDelayMs: 100,
+    });
+    manager.onFailover({
+      fromSrc: 'https://cdn.example.com/video-primary.m3u8',
+      fromStrategy: 'hlsjs',
+      toSrc: 'https://cdn.example.com/video-fallback.m3u8',
+      toStrategy: 'hlsjs',
+      error: new Error('failover'),
+      attempt: 2,
+      totalAttempts: 3,
+    });
     manager.onPlay();
     manager.onPause();
     manager.onTimeUpdate({ currentTime: 10, duration: 120 });
@@ -82,6 +102,8 @@ describe('VideoEnginePluginManager', () => {
       'loadStart',
       'loaded',
       'loadFailed',
+      'retry',
+      'failover',
       'play',
       'pause',
       'timeupdate',

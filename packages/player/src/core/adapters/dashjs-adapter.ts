@@ -26,24 +26,32 @@ class DashJsAdapter implements StreamingAdapter {
   private instance?: DashPlayer;
 
   async load(context: AdapterLoadContext): Promise<void> {
+    this.assertNotAborted(context.signal);
     const dashjs = (await import('dashjs')) as unknown as DashModule;
+    this.assertNotAborted(context.signal);
 
     this.instance = dashjs.MediaPlayer().create();
 
-    await new Promise<void>((resolve, reject) => {
-      const dash = this.instance as DashPlayer;
+    await this.runWithAbortSignal(
+      new Promise<void>((resolve, reject) => {
+        const dash = this.instance as DashPlayer;
 
-      dash.on('streamInitialized', () => {
-        resolve();
-      });
+        dash.on('streamInitialized', () => {
+          resolve();
+        });
 
-      dash.on('error', (errorPayload) => {
-        const errorValue = (errorPayload as { error?: string })?.error;
-        reject(new Error(`Dash.js error: ${errorValue ?? 'unknown'}`));
-      });
+        dash.on('error', (errorPayload) => {
+          const errorValue = (errorPayload as { error?: string })?.error;
+          reject(new Error(`Dash.js error: ${errorValue ?? 'unknown'}`));
+        });
 
-      dash.initialize(context.videoElement, context.src, false);
-    });
+        dash.initialize(context.videoElement, context.src, false);
+      }),
+      context.signal,
+      () => {
+        this.instance?.reset();
+      }
+    );
   }
 
   destroy(): void {
@@ -74,6 +82,58 @@ class DashJsAdapter implements StreamingAdapter {
     }
 
     this.instance.setQualityFor('video', Number.parseInt(qualityId, 10));
+  }
+
+  private assertNotAborted(signal?: AbortSignal): void {
+    if (signal?.aborted) {
+      throw this.createAbortError();
+    }
+  }
+
+  private createAbortError(): Error {
+    const error = new Error('DashJsAdapter.load() aborted');
+    error.name = 'AbortError';
+    return error;
+  }
+
+  private runWithAbortSignal<T>(
+    task: Promise<T>,
+    signal: AbortSignal | undefined,
+    onAbort?: () => void
+  ): Promise<T> {
+    if (!signal) {
+      return task;
+    }
+
+    if (signal.aborted) {
+      onAbort?.();
+      return Promise.reject(this.createAbortError());
+    }
+
+    return new Promise<T>((resolve, reject) => {
+      const cleanup = () => {
+        signal.removeEventListener('abort', handleAbort);
+      };
+
+      const handleAbort = () => {
+        cleanup();
+        onAbort?.();
+        reject(this.createAbortError());
+      };
+
+      signal.addEventListener('abort', handleAbort, { once: true });
+
+      task.then(
+        (value) => {
+          cleanup();
+          resolve(value);
+        },
+        (error) => {
+          cleanup();
+          reject(error);
+        }
+      );
+    });
   }
 }
 

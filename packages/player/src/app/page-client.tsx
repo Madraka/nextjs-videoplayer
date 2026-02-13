@@ -9,6 +9,7 @@ import { VideoSourceSelector, VideoSource } from '@/components/demo/video-source
 import { PlayerConfigProvider } from '@/contexts/player-config-context';
 import { PlayerPresets } from '@/types/player-config';
 import { cn } from '@/lib/utils';
+import { getPlayerLogger } from '@/lib/logger';
 import Link from 'next/link';
 import { 
   Play, 
@@ -101,6 +102,23 @@ const videoSources: VideoSource[] = [
   }
 ];
 
+type PlayerAspectRatio = NonNullable<React.ComponentProps<typeof ConfigurableVideoPlayer>['aspectRatio']>;
+
+const resolveAspectRatio = (value?: string): PlayerAspectRatio => {
+  switch (value) {
+    case 'auto':
+    case '16/9':
+    case '4/3':
+    case '1/1':
+    case '9/16':
+    case '3/4':
+    case 'custom':
+      return value;
+    default:
+      return '16/9';
+  }
+};
+
 function HomePageClient() {
   const [selectedVideo, setSelectedVideo] = useState(videoSources[0]);
   const [playerState, setPlayerState] = useState({
@@ -136,19 +154,19 @@ function HomePageClient() {
   // Enhanced video color analysis with performance optimization
   const analyzeVideoColors = React.useCallback((videoElement: HTMLVideoElement) => {
     if (!videoElement || videoElement.readyState < 2) {
-      console.debug('Video not ready for analysis:', videoElement?.readyState);
+      getPlayerLogger().debug('Video not ready for analysis:', videoElement?.readyState);
       return;
     }
 
     // Performance optimization: Skip analysis if video is buffering or seeking
     if (videoElement.seeking || videoElement.networkState === HTMLMediaElement.NETWORK_LOADING) {
-      console.debug('Skipping analysis: video is buffering or seeking');
+      getPlayerLogger().debug('Skipping analysis: video is buffering or seeking');
       return;
     }
 
     // Aggressive CORS handling for Google Cloud Storage
     if (!videoElement.crossOrigin && videoElement.src.includes('googleapis.com')) {
-      console.debug('Setting crossOrigin for Google Cloud video');
+      getPlayerLogger().debug('Setting crossOrigin for Google Cloud video');
       videoElement.crossOrigin = 'anonymous';
       // Force reload to apply crossOrigin
       const currentTime = videoElement.currentTime;
@@ -163,7 +181,7 @@ function HomePageClient() {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         if (!ctx) {
-          console.debug('Canvas context not available');
+          getPlayerLogger().debug('Canvas context not available');
           return;
         }
 
@@ -174,9 +192,9 @@ function HomePageClient() {
         // Draw current video frame - this might fail due to CORS
         try {
           ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-          console.debug('Successfully drew video frame to canvas');
+          getPlayerLogger().debug('Successfully drew video frame to canvas');
         } catch (corsError) {
-          console.debug('CORS error when drawing video frame:', corsError);
+          getPlayerLogger().debug('CORS error when drawing video frame:', corsError);
           setIsAnalysisWorking(false);
           
           // Enhanced fallback dynamic colors based on video time and source
@@ -261,13 +279,13 @@ function HomePageClient() {
           });
           
           setIsAnalysisWorking(true);
-          console.debug('Video color analysis successful:', { avgEdgeR, avgEdgeG, avgEdgeB });
+          getPlayerLogger().debug('Video color analysis successful:', { avgEdgeR, avgEdgeG, avgEdgeB });
         } else {
-          console.debug('No valid pixels found for analysis');
+          getPlayerLogger().debug('No valid pixels found for analysis');
           setIsAnalysisWorking(false);
         }
       } catch (error) {
-        console.debug('Video color analysis failed:', error);
+        getPlayerLogger().debug('Video color analysis failed:', error);
         setIsAnalysisWorking(false);
         // Keep default colors on error
       }
@@ -275,12 +293,12 @@ function HomePageClient() {
   }, [selectedVideo.id]);
 
   // Enhanced video player state management with complete reset
-  const handleVideoSelect = React.useCallback((video: any) => {
-    console.debug('Video selection starting:', video.title);
+  const handleVideoSelect = React.useCallback((video: VideoSource) => {
+    getPlayerLogger().debug('Video selection starting:', video.name);
     
     // Prevent selection if already selected
     if (selectedVideo.id === video.id) {
-      console.debug('Video already selected, skipping');
+      getPlayerLogger().debug('Video already selected, skipping');
       return;
     }
     
@@ -308,7 +326,7 @@ function HomePageClient() {
     // Get video element and reset it completely
     const videoElement = document.querySelector('video') as HTMLVideoElement;
     if (videoElement) {
-      console.debug('Resetting video player completely');
+      getPlayerLogger().debug('Resetting video player completely');
       
       // Stop current video completely
       videoElement.pause();
@@ -323,12 +341,12 @@ function HomePageClient() {
       
       // Small delay to ensure complete DOM reset
       setTimeout(() => {
-        console.debug('Setting new video source:', video.url);
+        getPlayerLogger().debug('Setting new video source:', video.url);
         
         // Set crossOrigin for external sources before setting src
         if (video.url.includes('googleapis.com') || video.url.includes('http')) {
           videoElement.crossOrigin = 'anonymous';
-          console.debug('Set crossOrigin for external video');
+          getPlayerLogger().debug('Set crossOrigin for external video');
         }
         
         // Set new source
@@ -337,11 +355,11 @@ function HomePageClient() {
         
         // Wait for video to be ready, then start playback
         const handleCanPlay = () => {
-          console.debug('Video can play, starting playback');
+          getPlayerLogger().debug('Video can play, starting playback');
           // Small delay to ensure everything is ready
           setTimeout(() => {
             videoElement.play().catch(err => {
-              console.debug('Autoplay failed (expected):', err.message);
+              getPlayerLogger().debug('Autoplay failed (expected):', err.message);
             });
           }, 100);
           videoElement.removeEventListener('canplay', handleCanPlay);
@@ -352,9 +370,9 @@ function HomePageClient() {
         // Fallback - try to play after a longer delay
         setTimeout(() => {
           if (videoElement.paused && videoElement.readyState >= 3) {
-            console.debug('Fallback play attempt');
+            getPlayerLogger().debug('Fallback play attempt');
             videoElement.play().catch(err => {
-              console.debug('Fallback play failed:', err.message);
+              getPlayerLogger().debug('Fallback play failed:', err.message);
             });
           }
         }, 1000);
@@ -367,14 +385,14 @@ function HomePageClient() {
   const initializeVideoAnalysis = React.useCallback(() => {
     const videoElement = document.querySelector('video') as HTMLVideoElement;
     if (!videoElement) {
-      console.debug('Video element not found');
+      getPlayerLogger().debug('Video element not found');
       return;
     }
 
     // Set up analysis when video is ready
     const handleVideoReady = () => {
       if (videoElement.readyState >= 2) {
-        console.debug('Video ready for analysis');
+        getPlayerLogger().debug('Video ready for analysis');
         setTimeout(() => analyzeVideoColors(videoElement), 500);
       }
     };
@@ -420,7 +438,7 @@ function HomePageClient() {
   }, [selectedVideo.url, initializeVideoAnalysis]);
 
   return (
-    <PlayerConfigProvider defaultConfig={PlayerPresets.youtube}>
+    <PlayerConfigProvider defaultConfig={PlayerPresets.default}>
       <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
         
         {/* Hero Section with Video Player - Completely Neutral Background */}
@@ -528,7 +546,7 @@ function HomePageClient() {
                       thumbnailUrl={selectedVideo.thumbnailUrl}
                       autoPlay={true}
                       muted={false}
-                      aspectRatio={selectedVideo.aspectRatio as any || '16/9'}
+                      aspectRatio={resolveAspectRatio(selectedVideo.aspectRatio)}
                       onStateChange={setPlayerState}
                       className="w-full relative z-20"
                     />
@@ -750,7 +768,7 @@ function HomePageClient() {
                           <div className="w-12 h-12 bg-gray-700 dark:bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-3">
                             <Play className="h-6 w-6 ml-0.5" />
                           </div>
-                          <div className="text-sm font-medium">YouTube • Movies • Desktop</div>
+                          <div className="text-sm font-medium">Landscape • Cinema • Desktop</div>
                         </div>
                       </div>
                     </div>
@@ -768,7 +786,7 @@ function HomePageClient() {
                       </div>
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-600 dark:text-gray-400">Platforms</span>
-                        <span className="text-gray-700 dark:text-gray-300">YouTube, Vimeo</span>
+                        <span className="text-gray-700 dark:text-gray-300">Streaming Platforms</span>
                       </div>
                     </div>
                   </div>
@@ -877,7 +895,7 @@ function HomePageClient() {
                       16:9
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">Landscape</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">YouTube Standard</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">Widescreen Standard</div>
                   </div>
                   <div className="text-center">
                     <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">

@@ -1,4 +1,5 @@
 import type { DrmConfiguration, DrmSystemConfiguration } from '@/core/drm/types';
+import { getPlayerLogger } from '@/lib/logger';
 
 export interface EmeEnvironment {
   requestMediaKeySystemAccess: (
@@ -152,7 +153,7 @@ export const createEmeController = async (
 
         await session.update(license);
       })().catch((error) => {
-        console.warn('EME license exchange failed:', error);
+        getPlayerLogger().warn('EME license exchange failed:', error);
       });
     });
 

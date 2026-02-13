@@ -174,38 +174,28 @@ export const getStreamingStrategy = (
   capabilities: BrowserCapabilities,
   streamUrl: string
 ): 'native' | 'hlsjs' | 'dashjs' | 'direct' | 'unsupported' => {
-  console.log('VideoEngine: Analyzing stream URL:', streamUrl);
-  
-  const isHlsUrl = streamUrl.includes('.m3u8');
-  const isDashUrl = streamUrl.includes('.mpd');
-  const isDirectVideo = streamUrl.match(/\.(mp4|webm|ogg|avi|mov)(\?|$)/i);
-
-  console.log('VideoEngine: Format detection:', {
-    isHlsUrl,
-    isDashUrl,
-    isDirectVideo: !!isDirectVideo,
-    capabilities: {
-      hasNativeHls: capabilities.hasNativeHls,
-      hasHlsJs: capabilities.hasHlsJs,
-      hasDashJs: capabilities.hasDashJs,
-      isIOS: capabilities.isIOS
+  const normalizedPath = (() => {
+    try {
+      return new URL(streamUrl, 'https://localhost').pathname.toLowerCase();
+    } catch {
+      return streamUrl.toLowerCase();
     }
-  });
+  })();
+
+  const isHlsUrl = /\.m3u8$/i.test(normalizedPath);
+  const isDashUrl = /\.mpd$/i.test(normalizedPath);
+  const isDirectVideo = /\.(mp4|webm|ogg|avi|mov)$/i.test(normalizedPath);
 
   if (isHlsUrl) {
     if (capabilities.hasNativeHls && capabilities.isIOS) {
-      console.log('VideoEngine: Using native HLS strategy');
       return 'native';
     }
     if (capabilities.hasHlsJs) {
-      console.log('VideoEngine: Using HLS.js strategy');
       return 'hlsjs';
     }
-    console.log('VideoEngine: HLS not supported');
   }
 
   if (isDashUrl && capabilities.hasDashJs) {
-    console.log('VideoEngine: Using DASH.js strategy');
     return 'dashjs';
   }
 
@@ -213,20 +203,13 @@ export const getStreamingStrategy = (
   if (isDirectVideo) {
     // Check if the browser supports this video format
     const isSupported = isVideoFormatSupported(streamUrl);
-    console.log('VideoEngine: Direct video format support check:', {
-      url: streamUrl,
-      isSupported
-    });
     
     if (isSupported) {
-      console.log('VideoEngine: Using direct video strategy');
       return 'direct';
-    } else {
-      console.log('VideoEngine: Direct video format not supported by browser');
-      return 'unsupported';
     }
+
+    return 'unsupported';
   }
 
-  console.log('VideoEngine: Unsupported format');
   return 'unsupported';
 };
