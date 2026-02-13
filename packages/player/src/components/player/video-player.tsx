@@ -13,6 +13,15 @@ import { VideoControls } from '@/components/controls/video-controls';
 import { LoadingSpinner } from '@/components/player/loading-spinner';
 import { ErrorDisplay } from '@/components/player/error-display';
 import type { VideoEngineConfig } from '@/core/video-engine';
+import type { VideoEnginePlugin } from '@/core/plugins/types';
+
+type LegacyPluginContext = {
+  engine: unknown;
+  state: unknown;
+  controls: unknown;
+};
+
+type LegacyPlayerPlugin = (player: LegacyPluginContext) => void;
 
 export interface VideoPlayerProps {
   src: string;
@@ -39,7 +48,8 @@ export interface VideoPlayerProps {
     doubleTapSeek?: boolean;
     swipeVolume?: boolean;
   };
-  plugins?: Array<(player: any) => void>;
+  plugins?: LegacyPlayerPlugin[];
+  enginePlugins?: VideoEnginePlugin[];
   onReady?: () => void;
   onPlay?: () => void;
   onPause?: () => void;
@@ -74,6 +84,7 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(({
     swipeVolume: true,
   },
   plugins = [],
+  enginePlugins = [],
   onReady,
   onPlay,
   onPause,
@@ -85,12 +96,14 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(({
   const containerRef = useRef<HTMLDivElement>(null);
   const [showControls, setShowControls] = React.useState(true);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const legacyPluginsInitializedRef = useRef(false);
 
   // Video player hook
   const { state, controls: playerControls, qualityLevels, engine } = useVideoPlayer(videoRef, {
     autoPlay,
     muted,
     volume: 1,
+    enginePlugins,
   });
 
   // Memoized callbacks to prevent infinite re-renders
@@ -206,16 +219,24 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(({
 
   // Initialize plugins
   useEffect(() => {
-    if (engine && plugins.length > 0) {
-      plugins.forEach(plugin => {
-        try {
-          plugin({ engine, state, controls: playerControls });
-        } catch (error) {
-          console.warn('Plugin initialization failed:', error);
-        }
-      });
+    legacyPluginsInitializedRef.current = false;
+  }, [engine]);
+
+  useEffect(() => {
+    if (!engine || plugins.length === 0 || legacyPluginsInitializedRef.current) {
+      return;
     }
-  }, [engine, plugins, state, playerControls]);
+
+    plugins.forEach((plugin) => {
+      try {
+        plugin({ engine, state, controls: playerControls });
+      } catch (error) {
+        console.warn('Plugin initialization failed:', error);
+      }
+    });
+
+    legacyPluginsInitializedRef.current = true;
+  }, [engine, plugins, playerControls, state]);
 
   // Auto-hide controls
   const showControlsTemporarily = React.useCallback(() => {

@@ -23,6 +23,9 @@ export { useVideoGestures } from './hooks/use-video-gestures';
 // Core Engine
 export { VideoEngine } from './core/video-engine';
 export { getBrowserCapabilities, getStreamingStrategy } from './core/compatibility';
+export { AdapterRegistry } from './core/adapters/adapter-registry';
+export { defaultStreamingAdapters } from './core/adapters/default-adapters';
+export { VideoEnginePluginManager } from './core/plugins/plugin-manager';
 
 // Types
 export type { 
@@ -44,7 +47,25 @@ export type {
 export type {
   VideoEngineConfig,
   VideoEngineEvents,
+  VideoEngineOptions,
 } from './core/video-engine';
+
+export type {
+  QualityLevel,
+  StreamingAdapter,
+  StreamingAdapterFactory,
+  AdapterSelectionContext,
+  AdapterLoadContext,
+} from './core/adapters/types';
+
+export type {
+  VideoEnginePlugin,
+  VideoEnginePluginContext,
+  VideoEnginePluginErrorPayload,
+  VideoEnginePluginLoadPayload,
+  VideoEnginePluginTimeUpdatePayload,
+  VideoEnginePluginVolumePayload,
+} from './core/plugins/types';
 
 export type {
   GestureConfig,
@@ -56,6 +77,11 @@ export { PlayerPresets, mergePlayerConfig } from './types/player-config';
 
 // Utilities
 export { cn } from './lib/utils';
+export { AnalyticsPlugin, createAnalyticsPlugin } from './plugins/analytics';
+export type {
+  AnalyticsConfig as EngineAnalyticsConfig,
+  AnalyticsEvent,
+} from './plugins/analytics';
 
 // Version
 export const VERSION = '1.0.0';

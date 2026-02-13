@@ -1257,6 +1257,77 @@ var ErrorDisplay = ({
 // src/hooks/use-video-player.ts
 import { useState as useState4, useEffect as useEffect4, useCallback as useCallback2 } from "react";
 
+// src/core/adapters/adapter-registry.ts
+var AdapterRegistry = class {
+  constructor() {
+    this.factories = [];
+  }
+  register(factory) {
+    this.factories.push(factory);
+    this.factories.sort((a, b) => b.priority - a.priority);
+  }
+  resolve(context) {
+    return this.factories.find((factory) => factory.canHandle(context));
+  }
+  list() {
+    return this.factories;
+  }
+};
+
+// src/core/adapters/dashjs-adapter.ts
+var DashJsAdapter = class {
+  constructor() {
+    this.id = "dashjs";
+  }
+  async load(context) {
+    const dashjs = await import("dashjs");
+    this.instance = dashjs.MediaPlayer().create();
+    await new Promise((resolve, reject) => {
+      const dash = this.instance;
+      dash.on("streamInitialized", () => {
+        resolve();
+      });
+      dash.on("error", (errorPayload) => {
+        const errorValue = errorPayload == null ? void 0 : errorPayload.error;
+        reject(new Error(`Dash.js error: ${errorValue != null ? errorValue : "unknown"}`));
+      });
+      dash.initialize(context.videoElement, context.src, false);
+    });
+  }
+  destroy() {
+    var _a;
+    (_a = this.instance) == null ? void 0 : _a.reset();
+    this.instance = void 0;
+  }
+  getQualityLevels() {
+    if (!this.instance) {
+      return [];
+    }
+    try {
+      const bitrateInfo = this.instance.getBitrateInfoListFor("video");
+      return bitrateInfo.map((info, index) => {
+        var _a;
+        return {
+          id: String(index),
+          label: info.height ? `${info.height}p` : `${Math.round(((_a = info.bitrate) != null ? _a : 0) / 1e3)}k`,
+          height: info.height
+        };
+      });
+    } catch (e) {
+      return [];
+    }
+  }
+  setQuality(qualityId) {
+    if (!this.instance) {
+      return;
+    }
+    this.instance.setQualityFor("video", Number.parseInt(qualityId, 10));
+  }
+};
+var createDashJsAdapter = () => {
+  return new DashJsAdapter();
+};
+
 // src/core/compatibility.ts
 var hasNativeHlsSupport = () => {
   if (typeof window === "undefined") return false;
@@ -1401,108 +1472,408 @@ var getStreamingStrategy = (capabilities, streamUrl) => {
   return "unsupported";
 };
 
+// src/core/adapters/direct-video-adapter.ts
+var DirectVideoAdapter = class {
+  constructor() {
+    this.id = "direct";
+  }
+  async load(context) {
+    const { videoElement, src } = context;
+    if (!isVideoFormatSupported(src)) {
+      throw new Error("Video format not supported by this browser");
+    }
+    videoElement.src = src;
+    await new Promise((resolve, reject) => {
+      const timeout = window.setTimeout(() => {
+        cleanup();
+        reject(new Error("Video loading timeout (30s)"));
+      }, 3e4);
+      const onLoadedData = () => {
+        cleanup();
+        resolve();
+      };
+      const onError = () => {
+        const error = videoElement.error;
+        const message = (error == null ? void 0 : error.message) || "Failed to load direct video file";
+        cleanup();
+        reject(new Error(message));
+      };
+      const cleanup = () => {
+        window.clearTimeout(timeout);
+        videoElement.removeEventListener("loadeddata", onLoadedData);
+        videoElement.removeEventListener("error", onError);
+      };
+      videoElement.addEventListener("loadeddata", onLoadedData);
+      videoElement.addEventListener("error", onError);
+      videoElement.load();
+    });
+  }
+  destroy() {
+  }
+  getQualityLevels() {
+    return [];
+  }
+  setQuality() {
+  }
+};
+var createDirectVideoAdapter = () => {
+  return new DirectVideoAdapter();
+};
+
+// src/core/adapters/hlsjs-adapter.ts
+var HlsJsAdapter = class {
+  constructor() {
+    this.id = "hlsjs";
+  }
+  async load(context) {
+    const { default: Hls } = await import("hls.js");
+    if (!Hls.isSupported()) {
+      throw new Error("HLS.js is not supported in this browser");
+    }
+    this.instance = new Hls({
+      enableWorker: true,
+      lowLatencyMode: false,
+      backBufferLength: 90
+    });
+    await new Promise((resolve, reject) => {
+      const hls = this.instance;
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        resolve();
+      });
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        var _a, _b;
+        const maybeFatal = data || {};
+        if (maybeFatal.fatal) {
+          reject(new Error(`HLS.js fatal error: ${(_a = maybeFatal.type) != null ? _a : "unknown"} - ${(_b = maybeFatal.details) != null ? _b : "unknown"}`));
+        }
+      });
+      hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
+        var _a;
+        const levelIndex = data == null ? void 0 : data.level;
+        if (levelIndex === void 0) {
+          return;
+        }
+        const level = hls.levels[levelIndex];
+        (_a = context.onQualityChange) == null ? void 0 : _a.call(context, (level == null ? void 0 : level.height) ? `${level.height}p` : "auto");
+      });
+      hls.loadSource(context.src);
+      hls.attachMedia(context.videoElement);
+    });
+  }
+  destroy() {
+    var _a;
+    (_a = this.instance) == null ? void 0 : _a.destroy();
+    this.instance = void 0;
+  }
+  getQualityLevels() {
+    if (!this.instance) {
+      return [];
+    }
+    return this.instance.levels.map((level, index) => ({
+      id: String(index),
+      label: level.height ? `${level.height}p` : `Level ${index}`,
+      height: level.height
+    }));
+  }
+  setQuality(qualityId) {
+    if (!this.instance) {
+      return;
+    }
+    this.instance.currentLevel = Number.parseInt(qualityId, 10);
+  }
+};
+var createHlsJsAdapter = () => {
+  return new HlsJsAdapter();
+};
+
+// src/core/adapters/native-hls-adapter.ts
+var NativeHlsAdapter = class {
+  constructor() {
+    this.id = "native";
+  }
+  async load(context) {
+    const { videoElement, src } = context;
+    videoElement.src = src;
+    await new Promise((resolve, reject) => {
+      const onLoadedData = () => {
+        cleanup();
+        resolve();
+      };
+      const onError = () => {
+        cleanup();
+        reject(new Error("Failed to load native HLS stream"));
+      };
+      const cleanup = () => {
+        videoElement.removeEventListener("loadeddata", onLoadedData);
+        videoElement.removeEventListener("error", onError);
+      };
+      videoElement.addEventListener("loadeddata", onLoadedData);
+      videoElement.addEventListener("error", onError);
+    });
+  }
+  destroy() {
+  }
+  getQualityLevels() {
+    return [];
+  }
+  setQuality() {
+  }
+};
+var createNativeHlsAdapter = () => {
+  return new NativeHlsAdapter();
+};
+
+// src/core/adapters/default-adapters.ts
+var isHls = (src) => src.includes(".m3u8");
+var isDash = (src) => src.includes(".mpd");
+var isDirect = (src) => /\.(mp4|webm|ogg|avi|mov)(\?|$)/i.test(src);
+var defaultStreamingAdapters = [
+  {
+    id: "native",
+    priority: 100,
+    canHandle: ({ src, capabilities }) => {
+      return isHls(src) && capabilities.hasNativeHls && capabilities.isIOS;
+    },
+    create: createNativeHlsAdapter
+  },
+  {
+    id: "hlsjs",
+    priority: 90,
+    canHandle: ({ src, capabilities }) => {
+      return isHls(src) && capabilities.hasHlsJs;
+    },
+    create: createHlsJsAdapter
+  },
+  {
+    id: "dashjs",
+    priority: 80,
+    canHandle: ({ src, capabilities }) => {
+      return isDash(src) && capabilities.hasDashJs;
+    },
+    create: createDashJsAdapter
+  },
+  {
+    id: "direct",
+    priority: 70,
+    canHandle: ({ src }) => {
+      return isDirect(src);
+    },
+    create: createDirectVideoAdapter
+  }
+];
+
+// src/core/plugins/plugin-manager.ts
+var VideoEnginePluginManager = class {
+  constructor(plugins = []) {
+    this.plugins = plugins;
+  }
+  setup(context) {
+    for (const plugin of this.plugins) {
+      this.safeRun(plugin.name, "setup", () => {
+        var _a;
+        return (_a = plugin.setup) == null ? void 0 : _a.call(plugin, context);
+      });
+    }
+  }
+  onInit() {
+    for (const plugin of this.plugins) {
+      this.safeRun(plugin.name, "onInit", () => {
+        var _a;
+        return (_a = plugin.onInit) == null ? void 0 : _a.call(plugin);
+      });
+    }
+  }
+  onSourceLoadStart(payload) {
+    for (const plugin of this.plugins) {
+      this.safeRun(plugin.name, "onSourceLoadStart", () => {
+        var _a;
+        return (_a = plugin.onSourceLoadStart) == null ? void 0 : _a.call(plugin, payload);
+      });
+    }
+  }
+  onSourceLoaded(payload) {
+    for (const plugin of this.plugins) {
+      this.safeRun(plugin.name, "onSourceLoaded", () => {
+        var _a;
+        return (_a = plugin.onSourceLoaded) == null ? void 0 : _a.call(plugin, payload);
+      });
+    }
+  }
+  onPlay() {
+    for (const plugin of this.plugins) {
+      this.safeRun(plugin.name, "onPlay", () => {
+        var _a;
+        return (_a = plugin.onPlay) == null ? void 0 : _a.call(plugin);
+      });
+    }
+  }
+  onPause() {
+    for (const plugin of this.plugins) {
+      this.safeRun(plugin.name, "onPause", () => {
+        var _a;
+        return (_a = plugin.onPause) == null ? void 0 : _a.call(plugin);
+      });
+    }
+  }
+  onTimeUpdate(payload) {
+    for (const plugin of this.plugins) {
+      this.safeRun(plugin.name, "onTimeUpdate", () => {
+        var _a;
+        return (_a = plugin.onTimeUpdate) == null ? void 0 : _a.call(plugin, payload);
+      });
+    }
+  }
+  onVolumeChange(payload) {
+    for (const plugin of this.plugins) {
+      this.safeRun(plugin.name, "onVolumeChange", () => {
+        var _a;
+        return (_a = plugin.onVolumeChange) == null ? void 0 : _a.call(plugin, payload);
+      });
+    }
+  }
+  onQualityChange(quality) {
+    for (const plugin of this.plugins) {
+      this.safeRun(plugin.name, "onQualityChange", () => {
+        var _a;
+        return (_a = plugin.onQualityChange) == null ? void 0 : _a.call(plugin, quality);
+      });
+    }
+  }
+  onError(payload) {
+    for (const plugin of this.plugins) {
+      this.safeRun(plugin.name, "onError", () => {
+        var _a;
+        return (_a = plugin.onError) == null ? void 0 : _a.call(plugin, payload);
+      });
+    }
+  }
+  dispose() {
+    for (const plugin of this.plugins) {
+      this.safeRun(plugin.name, "onDispose", () => {
+        var _a;
+        return (_a = plugin.onDispose) == null ? void 0 : _a.call(plugin);
+      });
+    }
+  }
+  safeRun(pluginName, lifecycle, run) {
+    try {
+      run();
+    } catch (error) {
+      console.warn(`Plugin ${pluginName} failed during ${lifecycle}:`, error);
+    }
+  }
+};
+
 // src/core/video-engine.ts
 var VideoEngine = class {
-  constructor(videoElement, events = {}) {
-    this.events = {};
-    /**
-     * Load direct video file (MP4, WebM, etc.)
-     */
-    this.loadDirectVideo = async (src) => {
-      console.log("VideoEngine: Loading direct video file:", src);
-      this.videoElement.src = src;
-      return new Promise((resolve, reject) => {
-        const onLoadedData = () => {
-          this.videoElement.removeEventListener("loadeddata", onLoadedData);
-          this.videoElement.removeEventListener("error", onError);
-          this.videoElement.removeEventListener("loadstart", onLoadStart);
-          console.log("VideoEngine: Direct video loaded successfully");
-          resolve();
-        };
-        const onError = (event) => {
-          this.videoElement.removeEventListener("loadeddata", onLoadedData);
-          this.videoElement.removeEventListener("error", onError);
-          this.videoElement.removeEventListener("loadstart", onLoadStart);
-          const error = this.videoElement.error;
-          let errorMessage = "Failed to load direct video file";
-          if (error) {
-            switch (error.code) {
-              case error.MEDIA_ERR_ABORTED:
-                errorMessage = "Video loading was aborted";
-                break;
-              case error.MEDIA_ERR_NETWORK:
-                errorMessage = "Network error occurred while loading video";
-                break;
-              case error.MEDIA_ERR_DECODE:
-                errorMessage = "Video decoding error occurred";
-                break;
-              case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
-                errorMessage = "Video format not supported or file not found";
-                break;
-              default:
-                errorMessage = `Video error: ${error.message || "Unknown error"}`;
-            }
-          }
-          console.error("VideoEngine: Direct video load failed:", errorMessage, event);
-          console.error("VideoEngine: Failed URL:", src);
-          reject(new Error(`${errorMessage}. Please try a different video.`));
-        };
-        const onLoadStart = () => {
-          console.log("VideoEngine: Started loading direct video");
-        };
-        this.videoElement.addEventListener("loadeddata", onLoadedData);
-        this.videoElement.addEventListener("error", onError);
-        this.videoElement.addEventListener("loadstart", onLoadStart);
-        const timeout = setTimeout(() => {
-          this.videoElement.removeEventListener("loadeddata", onLoadedData);
-          this.videoElement.removeEventListener("error", onError);
-          this.videoElement.removeEventListener("loadstart", onLoadStart);
-          reject(new Error("Video loading timeout (30s)"));
-        }, 3e4);
-        const originalResolve = resolve;
-        resolve = () => {
-          clearTimeout(timeout);
-          originalResolve();
-        };
-        const originalReject = reject;
-        reject = (error) => {
-          clearTimeout(timeout);
-          originalReject(error);
-        };
-        this.videoElement.load();
-      });
-    };
+  constructor(videoElement, events = {}, options = {}) {
+    var _a, _b;
     this.videoElement = videoElement;
     this.events = events;
+    this.adapterRegistry = new AdapterRegistry();
+    this.pluginManager = new VideoEnginePluginManager((_a = options.plugins) != null ? _a : []);
+    for (const adapter of defaultStreamingAdapters) {
+      this.adapterRegistry.register(adapter);
+    }
+    for (const adapter of (_b = options.adapters) != null ? _b : []) {
+      this.adapterRegistry.register(adapter);
+    }
     this.setupVideoElementEvents();
+    this.pluginManager.setup({ videoElement: this.videoElement });
   }
-  /**
-   * Initialize the video engine with capabilities detection
-   */
   async initialize() {
-    var _a, _b;
+    var _a, _b, _c, _d;
     try {
-      console.log("Getting browser capabilities...");
       this.capabilities = await getBrowserCapabilities();
-      console.log("Browser capabilities:", this.capabilities);
+      this.pluginManager.onInit();
       (_b = (_a = this.events).onReady) == null ? void 0 : _b.call(_a);
     } catch (error) {
-      console.error("Failed to initialize video engine:", error);
+      (_d = (_c = this.events).onError) == null ? void 0 : _d.call(_c, error);
       throw error;
     }
   }
-  /**
-   * Load a video source
-   */
   async loadSource(config) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     if (!this.capabilities) {
       await this.initialize();
     }
     if (!this.capabilities) {
       throw new Error("Failed to initialize video engine capabilities");
     }
-    this.cleanup();
+    this.cleanupActiveAdapter();
+    this.applyVideoConfig(config);
+    const selectionContext = {
+      src: config.src,
+      capabilities: this.capabilities
+    };
+    const adapterFactory = this.adapterRegistry.resolve(selectionContext);
+    if (!adapterFactory) {
+      const error = new Error(`Unsupported video format. This browser cannot play: ${config.src}`);
+      (_b = (_a = this.events).onError) == null ? void 0 : _b.call(_a, error);
+      this.pluginManager.onError({ error, src: config.src });
+      throw error;
+    }
+    (_d = (_c = this.events).onLoadStart) == null ? void 0 : _d.call(_c);
+    const payload = {
+      src: config.src,
+      strategy: adapterFactory.id,
+      capabilities: this.capabilities
+    };
+    this.pluginManager.onSourceLoadStart(payload);
+    try {
+      const adapter = adapterFactory.create();
+      await adapter.load({
+        src: config.src,
+        capabilities: this.capabilities,
+        videoElement: this.videoElement,
+        onQualityChange: (quality) => {
+          var _a2, _b2;
+          (_b2 = (_a2 = this.events).onQualityChange) == null ? void 0 : _b2.call(_a2, quality);
+          this.pluginManager.onQualityChange(quality);
+        }
+      });
+      this.activeAdapter = adapter;
+      this.currentStrategy = adapterFactory.id;
+      this.currentSource = config.src;
+      this.pluginManager.onSourceLoaded(payload);
+      (_f = (_e = this.events).onLoadEnd) == null ? void 0 : _f.call(_e);
+    } catch (error) {
+      const runtimeError = error;
+      (_h = (_g = this.events).onError) == null ? void 0 : _h.call(_g, runtimeError);
+      this.pluginManager.onError({
+        error: runtimeError,
+        src: config.src,
+        strategy: adapterFactory.id
+      });
+      throw runtimeError;
+    }
+  }
+  getQualityLevels() {
+    var _a, _b;
+    return (_b = (_a = this.activeAdapter) == null ? void 0 : _a.getQualityLevels()) != null ? _b : [];
+  }
+  setQuality(qualityId) {
+    var _a;
+    (_a = this.activeAdapter) == null ? void 0 : _a.setQuality(qualityId);
+  }
+  cleanup() {
+    this.cleanupActiveAdapter();
+  }
+  dispose() {
+    this.cleanupActiveAdapter();
+    this.pluginManager.dispose();
+  }
+  getCurrentStrategy() {
+    return this.currentStrategy;
+  }
+  getCapabilities() {
+    return this.capabilities;
+  }
+  getCurrentSource() {
+    return this.currentSource;
+  }
+  applyVideoConfig(config) {
+    var _a, _b, _c, _d;
     this.videoElement.autoplay = (_a = config.autoplay) != null ? _a : false;
     this.videoElement.muted = (_b = config.muted) != null ? _b : false;
     this.videoElement.loop = (_c = config.loop) != null ? _c : false;
@@ -1510,129 +1881,24 @@ var VideoEngine = class {
     if (config.poster) {
       this.videoElement.poster = config.poster;
     }
-    const strategy = getStreamingStrategy(this.capabilities, config.src);
-    this.currentStrategy = strategy;
-    (_f = (_e = this.events).onLoadStart) == null ? void 0 : _f.call(_e);
-    try {
-      switch (strategy) {
-        case "native":
-          await this.loadNativeHls(config.src);
-          break;
-        case "hlsjs":
-          await this.loadHlsJs(config.src);
-          break;
-        case "dashjs":
-          await this.loadDashJs(config.src);
-          break;
-        case "direct":
-          await this.loadDirectVideo(config.src);
-          break;
-        case "unsupported":
-          throw new Error(`Unsupported video format. This browser cannot play: ${config.src}`);
-        default:
-          throw new Error(`Unknown streaming strategy: ${strategy} for ${config.src}`);
-      }
-      (_h = (_g = this.events).onLoadEnd) == null ? void 0 : _h.call(_g);
-    } catch (error) {
-      (_j = (_i = this.events).onError) == null ? void 0 : _j.call(_i, error);
-    }
   }
-  /**
-   * Load video using native HLS support (mainly iOS Safari)
-   */
-  async loadNativeHls(src) {
-    this.videoElement.src = src;
-    return new Promise((resolve, reject) => {
-      const onLoadedData = () => {
-        this.videoElement.removeEventListener("loadeddata", onLoadedData);
-        this.videoElement.removeEventListener("error", onError);
-        resolve();
-      };
-      const onError = () => {
-        this.videoElement.removeEventListener("loadeddata", onLoadedData);
-        this.videoElement.removeEventListener("error", onError);
-        reject(new Error("Failed to load native HLS stream"));
-      };
-      this.videoElement.addEventListener("loadeddata", onLoadedData);
-      this.videoElement.addEventListener("error", onError);
-    });
-  }
-  /**
-   * Load video using HLS.js
-   */
-  async loadHlsJs(src) {
-    try {
-      const Hls = (await import("hls.js")).default;
-      if (!Hls.isSupported()) {
-        throw new Error("HLS.js is not supported in this browser");
-      }
-      this.hlsInstance = new Hls({
-        enableWorker: true,
-        lowLatencyMode: false,
-        backBufferLength: 90
-      });
-      return new Promise((resolve, reject) => {
-        const hls = this.hlsInstance;
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          resolve();
-        });
-        hls.on(Hls.Events.ERROR, (event, data) => {
-          if (data.fatal) {
-            reject(new Error(`HLS.js fatal error: ${data.type} - ${data.details}`));
-          }
-        });
-        hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
-          var _a, _b;
-          const level = hls.levels[data.level];
-          (_b = (_a = this.events).onQualityChange) == null ? void 0 : _b.call(_a, level.height ? `${level.height}p` : "auto");
-        });
-        hls.loadSource(src);
-        hls.attachMedia(this.videoElement);
-      });
-    } catch (error) {
-      throw new Error("Failed to load HLS.js");
-    }
-  }
-  /**
-   * Load video using Dash.js
-   */
-  async loadDashJs(src) {
-    try {
-      const dashjs = await import("dashjs");
-      this.dashInstance = dashjs.MediaPlayer().create();
-      return new Promise((resolve, reject) => {
-        const dash = this.dashInstance;
-        dash.on("streamInitialized", () => {
-          resolve();
-        });
-        dash.on("error", (error) => {
-          reject(new Error(`Dash.js error: ${error.error}`));
-        });
-        dash.initialize(this.videoElement, src, false);
-      });
-    } catch (error) {
-      throw new Error("Dash.js failed to load");
-    }
-  }
-  /**
-   * Setup video element event listeners
-   */
   setupVideoElementEvents() {
     this.videoElement.addEventListener("play", () => {
       var _a, _b;
       (_b = (_a = this.events).onPlay) == null ? void 0 : _b.call(_a);
+      this.pluginManager.onPlay();
     });
     this.videoElement.addEventListener("pause", () => {
       var _a, _b;
       (_b = (_a = this.events).onPause) == null ? void 0 : _b.call(_a);
+      this.pluginManager.onPause();
     });
     this.videoElement.addEventListener("timeupdate", () => {
       var _a, _b;
-      (_b = (_a = this.events).onTimeUpdate) == null ? void 0 : _b.call(
-        _a,
-        this.videoElement.currentTime,
-        this.videoElement.duration || 0
-      );
+      const currentTime = this.videoElement.currentTime;
+      const duration = this.videoElement.duration || 0;
+      (_b = (_a = this.events).onTimeUpdate) == null ? void 0 : _b.call(_a, currentTime, duration);
+      this.pluginManager.onTimeUpdate({ currentTime, duration });
     });
     this.videoElement.addEventListener("progress", () => {
       var _a, _b;
@@ -1641,93 +1907,32 @@ var VideoEngine = class {
     });
     this.videoElement.addEventListener("volumechange", () => {
       var _a, _b;
-      (_b = (_a = this.events).onVolumeChange) == null ? void 0 : _b.call(
-        _a,
-        this.videoElement.volume,
-        this.videoElement.muted
-      );
+      const volume = this.videoElement.volume;
+      const muted = this.videoElement.muted;
+      (_b = (_a = this.events).onVolumeChange) == null ? void 0 : _b.call(_a, volume, muted);
+      this.pluginManager.onVolumeChange({ volume, muted });
     });
     this.videoElement.addEventListener("error", () => {
       var _a, _b;
-      (_b = (_a = this.events).onError) == null ? void 0 : _b.call(_a, new Error("Video element error"));
+      const error = new Error("Video element error");
+      (_b = (_a = this.events).onError) == null ? void 0 : _b.call(_a, error);
+      this.pluginManager.onError({ error, src: this.currentSource, strategy: this.currentStrategy });
     });
   }
-  /**
-   * Get buffered percentage
-   */
   getBufferedPercentage() {
     const buffered = this.videoElement.buffered;
     const duration = this.videoElement.duration;
-    if (buffered.length === 0 || !duration) return 0;
+    if (buffered.length === 0 || !duration) {
+      return 0;
+    }
     const bufferedEnd = buffered.end(buffered.length - 1);
     return bufferedEnd / duration * 100;
   }
-  /**
-   * Get available quality levels
-   */
-  getQualityLevels() {
-    if (this.hlsInstance) {
-      return this.hlsInstance.levels.map((level, index) => ({
-        id: index.toString(),
-        label: level.height ? `${level.height}p` : `Level ${index}`,
-        height: level.height
-      }));
-    }
-    if (this.dashInstance) {
-      try {
-        const bitrateInfo = this.dashInstance.getBitrateInfoListFor("video");
-        return bitrateInfo.map((info, index) => ({
-          id: index.toString(),
-          label: info.height ? `${info.height}p` : `${Math.round(info.bitrate / 1e3)}k`,
-          height: info.height
-        }));
-      } catch (e) {
-        return [];
-      }
-    }
-    return [];
-  }
-  /**
-   * Set quality level
-   */
-  setQuality(qualityId) {
-    if (this.hlsInstance) {
-      const levelIndex = parseInt(qualityId);
-      this.hlsInstance.currentLevel = levelIndex;
-    }
-    if (this.dashInstance) {
-      try {
-        const qualityIndex = parseInt(qualityId);
-        this.dashInstance.setQualityFor("video", qualityIndex);
-      } catch (error) {
-        console.warn("Failed to set quality:", error);
-      }
-    }
-  }
-  /**
-   * Clean up instances and remove event listeners
-   */
-  cleanup() {
-    if (this.hlsInstance) {
-      this.hlsInstance.destroy();
-      this.hlsInstance = void 0;
-    }
-    if (this.dashInstance) {
-      this.dashInstance.reset();
-      this.dashInstance = void 0;
-    }
-  }
-  /**
-   * Get current streaming strategy
-   */
-  getCurrentStrategy() {
-    return this.currentStrategy;
-  }
-  /**
-   * Get browser capabilities
-   */
-  getCapabilities() {
-    return this.capabilities;
+  cleanupActiveAdapter() {
+    var _a;
+    (_a = this.activeAdapter) == null ? void 0 : _a.destroy();
+    this.activeAdapter = void 0;
+    this.currentStrategy = void 0;
   }
 };
 
@@ -1761,6 +1966,7 @@ var useVideoPlayer = (videoRef, options = {}) => {
   const [pendingConfig, setPendingConfig] = useState4(null);
   const [isPlayPending, setIsPlayPending] = useState4(false);
   const [qualityLevels, setQualityLevels] = useState4([]);
+  const [initialEnginePlugins] = useState4(() => options.enginePlugins);
   const [lastPlayTime, setLastPlayTime] = useState4(0);
   const [bufferingStartTime, setBufferingStartTime] = useState4(0);
   useEffect4(() => {
@@ -1822,7 +2028,9 @@ var useVideoPlayer = (videoRef, options = {}) => {
         });
       }
     };
-    const videoEngine = new VideoEngine(videoElement, events);
+    const videoEngine = new VideoEngine(videoElement, events, {
+      plugins: initialEnginePlugins
+    });
     setEngine(videoEngine);
     console.log("Initializing video engine...");
     videoEngine.initialize().then(() => {
@@ -1832,9 +2040,9 @@ var useVideoPlayer = (videoRef, options = {}) => {
       setState((prev) => __spreadProps(__spreadValues({}, prev), { error: error.message }));
     });
     return () => {
-      videoEngine.cleanup();
+      videoEngine.dispose();
     };
-  }, [videoRef]);
+  }, [videoRef, initialEnginePlugins]);
   useEffect4(() => {
     if (isEngineReady && engine && pendingConfig) {
       console.log("Engine is ready, loading pending config:", pendingConfig.src);
@@ -2744,6 +2952,7 @@ var VideoPlayer = forwardRef2(({
     swipeVolume: true
   },
   plugins = [],
+  enginePlugins = [],
   onReady,
   onPlay,
   onPause,
@@ -2755,10 +2964,12 @@ var VideoPlayer = forwardRef2(({
   const containerRef = useRef5(null);
   const [showControls, setShowControls] = React7.useState(true);
   const controlsTimeoutRef = useRef5(null);
+  const legacyPluginsInitializedRef = useRef5(false);
   const { state, controls: playerControls, qualityLevels, engine } = useVideoPlayer(videoRef, {
     autoPlay,
     muted,
-    volume: 1
+    volume: 1,
+    enginePlugins
   });
   const handlePlay = useCallback5(() => {
     onPlay == null ? void 0 : onPlay();
@@ -2850,16 +3061,21 @@ var VideoPlayer = forwardRef2(({
     }
   }, [state.isLoading, state.duration, handleReady]);
   useEffect8(() => {
-    if (engine && plugins.length > 0) {
-      plugins.forEach((plugin) => {
-        try {
-          plugin({ engine, state, controls: playerControls });
-        } catch (error) {
-          console.warn("Plugin initialization failed:", error);
-        }
-      });
+    legacyPluginsInitializedRef.current = false;
+  }, [engine]);
+  useEffect8(() => {
+    if (!engine || plugins.length === 0 || legacyPluginsInitializedRef.current) {
+      return;
     }
-  }, [engine, plugins, state, playerControls]);
+    plugins.forEach((plugin) => {
+      try {
+        plugin({ engine, state, controls: playerControls });
+      } catch (error) {
+        console.warn("Plugin initialization failed:", error);
+      }
+    });
+    legacyPluginsInitializedRef.current = true;
+  }, [engine, plugins, playerControls, state]);
   const showControlsTemporarily = React7.useCallback(() => {
     setShowControls(true);
     if (controlsTimeoutRef.current) {
@@ -4122,9 +4338,141 @@ var PlayerConfigPanel = () => {
   ] });
 };
 
+// src/plugins/analytics.ts
+var AnalyticsPlugin = class {
+  constructor(config) {
+    this.name = "analytics";
+    this.events = [];
+    this.config = __spreadValues({
+      sampleRate: 1,
+      events: {
+        play: true,
+        pause: true,
+        seek: true,
+        complete: true,
+        error: true,
+        source: true
+      }
+    }, config);
+    this.sessionId = this.generateSessionId();
+  }
+  onSourceLoadStart(payload) {
+    var _a;
+    this.lastSource = payload;
+    if ((_a = this.config.events) == null ? void 0 : _a.source) {
+      this.track("source_load_start", {
+        src: payload.src,
+        strategy: payload.strategy
+      });
+    }
+  }
+  onSourceLoaded(payload) {
+    var _a;
+    this.lastSource = payload;
+    if ((_a = this.config.events) == null ? void 0 : _a.source) {
+      this.track("source_loaded", {
+        src: payload.src,
+        strategy: payload.strategy
+      });
+    }
+  }
+  onPlay() {
+    var _a;
+    if ((_a = this.config.events) == null ? void 0 : _a.play) {
+      this.track("play");
+    }
+  }
+  onPause() {
+    var _a;
+    if ((_a = this.config.events) == null ? void 0 : _a.pause) {
+      this.track("pause");
+    }
+  }
+  onTimeUpdate(payload) {
+    var _a, _b;
+    if (this.lastTimeUpdate && ((_a = this.config.events) == null ? void 0 : _a.seek)) {
+      const delta = Math.abs(payload.currentTime - this.lastTimeUpdate.currentTime);
+      if (delta > 5) {
+        this.track("seek", {
+          currentTime: payload.currentTime,
+          duration: payload.duration
+        });
+      }
+    }
+    if (((_b = this.config.events) == null ? void 0 : _b.complete) && payload.duration > 0 && payload.currentTime / payload.duration >= 0.98) {
+      this.track("complete", {
+        currentTime: payload.currentTime,
+        duration: payload.duration
+      });
+    }
+    this.lastTimeUpdate = payload;
+  }
+  onError(payload) {
+    var _a;
+    if ((_a = this.config.events) == null ? void 0 : _a.error) {
+      this.track("error", {
+        src: payload.src,
+        strategy: payload.strategy,
+        error: payload.error.message
+      });
+    }
+  }
+  getEvents() {
+    return [...this.events];
+  }
+  clearEvents() {
+    this.events.length = 0;
+  }
+  track(type, metadata) {
+    var _a, _b, _c, _d, _e;
+    if (!this.config.enabled) {
+      return;
+    }
+    if (Math.random() > ((_a = this.config.sampleRate) != null ? _a : 1)) {
+      return;
+    }
+    const event = {
+      type,
+      timestamp: Date.now(),
+      source: (_b = this.lastSource) == null ? void 0 : _b.src,
+      strategy: (_c = this.lastSource) == null ? void 0 : _c.strategy,
+      currentTime: (_d = this.lastTimeUpdate) == null ? void 0 : _d.currentTime,
+      duration: (_e = this.lastTimeUpdate) == null ? void 0 : _e.duration,
+      metadata: __spreadValues({
+        sessionId: this.sessionId
+      }, metadata)
+    };
+    this.events.push(event);
+    if (this.config.apiEndpoint) {
+      this.sendEvent(event);
+    }
+  }
+  async sendEvent(event) {
+    try {
+      await fetch(this.config.apiEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(event)
+      });
+    } catch (error) {
+      console.warn("Failed to send analytics event:", error);
+    }
+  }
+  generateSessionId() {
+    return `session_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+  }
+};
+var createAnalyticsPlugin = (config) => {
+  return new AnalyticsPlugin(config);
+};
+
 // src/index.ts
 var VERSION = "1.0.0";
 export {
+  AdapterRegistry,
+  AnalyticsPlugin,
   ConfigurableVideoPlayer,
   ErrorDisplay,
   LoadingSpinner,
@@ -4135,11 +4483,14 @@ export {
   VERSION,
   VideoControls,
   VideoEngine,
+  VideoEnginePluginManager,
   VideoPlayer,
   VideoPlayerDemo,
   VideoSourceSelector,
   VideoThumbnail,
   cn,
+  createAnalyticsPlugin,
+  defaultStreamingAdapters,
   getBrowserCapabilities,
   getStreamingStrategy,
   mergePlayerConfig,

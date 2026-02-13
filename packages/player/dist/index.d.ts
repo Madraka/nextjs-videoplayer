@@ -62,7 +62,7 @@ interface AutoBehavior {
     rememberVolume?: boolean;
     rememberPlaybackRate?: boolean;
 }
-interface AnalyticsConfig {
+interface AnalyticsConfig$1 {
     enabled?: boolean;
     trackPlay?: boolean;
     trackPause?: boolean;
@@ -96,7 +96,7 @@ interface PlayerConfiguration {
     keyboard?: KeyboardShortcutsConfig;
     gestures?: GesturesConfig;
     auto?: AutoBehavior;
-    analytics?: AnalyticsConfig;
+    analytics?: AnalyticsConfig$1;
     features?: AdvancedFeatures;
     responsive?: {
         enabled?: boolean;
@@ -150,10 +150,73 @@ interface ConfigurableVideoPlayerProps {
 declare const ConfigurableVideoPlayer: React$1.ForwardRefExoticComponent<ConfigurableVideoPlayerProps & React$1.RefAttributes<HTMLVideoElement>>;
 
 /**
+ * Browser and device compatibility utilities
+ * Detects HLS support, device capabilities, and autoplay policies
+ */
+interface BrowserCapabilities {
+    hasNativeHls: boolean;
+    hasHlsJs: boolean;
+    hasDashJs: boolean;
+    isMobile: boolean;
+    isIOS: boolean;
+    isAndroid: boolean;
+    supportsInlinePlayback: boolean;
+    supportsAutoplay: boolean;
+    supportsPictureInPicture: boolean;
+}
+declare const getBrowserCapabilities: () => Promise<BrowserCapabilities>;
+/**
+ * Get optimal streaming strategy based on browser capabilities
+ */
+declare const getStreamingStrategy: (capabilities: BrowserCapabilities, streamUrl: string) => "native" | "hlsjs" | "dashjs" | "direct" | "unsupported";
+
+interface VideoEnginePluginContext {
+    videoElement: HTMLVideoElement;
+}
+interface VideoEnginePluginLoadPayload {
+    src: string;
+    strategy: string;
+    capabilities: BrowserCapabilities;
+}
+interface VideoEnginePluginErrorPayload {
+    src?: string;
+    strategy?: string;
+    error: Error;
+}
+interface VideoEnginePluginTimeUpdatePayload {
+    currentTime: number;
+    duration: number;
+}
+interface VideoEnginePluginVolumePayload {
+    volume: number;
+    muted: boolean;
+}
+interface VideoEnginePlugin {
+    readonly name: string;
+    setup?(context: VideoEnginePluginContext): void;
+    onInit?(): void;
+    onSourceLoadStart?(payload: VideoEnginePluginLoadPayload): void;
+    onSourceLoaded?(payload: VideoEnginePluginLoadPayload): void;
+    onPlay?(): void;
+    onPause?(): void;
+    onTimeUpdate?(payload: VideoEnginePluginTimeUpdatePayload): void;
+    onVolumeChange?(payload: VideoEnginePluginVolumePayload): void;
+    onQualityChange?(quality: string): void;
+    onError?(payload: VideoEnginePluginErrorPayload): void;
+    onDispose?(): void;
+}
+
+/**
  * Main video player component
  * Combines video engine, controls, and gesture handling
  */
 
+type LegacyPluginContext = {
+    engine: unknown;
+    state: unknown;
+    controls: unknown;
+};
+type LegacyPlayerPlugin = (player: LegacyPluginContext) => void;
 interface VideoPlayerProps {
     src: string;
     poster?: string;
@@ -179,7 +242,8 @@ interface VideoPlayerProps {
         doubleTapSeek?: boolean;
         swipeVolume?: boolean;
     };
-    plugins?: Array<(player: any) => void>;
+    plugins?: LegacyPlayerPlugin[];
+    enginePlugins?: VideoEnginePlugin[];
     onReady?: () => void;
     onPlay?: () => void;
     onPause?: () => void;
@@ -189,30 +253,36 @@ interface VideoPlayerProps {
 }
 declare const VideoPlayer: React$1.ForwardRefExoticComponent<VideoPlayerProps & React$1.RefAttributes<HTMLVideoElement>>;
 
-/**
- * Browser and device compatibility utilities
- * Detects HLS support, device capabilities, and autoplay policies
- */
-interface BrowserCapabilities {
-    hasNativeHls: boolean;
-    hasHlsJs: boolean;
-    hasDashJs: boolean;
-    isMobile: boolean;
-    isIOS: boolean;
-    isAndroid: boolean;
-    supportsInlinePlayback: boolean;
-    supportsAutoplay: boolean;
-    supportsPictureInPicture: boolean;
+interface AdapterSelectionContext {
+    src: string;
+    capabilities: BrowserCapabilities;
 }
-declare const getBrowserCapabilities: () => Promise<BrowserCapabilities>;
-/**
- * Get optimal streaming strategy based on browser capabilities
- */
-declare const getStreamingStrategy: (capabilities: BrowserCapabilities, streamUrl: string) => "native" | "hlsjs" | "dashjs" | "direct" | "unsupported";
+interface AdapterLoadContext extends AdapterSelectionContext {
+    videoElement: HTMLVideoElement;
+    onQualityChange?: (quality: string) => void;
+}
+interface QualityLevel {
+    id: string;
+    label: string;
+    height?: number;
+}
+interface StreamingAdapter {
+    readonly id: string;
+    load(context: AdapterLoadContext): Promise<void>;
+    destroy(): void;
+    getQualityLevels(): QualityLevel[];
+    setQuality(qualityId: string): void;
+}
+interface StreamingAdapterFactory {
+    readonly id: string;
+    readonly priority: number;
+    canHandle(context: AdapterSelectionContext): boolean;
+    create(): StreamingAdapter;
+}
 
 /**
  * Core video engine that handles different streaming protocols
- * Supports native HLS, HLS.js, and Dash.js with automatic fallback
+ * Supports pluggable adapters and plugin lifecycle hooks.
  */
 
 interface VideoEngineConfig {
@@ -235,70 +305,33 @@ interface VideoEngineEvents {
     onLoadStart: () => void;
     onLoadEnd: () => void;
 }
+interface VideoEngineOptions {
+    plugins?: VideoEnginePlugin[];
+    adapters?: StreamingAdapterFactory[];
+}
 declare class VideoEngine {
-    private videoElement;
-    private hlsInstance?;
-    private dashInstance?;
+    private readonly videoElement;
+    private readonly events;
+    private readonly adapterRegistry;
+    private readonly pluginManager;
+    private activeAdapter?;
     private capabilities?;
     private currentStrategy?;
-    private events;
-    constructor(videoElement: HTMLVideoElement, events?: Partial<VideoEngineEvents>);
-    /**
-     * Initialize the video engine with capabilities detection
-     */
+    private currentSource?;
+    constructor(videoElement: HTMLVideoElement, events?: Partial<VideoEngineEvents>, options?: VideoEngineOptions);
     initialize(): Promise<void>;
-    /**
-     * Load a video source
-     */
     loadSource(config: VideoEngineConfig): Promise<void>;
-    /**
-     * Load video using native HLS support (mainly iOS Safari)
-     */
-    private loadNativeHls;
-    /**
-     * Load direct video file (MP4, WebM, etc.)
-     */
-    private loadDirectVideo;
-    /**
-     * Load video using HLS.js
-     */
-    private loadHlsJs;
-    /**
-     * Load video using Dash.js
-     */
-    private loadDashJs;
-    /**
-     * Setup video element event listeners
-     */
-    private setupVideoElementEvents;
-    /**
-     * Get buffered percentage
-     */
-    private getBufferedPercentage;
-    /**
-     * Get available quality levels
-     */
-    getQualityLevels(): Array<{
-        id: string;
-        label: string;
-        height?: number;
-    }>;
-    /**
-     * Set quality level
-     */
+    getQualityLevels(): QualityLevel[];
     setQuality(qualityId: string): void;
-    /**
-     * Clean up instances and remove event listeners
-     */
     cleanup(): void;
-    /**
-     * Get current streaming strategy
-     */
+    dispose(): void;
     getCurrentStrategy(): string | undefined;
-    /**
-     * Get browser capabilities
-     */
     getCapabilities(): BrowserCapabilities | undefined;
+    getCurrentSource(): string | undefined;
+    private applyVideoConfig;
+    private setupVideoElementEvents;
+    private getBufferedPercentage;
+    private cleanupActiveAdapter;
 }
 
 /**
@@ -344,6 +377,7 @@ interface UseVideoPlayerOptions {
     autoPlay?: boolean;
     muted?: boolean;
     volume?: number;
+    enginePlugins?: VideoEnginePlugin[];
 }
 declare const useVideoPlayer: (videoRef: React.RefObject<HTMLVideoElement | null>, options?: UseVideoPlayerOptions) => {
     state: VideoPlayerState;
@@ -540,8 +574,83 @@ declare const useVideoGestures: (elementRef: React.RefObject<HTMLElement | null>
     };
 };
 
+declare class AdapterRegistry {
+    private readonly factories;
+    register(factory: StreamingAdapterFactory): void;
+    resolve(context: AdapterSelectionContext): StreamingAdapterFactory | undefined;
+    list(): readonly StreamingAdapterFactory[];
+}
+
+declare const defaultStreamingAdapters: StreamingAdapterFactory[];
+
+declare class VideoEnginePluginManager {
+    private readonly plugins;
+    constructor(plugins?: VideoEnginePlugin[]);
+    setup(context: VideoEnginePluginContext): void;
+    onInit(): void;
+    onSourceLoadStart(payload: VideoEnginePluginLoadPayload): void;
+    onSourceLoaded(payload: VideoEnginePluginLoadPayload): void;
+    onPlay(): void;
+    onPause(): void;
+    onTimeUpdate(payload: VideoEnginePluginTimeUpdatePayload): void;
+    onVolumeChange(payload: VideoEnginePluginVolumePayload): void;
+    onQualityChange(quality: string): void;
+    onError(payload: VideoEnginePluginErrorPayload): void;
+    dispose(): void;
+    private safeRun;
+}
+
 declare function cn(...inputs: ClassValue[]): string;
+
+/**
+ * Analytics plugin for video engine lifecycle events.
+ */
+
+interface AnalyticsConfig {
+    enabled: boolean;
+    apiEndpoint?: string;
+    sampleRate?: number;
+    events?: {
+        play?: boolean;
+        pause?: boolean;
+        seek?: boolean;
+        complete?: boolean;
+        error?: boolean;
+        source?: boolean;
+    };
+}
+interface AnalyticsEvent {
+    type: string;
+    timestamp: number;
+    source?: string;
+    strategy?: string;
+    currentTime?: number;
+    duration?: number;
+    error?: string;
+    metadata?: Record<string, unknown>;
+}
+declare class AnalyticsPlugin implements VideoEnginePlugin {
+    readonly name = "analytics";
+    private readonly config;
+    private readonly events;
+    private readonly sessionId;
+    private lastTimeUpdate?;
+    private lastSource?;
+    constructor(config: AnalyticsConfig);
+    onSourceLoadStart(payload: VideoEnginePluginLoadPayload): void;
+    onSourceLoaded(payload: VideoEnginePluginLoadPayload): void;
+    onPlay(): void;
+    onPause(): void;
+    onTimeUpdate(payload: VideoEnginePluginTimeUpdatePayload): void;
+    onError(payload: VideoEnginePluginErrorPayload): void;
+    getEvents(): AnalyticsEvent[];
+    clearEvents(): void;
+    private track;
+    private sendEvent;
+    private generateSessionId;
+}
+declare const createAnalyticsPlugin: (config: AnalyticsConfig) => VideoEnginePlugin;
 
 declare const VERSION = "1.0.0";
 
-export { type AdvancedFeatures, type AnalyticsConfig, type AutoBehavior, ConfigurableVideoPlayer, type ControlsVisibility, ErrorDisplay, type GestureCallbacks, type GestureConfig, type GesturesConfig, type KeyboardShortcutsConfig, LoadingSpinner, MobileVideoControls, PlayerConfigPanel, PlayerConfigProvider, type PlayerConfiguration, PlayerPresets, type PlayerTheme, VERSION, VideoControls, VideoEngine, type VideoEngineConfig, type VideoEngineEvents, VideoPlayer, type VideoPlayerControls, VideoPlayerDemo, type VideoPlayerState, type VideoSource, VideoSourceSelector, VideoThumbnail, cn, getBrowserCapabilities, getStreamingStrategy, mergePlayerConfig, usePlayerConfig, usePlayerPresets, useVideoGestures, useVideoPlayer };
+export { type AdapterLoadContext, AdapterRegistry, type AdapterSelectionContext, type AdvancedFeatures, type AnalyticsConfig$1 as AnalyticsConfig, type AnalyticsEvent, AnalyticsPlugin, type AutoBehavior, ConfigurableVideoPlayer, type ControlsVisibility, type AnalyticsConfig as EngineAnalyticsConfig, ErrorDisplay, type GestureCallbacks, type GestureConfig, type GesturesConfig, type KeyboardShortcutsConfig, LoadingSpinner, MobileVideoControls, PlayerConfigPanel, PlayerConfigProvider, type PlayerConfiguration, PlayerPresets, type PlayerTheme, type QualityLevel, type StreamingAdapter, type StreamingAdapterFactory, VERSION, VideoControls, VideoEngine, type VideoEngineConfig, type VideoEngineEvents, type VideoEngineOptions, type VideoEnginePlugin, type VideoEnginePluginContext, type VideoEnginePluginErrorPayload, type VideoEnginePluginLoadPayload, VideoEnginePluginManager, type VideoEnginePluginTimeUpdatePayload, type VideoEnginePluginVolumePayload, VideoPlayer, type VideoPlayerControls, VideoPlayerDemo, type VideoPlayerState, type VideoSource, VideoSourceSelector, VideoThumbnail, cn, createAnalyticsPlugin, defaultStreamingAdapters, getBrowserCapabilities, getStreamingStrategy, mergePlayerConfig, usePlayerConfig, usePlayerPresets, useVideoGestures, useVideoPlayer };

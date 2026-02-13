@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { VideoEngine, type VideoEngineConfig, type VideoEngineEvents } from '@/core/video-engine';
+import type { VideoEnginePlugin } from '@/core/plugins/types';
 
 export interface VideoPlayerState {
   isPlaying: boolean;
@@ -47,6 +48,7 @@ interface UseVideoPlayerOptions {
   autoPlay?: boolean;
   muted?: boolean;
   volume?: number;
+  enginePlugins?: VideoEnginePlugin[];
 }
 
 export const useVideoPlayer = (
@@ -81,6 +83,7 @@ export const useVideoPlayer = (
   const [pendingConfig, setPendingConfig] = useState<VideoEngineConfig | null>(null);
   const [isPlayPending, setIsPlayPending] = useState(false);
   const [qualityLevels, setQualityLevels] = useState<Array<{ id: string; label: string; height?: number }>>([]);
+  const [initialEnginePlugins] = useState<VideoEnginePlugin[] | undefined>(() => options.enginePlugins);
   
   // Analytics tracking
   const [lastPlayTime, setLastPlayTime] = useState<number>(0);
@@ -153,7 +156,9 @@ export const useVideoPlayer = (
       },
     };
 
-    const videoEngine = new VideoEngine(videoElement, events);
+    const videoEngine = new VideoEngine(videoElement, events, {
+      plugins: initialEnginePlugins,
+    });
     setEngine(videoEngine);
 
     // Initialize engine
@@ -168,9 +173,9 @@ export const useVideoPlayer = (
       });
 
     return () => {
-      videoEngine.cleanup();
+      videoEngine.dispose();
     };
-  }, [videoRef]);
+  }, [videoRef, initialEnginePlugins]);
 
   // Load pending config when engine becomes ready
   useEffect(() => {

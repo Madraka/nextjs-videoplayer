@@ -1,122 +1,168 @@
 /**
- * Analytics plugin for video player
- * Tracks video events and sends analytics data
+ * Analytics plugin for video engine lifecycle events.
  */
+
+import type {
+  VideoEnginePlugin,
+  VideoEnginePluginErrorPayload,
+  VideoEnginePluginLoadPayload,
+  VideoEnginePluginTimeUpdatePayload,
+} from '@/core/plugins/types';
 
 export interface AnalyticsConfig {
   enabled: boolean;
-  trackingId?: string;
   apiEndpoint?: string;
+  sampleRate?: number;
   events?: {
     play?: boolean;
     pause?: boolean;
     seek?: boolean;
     complete?: boolean;
     error?: boolean;
+    source?: boolean;
   };
 }
 
 export interface AnalyticsEvent {
   type: string;
   timestamp: number;
-  videoSrc: string;
+  source?: string;
+  strategy?: string;
   currentTime?: number;
   duration?: number;
   error?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
-export class AnalyticsPlugin {
-  private config: AnalyticsConfig;
-  private events: AnalyticsEvent[] = [];
-  private sessionId: string;
-  private startTime: number;
+export class AnalyticsPlugin implements VideoEnginePlugin {
+  readonly name = 'analytics';
+
+  private readonly config: AnalyticsConfig;
+  private readonly events: AnalyticsEvent[] = [];
+  private readonly sessionId: string;
+  private lastTimeUpdate?: VideoEnginePluginTimeUpdatePayload;
+  private lastSource?: VideoEnginePluginLoadPayload;
 
   constructor(config: AnalyticsConfig) {
     this.config = {
+      sampleRate: 1,
       events: {
         play: true,
         pause: true,
         seek: true,
         complete: true,
         error: true,
+        source: true,
       },
       ...config,
     };
-    
+
     this.sessionId = this.generateSessionId();
-    this.startTime = Date.now();
   }
 
-  init(player: any) {
-    if (!this.config.enabled) return;
-
-    const { engine, state, controls } = player;
-
-    // Track play events
-    if (this.config.events?.play) {
-      this.trackEvent('play');
-    }
-
-    // Track pause events
-    if (this.config.events?.pause) {
-      this.trackEvent('pause');
-    }
-
-    // Track seek events
-    if (this.config.events?.seek) {
-      this.trackEvent('seek', {
-        seekTo: state.currentTime,
+  onSourceLoadStart(payload: VideoEnginePluginLoadPayload): void {
+    this.lastSource = payload;
+    if (this.config.events?.source) {
+      this.track('source_load_start', {
+        src: payload.src,
+        strategy: payload.strategy,
       });
     }
+  }
 
-    // Track completion
-    if (this.config.events?.complete) {
-      // Check if video is near the end (within 2 seconds)
-      if (state.currentTime > 0 && state.duration - state.currentTime < 2) {
-        this.trackEvent('complete', {
-          watchTime: state.currentTime,
-          completion: (state.currentTime / state.duration) * 100,
+  onSourceLoaded(payload: VideoEnginePluginLoadPayload): void {
+    this.lastSource = payload;
+    if (this.config.events?.source) {
+      this.track('source_loaded', {
+        src: payload.src,
+        strategy: payload.strategy,
+      });
+    }
+  }
+
+  onPlay(): void {
+    if (this.config.events?.play) {
+      this.track('play');
+    }
+  }
+
+  onPause(): void {
+    if (this.config.events?.pause) {
+      this.track('pause');
+    }
+  }
+
+  onTimeUpdate(payload: VideoEnginePluginTimeUpdatePayload): void {
+    if (this.lastTimeUpdate && this.config.events?.seek) {
+      const delta = Math.abs(payload.currentTime - this.lastTimeUpdate.currentTime);
+      if (delta > 5) {
+        this.track('seek', {
+          currentTime: payload.currentTime,
+          duration: payload.duration,
         });
       }
     }
 
-    // Track errors
-    if (this.config.events?.error && state.error) {
-      this.trackEvent('error', {
-        error: state.error,
+    if (this.config.events?.complete && payload.duration > 0 && payload.currentTime / payload.duration >= 0.98) {
+      this.track('complete', {
+        currentTime: payload.currentTime,
+        duration: payload.duration,
       });
     }
 
-    console.log('Analytics plugin initialized:', this.sessionId);
+    this.lastTimeUpdate = payload;
   }
 
-  private trackEvent(type: string, metadata?: Record<string, any>) {
+  onError(payload: VideoEnginePluginErrorPayload): void {
+    if (this.config.events?.error) {
+      this.track('error', {
+        src: payload.src,
+        strategy: payload.strategy,
+        error: payload.error.message,
+      });
+    }
+  }
+
+  getEvents(): AnalyticsEvent[] {
+    return [...this.events];
+  }
+
+  clearEvents(): void {
+    this.events.length = 0;
+  }
+
+  private track(type: string, metadata?: Record<string, unknown>): void {
+    if (!this.config.enabled) {
+      return;
+    }
+
+    if (Math.random() > (this.config.sampleRate ?? 1)) {
+      return;
+    }
+
     const event: AnalyticsEvent = {
       type,
       timestamp: Date.now(),
-      videoSrc: window.location.href, // You might want to pass the actual video src
+      source: this.lastSource?.src,
+      strategy: this.lastSource?.strategy,
+      currentTime: this.lastTimeUpdate?.currentTime,
+      duration: this.lastTimeUpdate?.duration,
       metadata: {
         sessionId: this.sessionId,
-        sessionDuration: Date.now() - this.startTime,
-        userAgent: navigator.userAgent,
         ...metadata,
       },
     };
 
     this.events.push(event);
-    
-    // Send immediately or batch
+
     if (this.config.apiEndpoint) {
       this.sendEvent(event);
     }
-
-    console.log('Analytics event:', event);
   }
 
-  private async sendEvent(event: AnalyticsEvent) {
+  private async sendEvent(event: AnalyticsEvent): Promise<void> {
     try {
-      await fetch(this.config.apiEndpoint!, {
+      await fetch(this.config.apiEndpoint as string, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -129,25 +175,10 @@ export class AnalyticsPlugin {
   }
 
   private generateSessionId(): string {
-    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  getEvents(): AnalyticsEvent[] {
-    return [...this.events];
-  }
-
-  clearEvents(): void {
-    this.events = [];
+    return `session_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
   }
 }
 
-/**
- * Factory function to create analytics plugin
- */
-export const createAnalyticsPlugin = (config: AnalyticsConfig) => {
-  const analytics = new AnalyticsPlugin(config);
-  
-  return (player: any) => {
-    analytics.init(player);
-  };
+export const createAnalyticsPlugin = (config: AnalyticsConfig): VideoEnginePlugin => {
+  return new AnalyticsPlugin(config);
 };
