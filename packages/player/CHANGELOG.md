@@ -1,3 +1,8 @@
+## [1.0.7] - 2026-02-13
+
+### Fixed
+- Aligned package metadata `repository.url`/`homepage` with GitHub provenance source URL for npm publish verification.
+
 ## [1.0.6] - 2026-02-13
 
 ### Changed

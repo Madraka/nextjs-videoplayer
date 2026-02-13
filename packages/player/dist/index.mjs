@@ -5300,7 +5300,7 @@ var createAnalyticsPlugin = (config) => {
 };
 
 // src/index.ts
-var VERSION = "1.0.6";
+var VERSION = "1.0.7";
 export {
   AdapterRegistry,
   AnalyticsPlugin,
