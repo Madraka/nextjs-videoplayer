@@ -10,6 +10,7 @@ import { PlayerConfigProvider } from '@/contexts/player-config-context';
 import { PlayerPresets } from '@/types/player-config';
 import { cn } from '@/lib/utils';
 import { getPlayerLogger } from '@/lib/logger';
+import type { VideoPlayerState } from '@/hooks/use-video-player';
 import Link from 'next/link';
 import { 
   Play, 
@@ -121,7 +122,7 @@ const resolveAspectRatio = (value?: string): PlayerAspectRatio => {
 
 function HomePageClient() {
   const [selectedVideo, setSelectedVideo] = useState(videoSources[0]);
-  const [playerState, setPlayerState] = useState({
+  const [playerState, setPlayerState] = useState<VideoPlayerState>({
     isPlaying: false,
     isPaused: false,
     isLoading: false,
@@ -136,6 +137,7 @@ function HomePageClient() {
     playCount: 0,
     totalWatchTime: 0,
     bufferingTime: 0,
+    averageBitrate: 0,
     qualityChanges: 0,
     playbackRate: 1,
     isPictureInPicture: false,
