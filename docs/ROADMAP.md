@@ -85,3 +85,5 @@ Definition of done:
    Status: completed (`src/core/drm`, `drm` support in `VideoEngineConfig`).
 7. Add configurable DRM license request pipeline (token refresh capable).
    Status: completed (`licenseRequestHandler`, `createTokenLicenseRequestHandler`).
+8. Add showcase DRM validation and safe attach toggle.
+   Status: completed (DRM dry-run validator panel in `apps/showcase`).

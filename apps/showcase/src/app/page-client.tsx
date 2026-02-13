@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import {
@@ -14,6 +15,9 @@ import {
   PlayerPresets,
   VideoSourceSelector,
   createAnalyticsPlugin,
+  createTokenLicenseRequestHandler,
+  isEmeSupported,
+  type DrmConfiguration,
   type VideoEnginePlugin,
   type VideoSource,
 } from '@madraka/nextjs-videoplayer';
@@ -30,7 +34,10 @@ import {
   ExternalLink,
   Video,
   Monitor,
-  Download
+  Download,
+  ShieldCheck,
+  ShieldX,
+  LoaderCircle
 } from 'lucide-react';
 
 const videoSources: VideoSource[] = [
@@ -125,6 +132,14 @@ const videoSources: VideoSource[] = [
 interface PluginEventLog {
   id: number;
   message: string;
+}
+
+interface DrmValidationState {
+  status: 'idle' | 'running' | 'passed' | 'failed';
+  messages: string[];
+  emeSupported: boolean | null;
+  keySystemSupported: boolean | null;
+  checkedAt: string | null;
 }
 
 const createQoeMonitorPlugin = (
@@ -226,6 +241,22 @@ function HomePageClient() {
   });
   const [pluginEvents, setPluginEvents] = useState<PluginEventLog[]>([]);
   const [activeStrategy, setActiveStrategy] = useState('pending');
+  const [drmOptions, setDrmOptions] = useState({
+    enabled: false,
+    applyToPlayer: false,
+    useTokenHandler: false,
+    keySystem: 'com.widevine.alpha',
+    licenseUrl: 'https://license.example.com/widevine',
+    requestTimeoutMs: '15000',
+    tokenHeaderName: 'Authorization',
+  });
+  const [drmValidation, setDrmValidation] = useState<DrmValidationState>({
+    status: 'idle',
+    messages: ['Run validation to test EME and key-system support in this browser.'],
+    emeSupported: null,
+    keySystemSupported: null,
+    checkedAt: null,
+  });
 
   const addPluginEvent = React.useCallback((message: string) => {
     setPluginEvents((prev) => [
@@ -261,6 +292,144 @@ function HomePageClient() {
     () =>
       `${selectedVideo.id}-${pluginFlags.analytics ? 'a1' : 'a0'}-${pluginFlags.qoeMonitor ? 'q1' : 'q0'}-${pluginFlags.autoPause ? 'p1' : 'p0'}`,
     [pluginFlags.analytics, pluginFlags.autoPause, pluginFlags.qoeMonitor, selectedVideo.id]
+  );
+
+  const runDrmValidation = React.useCallback(async () => {
+    const keySystem = drmOptions.keySystem.trim();
+    const licenseUrl = drmOptions.licenseUrl.trim();
+    const messages: string[] = [];
+
+    setDrmValidation({
+      status: 'running',
+      messages: ['Checking EME support and key-system capabilities...'],
+      emeSupported: null,
+      keySystemSupported: null,
+      checkedAt: null,
+    });
+
+    if (!drmOptions.enabled) {
+      setDrmValidation({
+        status: 'failed',
+        messages: ['Enable DRM toggle before running validation.'],
+        emeSupported: null,
+        keySystemSupported: null,
+        checkedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
+    const emeSupported = isEmeSupported();
+    if (!emeSupported) {
+      setDrmValidation({
+        status: 'failed',
+        messages: ['Browser does not expose Encrypted Media Extensions (EME).'],
+        emeSupported: false,
+        keySystemSupported: false,
+        checkedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (!keySystem) {
+      setDrmValidation({
+        status: 'failed',
+        messages: ['Key system is required. Example: com.widevine.alpha'],
+        emeSupported: true,
+        keySystemSupported: false,
+        checkedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (!licenseUrl.startsWith('http://') && !licenseUrl.startsWith('https://')) {
+      messages.push('License URL should start with http:// or https://');
+    }
+
+    if (typeof navigator.requestMediaKeySystemAccess !== 'function') {
+      setDrmValidation({
+        status: 'failed',
+        messages: ['navigator.requestMediaKeySystemAccess is not available in this context.'],
+        emeSupported: true,
+        keySystemSupported: false,
+        checkedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
+    try {
+      await navigator.requestMediaKeySystemAccess(keySystem, [
+        {
+          initDataTypes: ['cenc'],
+          audioCapabilities: [{ contentType: 'audio/mp4; codecs="mp4a.40.2"' }],
+          videoCapabilities: [{ contentType: 'video/mp4; codecs="avc1.42E01E"' }],
+        },
+      ]);
+
+      messages.unshift(`Key system is available in this browser: ${keySystem}`);
+      setDrmValidation({
+        status: 'passed',
+        messages,
+        emeSupported: true,
+        keySystemSupported: true,
+        checkedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      messages.unshift(`Key system is not available: ${(error as Error).message}`);
+      setDrmValidation({
+        status: 'failed',
+        messages,
+        emeSupported: true,
+        keySystemSupported: false,
+        checkedAt: new Date().toISOString(),
+      });
+    }
+  }, [drmOptions.enabled, drmOptions.keySystem, drmOptions.licenseUrl]);
+
+  const drmConfigForPlayer = React.useMemo<DrmConfiguration | undefined>(() => {
+    if (!drmOptions.enabled || !drmOptions.applyToPlayer) {
+      return undefined;
+    }
+
+    const timeoutValue = Number.parseInt(drmOptions.requestTimeoutMs, 10);
+    const requestTimeoutMs = Number.isFinite(timeoutValue) && timeoutValue > 0 ? timeoutValue : 15000;
+    const keySystem = drmOptions.keySystem.trim();
+    const licenseServerUrl = drmOptions.licenseUrl.trim();
+
+    if (!keySystem || !licenseServerUrl) {
+      return undefined;
+    }
+
+    return {
+      enabled: true,
+      requestTimeoutMs,
+      systems: [
+        {
+          keySystem,
+          licenseServerUrl,
+        },
+      ],
+      licenseRequestHandler: drmOptions.useTokenHandler
+        ? createTokenLicenseRequestHandler({
+            getToken: async () => 'demo-token',
+            refreshToken: async () => 'demo-token-refreshed',
+            headerName: drmOptions.tokenHeaderName || 'Authorization',
+          })
+        : undefined,
+    };
+  }, [
+    drmOptions.applyToPlayer,
+    drmOptions.enabled,
+    drmOptions.keySystem,
+    drmOptions.licenseUrl,
+    drmOptions.requestTimeoutMs,
+    drmOptions.tokenHeaderName,
+    drmOptions.useTokenHandler,
+  ]);
+
+  const playerRuntimeKey = React.useMemo(
+    () =>
+      `${pluginConfigKey}-${drmOptions.applyToPlayer ? 'drm-on' : 'drm-off'}-${drmOptions.enabled ? 'enabled' : 'disabled'}-${drmOptions.keySystem}`,
+    [drmOptions.applyToPlayer, drmOptions.enabled, drmOptions.keySystem, pluginConfigKey]
   );
 
   // Enhanced video color analysis with performance optimization
@@ -655,9 +824,10 @@ function HomePageClient() {
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/30 pointer-events-none z-10"></div>
                     
                     <ConfigurableVideoPlayer
-                      key={pluginConfigKey}
+                      key={playerRuntimeKey}
                       src={selectedVideo.url}
                       fallbackSources={selectedVideo.fallbackUrls}
+                      drmConfig={drmConfigForPlayer}
                       poster={selectedVideo.poster}
                       thumbnailUrl={selectedVideo.thumbnailUrl}
                       autoPlay={true}
@@ -804,6 +974,188 @@ function HomePageClient() {
                               )}
                             </div>
                           </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
+                </div>
+
+                {/* DRM Dry-Run Validator */}
+                <div className="relative">
+                  <div className="relative bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-3xl p-8 border border-gray-200/70 dark:border-gray-700/70 shadow-2xl">
+                    <div className="flex items-center justify-between gap-4 mb-6">
+                      <div>
+                        <h3 className="font-semibold text-xl text-gray-900 dark:text-white">DRM Dry-Run Validator</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Validate EME/key-system support and optionally wire DRM config into live playback.
+                        </p>
+                      </div>
+                      <Badge variant={drmValidation.status === 'passed' ? 'secondary' : 'outline'}>
+                        {drmValidation.status.toUpperCase()}
+                      </Badge>
+                    </div>
+
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      <Card className="border-gray-200 dark:border-gray-700">
+                        <CardHeader>
+                          <CardTitle className="text-lg">Configuration</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label className="text-sm font-medium text-gray-900 dark:text-white">Enable DRM Mode</Label>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">Turns on DRM config editor and validation.</p>
+                            </div>
+                            <Switch
+                              checked={drmOptions.enabled}
+                              onCheckedChange={(checked) =>
+                                setDrmOptions((prev) => ({ ...prev, enabled: checked }))
+                              }
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium text-gray-900 dark:text-white">Key System</Label>
+                            <Input
+                              value={drmOptions.keySystem}
+                              disabled={!drmOptions.enabled}
+                              onChange={(event) =>
+                                setDrmOptions((prev) => ({ ...prev, keySystem: event.target.value }))
+                              }
+                              placeholder="com.widevine.alpha"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium text-gray-900 dark:text-white">License Server URL</Label>
+                            <Input
+                              value={drmOptions.licenseUrl}
+                              disabled={!drmOptions.enabled}
+                              onChange={(event) =>
+                                setDrmOptions((prev) => ({ ...prev, licenseUrl: event.target.value }))
+                              }
+                              placeholder="https://license.example.com/widevine"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium text-gray-900 dark:text-white">Request Timeout (ms)</Label>
+                            <Input
+                              type="number"
+                              value={drmOptions.requestTimeoutMs}
+                              disabled={!drmOptions.enabled}
+                              onChange={(event) =>
+                                setDrmOptions((prev) => ({ ...prev, requestTimeoutMs: event.target.value }))
+                              }
+                              placeholder="15000"
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label className="text-sm font-medium text-gray-900 dark:text-white">Token License Handler</Label>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">Uses demo token refresh strategy helper.</p>
+                            </div>
+                            <Switch
+                              checked={drmOptions.useTokenHandler}
+                              disabled={!drmOptions.enabled}
+                              onCheckedChange={(checked) =>
+                                setDrmOptions((prev) => ({ ...prev, useTokenHandler: checked }))
+                              }
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium text-gray-900 dark:text-white">Token Header</Label>
+                            <Input
+                              value={drmOptions.tokenHeaderName}
+                              disabled={!drmOptions.enabled || !drmOptions.useTokenHandler}
+                              onChange={(event) =>
+                                setDrmOptions((prev) => ({ ...prev, tokenHeaderName: event.target.value }))
+                              }
+                              placeholder="Authorization"
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label className="text-sm font-medium text-gray-900 dark:text-white">Apply To Live Player</Label>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">Disabled by default to keep showcase playback stable.</p>
+                            </div>
+                            <Switch
+                              checked={drmOptions.applyToPlayer}
+                              disabled={!drmOptions.enabled}
+                              onCheckedChange={(checked) =>
+                                setDrmOptions((prev) => ({ ...prev, applyToPlayer: checked }))
+                              }
+                            />
+                          </div>
+
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              void runDrmValidation();
+                            }}
+                            disabled={drmValidation.status === 'running'}
+                            className="w-full gap-2"
+                          >
+                            {drmValidation.status === 'running' ? (
+                              <LoaderCircle className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <ShieldCheck className="h-4 w-4" />
+                            )}
+                            Run DRM Validation
+                          </Button>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="border-gray-200 dark:border-gray-700">
+                        <CardHeader>
+                          <CardTitle className="text-lg">Validation Output</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="rounded-md border border-gray-200 dark:border-gray-700 p-3">
+                              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">EME Support</p>
+                              <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                {drmValidation.emeSupported === null ? 'Not checked' : drmValidation.emeSupported ? 'Supported' : 'Unsupported'}
+                              </p>
+                            </div>
+                            <div className="rounded-md border border-gray-200 dark:border-gray-700 p-3">
+                              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Key System</p>
+                              <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                {drmValidation.keySystemSupported === null
+                                  ? 'Not checked'
+                                  : drmValidation.keySystemSupported
+                                    ? 'Available'
+                                    : 'Unavailable'}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-3 space-y-2 min-h-[196px]">
+                            {drmValidation.messages.map((message, index) => (
+                              <p key={`${message}-${index}`} className="text-xs text-gray-700 dark:text-gray-300">
+                                {message}
+                              </p>
+                            ))}
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <Badge variant={drmOptions.applyToPlayer && drmConfigForPlayer ? 'secondary' : 'outline'}>
+                              {drmOptions.applyToPlayer && drmConfigForPlayer ? 'DRM attached to player' : 'DRM detached from player'}
+                            </Badge>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {drmValidation.checkedAt ? `Last check: ${new Date(drmValidation.checkedAt).toLocaleTimeString()}` : 'No validation run yet'}
+                            </span>
+                          </div>
+
+                          {drmValidation.status === 'failed' && (
+                            <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
+                              <ShieldX className="h-3.5 w-3.5" />
+                              Validation failed. Keep DRM detached for demo playback.
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
                     </div>
@@ -1406,6 +1758,10 @@ export default function MyPage() {
   const enginePlugins = [
     createAnalyticsPlugin({ enabled: true, sampleRate: 1 }),
   ];
+  const drmConfig = {
+    enabled: true,
+    systems: [{ keySystem: 'com.widevine.alpha', licenseServerUrl: 'https://license.example.com' }],
+  };
 
   return (
     <ConfigurableVideoPlayer
@@ -1414,6 +1770,7 @@ export default function MyPage() {
       autoPlay={false}
       muted={false}
       enginePlugins={enginePlugins}
+      drmConfig={drmConfig}
       className="w-full aspect-video"
       controls={{
         fullscreen: true,
