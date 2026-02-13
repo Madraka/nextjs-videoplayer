@@ -333,20 +333,17 @@ This keeps Vercel showcase deployment and npm package publishing isolated.
 ### Release Flow
 
 ```bash
-# 1) add a changeset in your feature/fix branch
+# Option A (automated release script)
+pnpm release:patch
+# or
+pnpm release:minor
+pnpm release:major
+
+# Option B (changesets-first workflow)
 pnpm changeset
-
-# 2) merge PR, then prepare versions/changelog on main
 pnpm changeset:version
-git add .changeset package.json packages/player/package.json pnpm-lock.yaml CHANGELOG.md packages/player/CHANGELOG.md
-git commit -m "release: version packages"
-
-# 3) validate release candidate
 pnpm release:check
-
-# 4) create and push tag from packages/player/package.json version
 pnpm release:tag
-git push origin main
 ```
 
 When the `vX.Y.Z` tag is pushed, `Package Publish` handles npm publish + GitHub release.

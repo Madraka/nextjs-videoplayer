@@ -13,13 +13,14 @@ Build an enterprise-grade structure where showcase delivery and player package d
 
 ## Current Baseline
 
-- Showcase is deployed from repository root on Vercel.
-- Player package is built with `tsup` and published from root.
+- Showcase is deployed from `apps/showcase`.
+- Player package is built and published from `packages/player`.
 - GitHub Actions are split into:
   - `showcase-ci.yml` for quality checks
   - `package-publish.yml` for tag-based publish
+- Release automation is available via `scripts/release.sh`.
 
-## Phase 1: Foundation (in progress)
+## Phase 1: Foundation (completed)
 
 1. Add workspace scaffolding without moving runtime code.
 2. Add release governance with Changesets.
@@ -32,20 +33,20 @@ Deliverables:
 - release scripts in `package.json`
 - workflow separation for CI and publish
 
-## Phase 2: Controlled Extraction
+## Phase 2: Controlled Extraction (completed)
 
 1. Create `apps/showcase` and move Next.js app there.
 2. Create `packages/player` and move package source there.
 3. Update imports to consume package from workspace.
-4. Set Vercel root directory to `apps/showcase`.
+4. Configure Vercel to build showcase app path.
 
 Definition of done:
 
 - Local commands work from root via workspace scripts.
-- Vercel deploys `apps/showcase`.
+- Vercel deploys the showcase app.
 - `package-publish.yml` publishes package from `packages/player`.
 
-## Phase 3: Hardening
+## Phase 3: Hardening (in progress)
 
 1. Add component/unit/e2e tests.
 2. Add bundle-size and API-surface checks.
