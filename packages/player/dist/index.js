@@ -2680,6 +2680,7 @@ var ConfigurableVideoPlayer = (0, import_react7.forwardRef)(({
   playsInline = true,
   className,
   configOverride,
+  enginePlugins,
   aspectRatio = "auto",
   customAspectRatio,
   onReady,
@@ -2712,7 +2713,8 @@ var ConfigurableVideoPlayer = (0, import_react7.forwardRef)(({
   const { state, controls: playerControls, qualityLevels, engine } = useVideoPlayer(videoRef, {
     autoPlay: (_b = autoPlay != null ? autoPlay : (_a = config.auto) == null ? void 0 : _a.autoPlay) != null ? _b : false,
     muted,
-    volume: 1
+    volume: 1,
+    enginePlugins
   });
   const gesturesConfig = config.gestures || {};
   const gestureCallbacks = {

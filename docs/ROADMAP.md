@@ -51,8 +51,10 @@ Definition of done:
 1. Add component/unit/e2e tests.
    Status: unit test baseline completed in `packages/player` with Vitest.
 2. Add bundle-size and API-surface checks.
+   Status: completed with `size-limit` and API snapshot validation.
 3. Enforce branch protection and required checks.
 4. Add release runbook and rollback playbook.
+   Status: release runbook completed in `docs/RELEASE_RUNBOOK.md`.
 
 Definition of done:
 
@@ -66,3 +68,14 @@ Definition of done:
 3. Release prep updates versions: `pnpm changeset:version`.
 4. Tag current package version: `pnpm release:tag`.
 5. `package-publish` publishes to npm and creates GitHub release.
+
+## Phase 4: Player Core Architecture (in progress)
+
+1. Introduce adapter registry and pluggable transport layer.
+   Status: completed (`src/core/adapters`, `AdapterRegistry`, default adapters).
+2. Introduce typed plugin lifecycle for engine-level extensibility.
+   Status: completed (`src/core/plugins`, analytics plugin migration).
+3. Expose architecture in showcase with interactive plugin toggles.
+   Status: in progress.
+4. Add architecture reference documentation.
+   Status: completed in `docs/PLAYER_ARCHITECTURE.md`.

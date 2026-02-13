@@ -2,6 +2,63 @@ import React$1 from 'react';
 import { ClassValue } from 'clsx';
 
 /**
+ * Browser and device compatibility utilities
+ * Detects HLS support, device capabilities, and autoplay policies
+ */
+interface BrowserCapabilities {
+    hasNativeHls: boolean;
+    hasHlsJs: boolean;
+    hasDashJs: boolean;
+    isMobile: boolean;
+    isIOS: boolean;
+    isAndroid: boolean;
+    supportsInlinePlayback: boolean;
+    supportsAutoplay: boolean;
+    supportsPictureInPicture: boolean;
+}
+declare const getBrowserCapabilities: () => Promise<BrowserCapabilities>;
+/**
+ * Get optimal streaming strategy based on browser capabilities
+ */
+declare const getStreamingStrategy: (capabilities: BrowserCapabilities, streamUrl: string) => "native" | "hlsjs" | "dashjs" | "direct" | "unsupported";
+
+interface VideoEnginePluginContext {
+    videoElement: HTMLVideoElement;
+}
+interface VideoEnginePluginLoadPayload {
+    src: string;
+    strategy: string;
+    capabilities: BrowserCapabilities;
+}
+interface VideoEnginePluginErrorPayload {
+    src?: string;
+    strategy?: string;
+    error: Error;
+}
+interface VideoEnginePluginTimeUpdatePayload {
+    currentTime: number;
+    duration: number;
+}
+interface VideoEnginePluginVolumePayload {
+    volume: number;
+    muted: boolean;
+}
+interface VideoEnginePlugin {
+    readonly name: string;
+    setup?(context: VideoEnginePluginContext): void;
+    onInit?(): void;
+    onSourceLoadStart?(payload: VideoEnginePluginLoadPayload): void;
+    onSourceLoaded?(payload: VideoEnginePluginLoadPayload): void;
+    onPlay?(): void;
+    onPause?(): void;
+    onTimeUpdate?(payload: VideoEnginePluginTimeUpdatePayload): void;
+    onVolumeChange?(payload: VideoEnginePluginVolumePayload): void;
+    onQualityChange?(quality: string): void;
+    onError?(payload: VideoEnginePluginErrorPayload): void;
+    onDispose?(): void;
+}
+
+/**
  * Comprehensive video player configuration types
  * Enables granular control over every aspect of the player
  */
@@ -138,6 +195,7 @@ interface ConfigurableVideoPlayerProps {
     playsInline?: boolean;
     className?: string;
     configOverride?: Partial<PlayerConfiguration>;
+    enginePlugins?: VideoEnginePlugin[];
     aspectRatio?: 'auto' | '16/9' | '4/3' | '1/1' | '9/16' | '3/4' | 'custom';
     customAspectRatio?: string;
     onReady?: () => void;
@@ -148,63 +206,6 @@ interface ConfigurableVideoPlayerProps {
     onStateChange?: (state: any) => void;
 }
 declare const ConfigurableVideoPlayer: React$1.ForwardRefExoticComponent<ConfigurableVideoPlayerProps & React$1.RefAttributes<HTMLVideoElement>>;
-
-/**
- * Browser and device compatibility utilities
- * Detects HLS support, device capabilities, and autoplay policies
- */
-interface BrowserCapabilities {
-    hasNativeHls: boolean;
-    hasHlsJs: boolean;
-    hasDashJs: boolean;
-    isMobile: boolean;
-    isIOS: boolean;
-    isAndroid: boolean;
-    supportsInlinePlayback: boolean;
-    supportsAutoplay: boolean;
-    supportsPictureInPicture: boolean;
-}
-declare const getBrowserCapabilities: () => Promise<BrowserCapabilities>;
-/**
- * Get optimal streaming strategy based on browser capabilities
- */
-declare const getStreamingStrategy: (capabilities: BrowserCapabilities, streamUrl: string) => "native" | "hlsjs" | "dashjs" | "direct" | "unsupported";
-
-interface VideoEnginePluginContext {
-    videoElement: HTMLVideoElement;
-}
-interface VideoEnginePluginLoadPayload {
-    src: string;
-    strategy: string;
-    capabilities: BrowserCapabilities;
-}
-interface VideoEnginePluginErrorPayload {
-    src?: string;
-    strategy?: string;
-    error: Error;
-}
-interface VideoEnginePluginTimeUpdatePayload {
-    currentTime: number;
-    duration: number;
-}
-interface VideoEnginePluginVolumePayload {
-    volume: number;
-    muted: boolean;
-}
-interface VideoEnginePlugin {
-    readonly name: string;
-    setup?(context: VideoEnginePluginContext): void;
-    onInit?(): void;
-    onSourceLoadStart?(payload: VideoEnginePluginLoadPayload): void;
-    onSourceLoaded?(payload: VideoEnginePluginLoadPayload): void;
-    onPlay?(): void;
-    onPause?(): void;
-    onTimeUpdate?(payload: VideoEnginePluginTimeUpdatePayload): void;
-    onVolumeChange?(payload: VideoEnginePluginVolumePayload): void;
-    onQualityChange?(quality: string): void;
-    onError?(payload: VideoEnginePluginErrorPayload): void;
-    onDispose?(): void;
-}
 
 /**
  * Main video player component

@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import {
@@ -11,6 +13,8 @@ import {
   PlayerConfigProvider,
   PlayerPresets,
   VideoSourceSelector,
+  createAnalyticsPlugin,
+  type VideoEnginePlugin,
   type VideoSource,
 } from '@madraka/nextjs-videoplayer';
 import { 
@@ -104,6 +108,67 @@ const videoSources: VideoSource[] = [
   }
 ];
 
+interface PluginEventLog {
+  id: number;
+  message: string;
+}
+
+const createQoeMonitorPlugin = (
+  onEvent: (message: string) => void,
+  onStrategy: (strategy: string) => void
+): VideoEnginePlugin => {
+  let loadStart = 0;
+
+  return {
+    name: 'qoe-monitor',
+    onSourceLoadStart: ({ src }) => {
+      loadStart = Date.now();
+      onEvent(`Source loading: ${src}`);
+    },
+    onSourceLoaded: ({ strategy }) => {
+      const startup = loadStart > 0 ? Date.now() - loadStart : 0;
+      onStrategy(strategy);
+      onEvent(`Playback ready via ${strategy.toUpperCase()} (${startup}ms startup)`);
+    },
+    onQualityChange: (quality) => {
+      onEvent(`Quality changed to ${quality}`);
+    },
+    onError: ({ error }) => {
+      onEvent(`Playback error: ${error.message}`);
+    },
+  };
+};
+
+const createAutoPausePlugin = (
+  onEvent: (message: string) => void,
+  stopAtSeconds: number
+): VideoEnginePlugin => {
+  let videoElement: HTMLVideoElement | null = null;
+  let hasPaused = false;
+
+  return {
+    name: 'auto-pause',
+    setup: ({ videoElement: element }) => {
+      videoElement = element;
+      hasPaused = false;
+    },
+    onSourceLoadStart: () => {
+      hasPaused = false;
+    },
+    onTimeUpdate: ({ currentTime }) => {
+      if (!videoElement || hasPaused) {
+        return;
+      }
+
+      if (currentTime >= stopAtSeconds) {
+        videoElement.pause();
+        hasPaused = true;
+        onEvent(`Auto-pause plugin stopped playback at ${stopAtSeconds}s`);
+      }
+    },
+  };
+};
+
 function HomePageClient() {
   const [selectedVideo, setSelectedVideo] = useState(videoSources[0]);
   const [playerState, setPlayerState] = useState({
@@ -135,6 +200,49 @@ function HomePageClient() {
   });
 
   const [isAnalysisWorking, setIsAnalysisWorking] = useState(false);
+  const [pluginFlags, setPluginFlags] = useState({
+    analytics: true,
+    qoeMonitor: true,
+    autoPause: false,
+  });
+  const [pluginEvents, setPluginEvents] = useState<PluginEventLog[]>([]);
+  const [activeStrategy, setActiveStrategy] = useState('pending');
+
+  const addPluginEvent = React.useCallback((message: string) => {
+    setPluginEvents((prev) => [
+      { id: Date.now() + Math.floor(Math.random() * 1000), message },
+      ...prev.slice(0, 7),
+    ]);
+  }, []);
+
+  const enginePlugins = React.useMemo(() => {
+    const plugins: VideoEnginePlugin[] = [];
+
+    if (pluginFlags.analytics) {
+      plugins.push(
+        createAnalyticsPlugin({
+          enabled: true,
+          sampleRate: 1,
+        })
+      );
+    }
+
+    if (pluginFlags.qoeMonitor) {
+      plugins.push(createQoeMonitorPlugin(addPluginEvent, setActiveStrategy));
+    }
+
+    if (pluginFlags.autoPause) {
+      plugins.push(createAutoPausePlugin(addPluginEvent, 25));
+    }
+
+    return plugins;
+  }, [addPluginEvent, pluginFlags.analytics, pluginFlags.autoPause, pluginFlags.qoeMonitor]);
+
+  const pluginConfigKey = React.useMemo(
+    () =>
+      `${selectedVideo.id}-${pluginFlags.analytics ? 'a1' : 'a0'}-${pluginFlags.qoeMonitor ? 'q1' : 'q0'}-${pluginFlags.autoPause ? 'p1' : 'p0'}`,
+    [pluginFlags.analytics, pluginFlags.autoPause, pluginFlags.qoeMonitor, selectedVideo.id]
+  );
 
   // Enhanced video color analysis with performance optimization
   const analyzeVideoColors = React.useCallback((videoElement: HTMLVideoElement) => {
@@ -289,6 +397,8 @@ function HomePageClient() {
     
     // Clear all existing states immediately
     setIsAnalysisWorking(false);
+    setActiveStrategy('pending');
+    setPluginEvents([]);
     setAmbientColors({
       primary: 'rgba(100, 116, 139, 0.4)',
       secondary: 'rgba(71, 85, 105, 0.3)', 
@@ -526,12 +636,15 @@ function HomePageClient() {
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/30 pointer-events-none z-10"></div>
                     
                     <ConfigurableVideoPlayer
+                      key={pluginConfigKey}
                       src={selectedVideo.url}
                       poster={selectedVideo.poster}
                       thumbnailUrl={selectedVideo.thumbnailUrl}
                       autoPlay={true}
                       muted={false}
                       aspectRatio={selectedVideo.aspectRatio as any || '16/9'}
+                      enginePlugins={enginePlugins}
+                      onReady={() => addPluginEvent('Player ready')}
                       onStateChange={setPlayerState}
                       className="w-full relative z-20"
                     />
@@ -580,6 +693,100 @@ function HomePageClient() {
                       selectedVideo={selectedVideo}
                       onVideoSelect={handleVideoSelect}
                     />
+                  </div>
+                </div>
+
+                {/* Plugin Playground */}
+                <div className="relative">
+                  <div className="relative bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-3xl p-8 border border-gray-200/70 dark:border-gray-700/70 shadow-2xl">
+                    <div className="flex items-center justify-between gap-4 mb-6">
+                      <div>
+                        <h3 className="font-semibold text-xl text-gray-900 dark:text-white">Plugin Playground</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Toggle engine plugins and inspect runtime adapter decisions.
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="bg-gray-50/90 dark:bg-gray-700/50">
+                        {enginePlugins.length} plugins active
+                      </Badge>
+                    </div>
+
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      <Card className="border-gray-200 dark:border-gray-700">
+                        <CardHeader>
+                          <CardTitle className="text-lg">Plugin Toggles</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-5">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label className="text-sm font-medium text-gray-900 dark:text-white">Analytics Plugin</Label>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">Tracks lifecycle events with sampling support.</p>
+                            </div>
+                            <Switch
+                              checked={pluginFlags.analytics}
+                              onCheckedChange={(checked) =>
+                                setPluginFlags((prev) => ({ ...prev, analytics: checked }))
+                              }
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label className="text-sm font-medium text-gray-900 dark:text-white">QoE Monitor</Label>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">Logs startup latency, quality shifts, and adapter strategy.</p>
+                            </div>
+                            <Switch
+                              checked={pluginFlags.qoeMonitor}
+                              onCheckedChange={(checked) =>
+                                setPluginFlags((prev) => ({ ...prev, qoeMonitor: checked }))
+                              }
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label className="text-sm font-medium text-gray-900 dark:text-white">Auto Pause at 25s</Label>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">Demonstrates deterministic playback policy hooks.</p>
+                            </div>
+                            <Switch
+                              checked={pluginFlags.autoPause}
+                              onCheckedChange={(checked) =>
+                                setPluginFlags((prev) => ({ ...prev, autoPause: checked }))
+                              }
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="border-gray-200 dark:border-gray-700">
+                        <CardHeader>
+                          <CardTitle className="text-lg">Runtime Signals</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600 dark:text-gray-300">Active strategy</span>
+                            <Badge variant="secondary">{activeStrategy.toUpperCase()}</Badge>
+                          </div>
+
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Latest plugin events</p>
+                            <div className="rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-3 space-y-2 min-h-[144px]">
+                              {pluginEvents.length > 0 ? (
+                                pluginEvents.map((event) => (
+                                  <p key={event.id} className="text-xs text-gray-700 dark:text-gray-300">
+                                    {event.message}
+                                  </p>
+                                ))
+                              ) : (
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  No plugin event yet. Play a video or change plugin toggles.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1173,15 +1380,20 @@ function HomePageClient() {
                     <span className="ml-4 text-gray-400 text-sm">video-player.tsx</span>
                   </div>
                   <pre className="text-sm text-gray-100 overflow-x-auto">
-                    <code>{`import { ConfigurableVideoPlayer } from '@madraka/nextjs-videoplayer';
+                    <code>{`import { ConfigurableVideoPlayer, createAnalyticsPlugin } from '@madraka/nextjs-videoplayer';
 
 export default function MyPage() {
+  const enginePlugins = [
+    createAnalyticsPlugin({ enabled: true, sampleRate: 1 }),
+  ];
+
   return (
     <ConfigurableVideoPlayer
       src="https://example.com/video.m3u8"
       poster="/poster.jpg"
       autoPlay={false}
       muted={false}
+      enginePlugins={enginePlugins}
       className="w-full aspect-video"
       controls={{
         fullscreen: true,

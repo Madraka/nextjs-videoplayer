@@ -10,6 +10,7 @@ import { useVideoPlayer } from '@/hooks/use-video-player';
 import { useVideoGestures } from '@/hooks/use-video-gestures';
 import { usePlayerConfig } from '@/contexts/player-config-context';
 import type { VideoEngineConfig } from '@/core/video-engine';
+import type { VideoEnginePlugin } from '@/core/plugins/types';
 import type { PlayerConfiguration } from '@/types/player-config';
 
 interface ConfigurableVideoPlayerProps {
@@ -22,6 +23,7 @@ interface ConfigurableVideoPlayerProps {
   playsInline?: boolean;
   className?: string;
   configOverride?: Partial<PlayerConfiguration>;
+  enginePlugins?: VideoEnginePlugin[];
   aspectRatio?: 'auto' | '16/9' | '4/3' | '1/1' | '9/16' | '3/4' | 'custom';
   customAspectRatio?: string;
   onReady?: () => void;
@@ -42,6 +44,7 @@ export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, Configurable
   playsInline = true,
   className,
   configOverride,
+  enginePlugins,
   aspectRatio = 'auto',
   customAspectRatio,
   onReady,
@@ -85,6 +88,7 @@ export const ConfigurableVideoPlayer = forwardRef<HTMLVideoElement, Configurable
     autoPlay: autoPlay ?? config.auto?.autoPlay ?? false,
     muted,
     volume: 1,
+    enginePlugins,
   });
 
   // Apply gesture configuration - Mobile optimized
